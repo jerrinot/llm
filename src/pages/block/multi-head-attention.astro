@@ -1,0 +1,141 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import '../../styles/global.css';
+import '../../styles/course.css';
+import LessonPage from '../../components/course/LessonPage';
+import GatePanel from '../../components/assessment/GatePanel';
+---
+
+<BaseLayout title="Multi-Head Attention Runs Several Smaller Attentions in Parallel">
+  <LessonPage lessonId="L18A" client:load>
+
+    <div class="lesson-section">
+      <div class="section-label">Question</div>
+      <div class="lesson-question">Why split attention into multiple heads?</div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Intuition</div>
+      <p>
+        A single attention head can only learn one pattern of "what to attend to." But language has many simultaneous relationships — syntactic (subject-verb), semantic (pronoun-referent), positional (adjacent words). One set of Q/K/V weights cannot capture all of these at once.
+      </p>
+      <p>
+        <strong>Multi-head attention</strong> splits the Q, K, and V projections into <em>h</em> independent heads, each operating in a smaller subspace. Head 1 might learn to attend to the previous word. Head 2 might track the subject of the sentence. Head 3 might focus on punctuation boundaries. They all run in parallel.
+      </p>
+      <p>
+        After each head computes its own attention output, the results are concatenated back into one vector and passed through a final output projection (W_O). This is not the same as running one big attention head — each head has its own learned Q/K/V weights and attends to different things.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Toy Example</div>
+      <div class="toy-example">
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-bottom: var(--space-3);">
+          d_model = 8, n_heads = 2, so d_head = 4:
+        </p>
+        <div style="font-family: var(--font-mono); font-size: var(--text-sm);">
+          <div style="margin-bottom: var(--space-2);">
+            <span style="color: var(--ink-ghost);">hidden state per token:</span> [_, _, _, _, _, _, _, _] &nbsp; <span style="color: var(--ink-tertiary);">(8 dims)</span>
+          </div>
+          <div style="padding-left: var(--space-4); border-left: 2px solid var(--sem-attention-dim); margin-bottom: var(--space-2);">
+            <span style="color: var(--sem-attention);">head 1:</span> Q&#x2081;, K&#x2081;, V&#x2081; each [n_tokens, 4] &rarr; attn output&#x2081; [n_tokens, 4]
+          </div>
+          <div style="padding-left: var(--space-4); border-left: 2px solid var(--sem-ffn-dim); margin-bottom: var(--space-2);">
+            <span style="color: var(--sem-ffn);">head 2:</span> Q&#x2082;, K&#x2082;, V&#x2082; each [n_tokens, 4] &rarr; attn output&#x2082; [n_tokens, 4]
+          </div>
+          <div style="margin-top: var(--space-3);">
+            <span style="color: var(--ink-ghost);">concat:</span> [output&#x2081; | output&#x2082;] = [n_tokens, 8]
+          </div>
+          <div style="color: var(--sem-attention);">
+            <span style="color: var(--ink-ghost);">project:</span> concat &times; W_O &rarr; [n_tokens, 8]
+          </div>
+        </div>
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-top: var(--space-3);">
+          Each head works in 4 dimensions instead of 8. The outputs are recombined to full width.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Shapes</div>
+      <div class="shape-card">
+        <div style="color: var(--ink-tertiary);">Before split:</div>
+        <div>Q, K, V projections: [n_tokens, d_model] &rarr; [n_tokens, n_heads &times; d_head]</div>
+        <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">Per head:</div>
+        <div>Q&#x1D62;, K&#x1D62;, V&#x1D62;: [n_tokens, d_head]</div>
+        <div>Scores: [n_tokens, n_tokens] per head</div>
+        <div>Head output: [n_tokens, d_head]</div>
+        <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">After merge:</div>
+        <div>Concatenated: [n_tokens, n_heads &times; d_head]</div>
+        <div style="color: var(--sem-attention);">After W_O: [n_tokens, d_model]</div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Math</div>
+      <p>Each head runs independently, then outputs are concatenated and projected:</p>
+      <div style="font-family: var(--font-mono); font-size: var(--text-sm); background: var(--surface-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); margin: var(--space-3) 0;">
+        <div style="color: var(--sem-attention);">head&#x1D62; = attention(Q&#x1D62;, K&#x1D62;, V&#x1D62;) &nbsp; <span style="color: var(--ink-tertiary);">// [n_tokens, d_head]</span></div>
+        <div style="color: var(--sem-attention);">concat = [head&#x2081; | head&#x2082; | ... | head&#x2095;] &nbsp; <span style="color: var(--ink-tertiary);">// [n_tokens, h &times; d_head]</span></div>
+        <div style="color: var(--sem-attention);">output = concat &sdot; W_O &nbsp; <span style="color: var(--ink-tertiary);">// [n_tokens, d_model]</span></div>
+      </div>
+      <p style="font-size: var(--text-sm); color: var(--ink-tertiary);">
+        where d_head = d_model / n_heads (typically). Total parameters are the same as one big head, but the attention patterns are independent.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Implementation Hook</div>
+      <div class="impl-hook">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          In practice, multi-head attention is often implemented as a single large Q/K/V projection followed by a reshape into [n_tokens, n_heads, d_head]. The attention computation then runs per-head (often batched across heads for parallelism). The final concatenation is just a reshape back.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Performance Hook</div>
+      <div class="perf-hook">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          Multi-head attention does not increase total compute compared to a single large head — the same number of multiply-adds happens either way. But it does increase parallelism: all heads run independently, which maps well to GPU architectures. The per-head score matrix is [n_tokens, n_tokens] with smaller d_head, which uses less memory per head.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Check Yourself</div>
+      <GatePanel
+        client:load
+        lessonId="L18A"
+        gateStrength="hard"
+        questions={[
+          {
+            id: 'L18A-q1',
+            type: 'single_choice',
+            prompt: 'Why is multi-head attention not the same as simply repeating one attention head multiple times?',
+            tag: 'conceptual',
+            choices: [
+              { id: 'a', text: 'Because each head uses different learned Q/K/V weights and can learn different attention patterns', isCorrect: true },
+              { id: 'b', text: 'Because each head processes a different subset of tokens', isCorrect: false },
+              { id: 'c', text: 'Because multi-head attention uses more total parameters', isCorrect: false },
+            ],
+            explanation: 'Each head has its own learned W_Q, W_K, W_V weights, so they learn to attend to different features. Repeating one head would produce identical outputs. Multi-head gives the model capacity for diverse attention patterns.',
+          },
+          {
+            id: 'L18A-q2',
+            type: 'single_choice',
+            prompt: 'If d_model = 512 and n_heads = 8, what is d_head? What is the shape of Q for one head with 10 tokens?',
+            tag: 'shape',
+            choices: [
+              { id: 'a', text: 'd_head = 64, Q shape = [10, 64]', isCorrect: true },
+              { id: 'b', text: 'd_head = 512, Q shape = [10, 512]', isCorrect: false },
+              { id: 'c', text: 'd_head = 8, Q shape = [10, 8]', isCorrect: false },
+            ],
+            explanation: 'd_head = d_model / n_heads = 512 / 8 = 64. Each head operates on 64 dimensions. With 10 tokens, Q for one head is [10, 64].',
+          },
+        ]}
+      />
+    </div>
+
+  </LessonPage>
+</BaseLayout>

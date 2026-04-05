@@ -1,0 +1,162 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import '../../styles/global.css';
+import '../../styles/course.css';
+import LessonPage from '../../components/course/LessonPage';
+import GatePanel from '../../components/assessment/GatePanel';
+---
+
+<BaseLayout title="Case Study: Interpreting a Prefill vs Decode Profile">
+  <LessonPage lessonId="L42" client:load>
+
+    <div class="lesson-section">
+      <div class="section-label">Question</div>
+      <div class="lesson-question">What does a real profile tell you?</div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Intuition</div>
+      <p>
+        A profile shows you where the runtime actually goes &mdash; but reading one correctly is a skill. The most common mistake is jumping to a local conclusion from the single hottest function. Instead, you need to look at the <strong>distribution</strong> of time across operator types and ask what that distribution tells you about the system's bottleneck.
+      </p>
+      <p>
+        Prefill and decode have fundamentally different profiles:
+      </p>
+      <ul style="list-style: none; padding: 0; margin: var(--space-3) 0;">
+        <li style="display: flex; gap: var(--space-3); padding: var(--space-2) 0; font-size: var(--text-sm);">
+          <span style="color: var(--sem-attention); font-weight: 600; min-width: 80px;">Prefill</span>
+          <span style="color: var(--ink-secondary);">Processes many tokens at once. Large matrix multiplies dominate. Compute-bound. The hotspot is typically in GEMM (general matrix multiply) kernels.</span>
+        </li>
+        <li style="display: flex; gap: var(--space-3); padding: var(--space-2) 0; font-size: var(--text-sm);">
+          <span style="color: var(--sem-ffn); font-weight: 600; min-width: 80px;">Decode</span>
+          <span style="color: var(--ink-secondary);">Processes one token at a time. Each operation loads large weight matrices for a tiny computation. Memory-bandwidth-bound. The hotspot is weight loading, not arithmetic.</span>
+        </li>
+      </ul>
+      <p>
+        A profile that shows 80% of time in matrix multiply kernels during prefill is normal &mdash; that is the GPU doing useful compute. The same profile during decode might mean the kernel is not the bottleneck; the time is spent waiting for data to arrive from memory.
+      </p>
+      <p>
+        The key habit: <strong>look at the distribution first, hypothesize the bottleneck class (compute vs memory vs overhead), then drill into individual functions.</strong> Never start with the hottest function and assume that is "the problem."
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Toy Example</div>
+      <div class="toy-example">
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-bottom: var(--space-3);">
+          Two synthetic profiles from the same model, same hardware:
+        </p>
+        <div style="font-family: var(--font-mono); font-size: var(--text-sm);">
+          <div style="margin-bottom: var(--space-3);">
+            <div style="color: var(--sem-attention); font-weight: 600; margin-bottom: var(--space-1);">Prefill (512 tokens)</div>
+            <div style="padding-left: var(--space-4);">
+              <div>GEMM (Q*K, attn*V, projections) &hellip; 72%</div>
+              <div>Softmax &hellip;&hellip;&hellip;&hellip;&hellip;&hellip;&hellip;&hellip;&hellip; 8%</div>
+              <div>RMSNorm &hellip;&hellip;&hellip;&hellip;&hellip;&hellip;&hellip;&hellip;&hellip; 4%</div>
+              <div>Elementwise (RoPE, residual) &hellip;&hellip; 6%</div>
+              <div>Other (launch overhead, sync) &hellip;&hellip; 10%</div>
+            </div>
+          </div>
+          <div>
+            <div style="color: var(--sem-ffn); font-weight: 600; margin-bottom: var(--space-1);">Decode (1 token)</div>
+            <div style="padding-left: var(--space-4);">
+              <div>GEMV (projections, FFN) &hellip;&hellip;&hellip;&hellip; 58%</div>
+              <div>KV cache read &hellip;&hellip;&hellip;&hellip;&hellip;&hellip;&hellip;&hellip; 18%</div>
+              <div>Softmax &hellip;&hellip;&hellip;&hellip;&hellip;&hellip;&hellip;&hellip;&hellip;&hellip; 3%</div>
+              <div>Elementwise &hellip;&hellip;&hellip;&hellip;&hellip;&hellip;&hellip;&hellip;&hellip; 5%</div>
+              <div>Other (launch overhead, sync) &hellip;&hellip; 16%</div>
+            </div>
+          </div>
+        </div>
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-top: var(--space-3);">
+          Prefill: dominated by compute (GEMM). Decode: dominated by memory access (GEMV + KV cache reads) with high overhead fraction.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Shapes</div>
+      <div class="shape-card">
+        <div>Prefill GEMM: [n_tokens, d_model] &times; [d_model, d_out] &nbsp; <span style="color: var(--ink-tertiary);">(large n_tokens, compute-heavy)</span></div>
+        <div>Decode GEMV: [1, d_model] &times; [d_model, d_out] &nbsp; <span style="color: var(--ink-tertiary);">(n_tokens=1, memory-heavy)</span></div>
+        <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">Same weight matrices, vastly different arithmetic intensity. This is why the bottleneck shifts.</div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Math</div>
+      <p>Arithmetic intensity determines the bottleneck regime:</p>
+      <div style="font-family: var(--font-mono); font-size: var(--text-sm); background: var(--surface-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); margin: var(--space-3) 0;">
+        <div style="color: var(--ink-primary);">arithmetic_intensity = FLOPs / bytes_loaded</div>
+        <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">Prefill: high intensity (many tokens reuse the same weights) &rarr; compute-bound</div>
+        <div style="color: var(--ink-tertiary);">Decode: low intensity (1 token, full weight load) &rarr; memory-bound</div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Implementation Hook</div>
+      <div class="impl-hook">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          The distinction between prefill and decode is not explicit in a single file &mdash; it emerges from the batch size passed to the graph builder. When the batch contains many tokens (prefill), the matrix multiplies are large GEMMs. When it contains one token (decode), they become GEMVs. The same graph code runs both cases; only the shapes change.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Performance Hook</div>
+      <div class="perf-hook">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          If your decode profile shows high "other/overhead" percentage (kernel launch, synchronization), that often means the individual operations are so fast (tiny matrices) that launch overhead becomes a significant fraction. This is a common signal that operation fusion or batching could help &mdash; but it requires looking at the distribution, not just the hottest kernel.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Check Yourself</div>
+      <GatePanel
+        client:load
+        lessonId="L42"
+        gateStrength="hard"
+        questions={[
+          {
+            id: 'L42-q1',
+            type: 'single_choice',
+            prompt: 'A decode profile shows 58% in GEMV and 18% in KV cache reads. What bottleneck class does this suggest?',
+            tag: 'conceptual',
+            choices: [
+              { id: 'a', text: 'Compute-bound — the GEMV arithmetic is the bottleneck', isCorrect: false },
+              { id: 'b', text: 'Memory-bandwidth-bound — the majority of time is spent loading weights and cache data', isCorrect: true },
+              { id: 'c', text: 'Launch-overhead-bound — too many small kernel calls', isCorrect: false },
+            ],
+            explanation: 'During decode, GEMV operations are matrix-vector multiplies where the time is dominated by loading the weight matrix from memory, not the arithmetic. Combined with KV cache reads (also memory access), this profile is clearly memory-bandwidth-bound.',
+          },
+          {
+            id: 'L42-q2',
+            type: 'single_choice',
+            prompt: 'Why is the same model compute-bound during prefill but memory-bound during decode?',
+            tag: 'conceptual',
+            choices: [
+              { id: 'a', text: 'Different weight matrices are used in prefill vs decode', isCorrect: false },
+              { id: 'b', text: 'Prefill processes many tokens at once (large matrix multiply, high arithmetic intensity), while decode processes one token (tiny matrix-vector multiply, low arithmetic intensity)', isCorrect: true },
+              { id: 'c', text: 'Decode uses quantized weights while prefill uses full precision', isCorrect: false },
+            ],
+            explanation: 'The same weights are loaded in both cases, but prefill multiplies them against many tokens at once (amortizing the memory load), while decode multiplies against just one token. Arithmetic intensity = FLOPs / bytes_loaded, and it drops drastically when n_tokens goes from hundreds to one.',
+          },
+          {
+            id: 'L42-q3',
+            type: 'single_choice',
+            prompt: 'A prefill profile shows: GEMM 45%, softmax 5%, RMSNorm 3%, elementwise 4%, other/overhead 43%. What does this suggest?',
+            tag: 'conceptual',
+            choices: [
+              { id: 'a', text: 'The model is running optimally — GEMM is the hottest function', isCorrect: false },
+              { id: 'b', text: 'The high overhead fraction is suspicious — something other than useful compute is consuming nearly half the time', isCorrect: true },
+              { id: 'c', text: 'Softmax needs optimization since it appears in the profile', isCorrect: false },
+            ],
+            explanation: 'In a healthy prefill profile, GEMM should dominate (70%+). When overhead is 43%, something is wrong — possibly excessive kernel launches, synchronization stalls, or data transfer. You should investigate the overhead category, not optimize the GEMM.',
+          },
+        ]}
+      />
+    </div>
+
+  </LessonPage>
+</BaseLayout>

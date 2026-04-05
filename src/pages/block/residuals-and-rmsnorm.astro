@@ -1,0 +1,138 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import '../../styles/global.css';
+import '../../styles/course.css';
+import LessonPage from '../../components/course/LessonPage';
+import GatePanel from '../../components/assessment/GatePanel';
+---
+
+<BaseLayout title="Residual Connections and RMSNorm">
+  <LessonPage lessonId="L15" client:load>
+
+    <div class="lesson-section">
+      <div class="section-label">Question</div>
+      <div class="lesson-question">Why do layers need residual connections?</div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Intuition</div>
+      <p>
+        A transformer layer transforms hidden states — but if each layer <em>replaced</em> the input entirely, information from earlier layers could be lost. Worse, gradients would have to pass through every transformation to reach early layers during training, making learning unstable.
+      </p>
+      <p>
+        A <strong>residual connection</strong> solves this: the layer's output is <em>added</em> to its input. The layer only needs to learn the <em>change</em>, not the entire new representation. Information passes through even if the layer does nothing useful.
+      </p>
+      <p>
+        But addition can cause scale to drift — after many layers, the vectors may grow without bound. <strong>RMSNorm</strong> (Root Mean Square Normalization) fixes this by rescaling vectors to a consistent magnitude before each sub-layer. In modern transformers, the norm is applied <em>before</em> the transform (pre-norm), not after.
+      </p>
+      <p>
+        The pattern inside a block is: <code>norm → transform → add residual</code>, repeated for both attention and FFN.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Toy Example</div>
+      <div class="toy-example">
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-bottom: var(--space-3);">
+          One token's hidden state through the attention sub-layer:
+        </p>
+        <div style="font-family: var(--font-mono); font-size: var(--text-sm);">
+          <div style="margin-bottom: var(--space-2);">
+            <span style="color: var(--ink-ghost);">input:</span> x = [1.0, 2.0, 3.0, 4.0]
+          </div>
+          <div style="padding-left: var(--space-4); border-left: 2px solid var(--sem-attention-dim); margin-bottom: var(--space-2);">
+            <span style="color: var(--ink-ghost);">step 1:</span> x_norm = RMSNorm(x) = [0.37, 0.73, 1.10, 1.46]
+          </div>
+          <div style="padding-left: var(--space-4); border-left: 2px solid var(--sem-attention-dim); margin-bottom: var(--space-2);">
+            <span style="color: var(--sem-attention);">step 2:</span> delta = attention(x_norm) = [0.1, -0.3, 0.5, 0.2]
+          </div>
+          <div style="margin-top: var(--space-2);">
+            <span style="color: var(--sem-ffn);">output:</span> x + delta = [1.1, 1.7, 3.5, 4.2]
+          </div>
+        </div>
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-top: var(--space-3);">
+          The original input x flows through unchanged and the layer's contribution is simply added on top.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Shapes</div>
+      <div class="shape-card">
+        <div>Input: [n_tokens, d_model]</div>
+        <div>After RMSNorm: [n_tokens, d_model] &nbsp; <span style="color: var(--ink-tertiary);">(same shape, rescaled values)</span></div>
+        <div>After transform + residual: [n_tokens, d_model]</div>
+        <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">Shape never changes. Norm and residual are elementwise operations.</div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Math</div>
+      <p>The residual connection is a simple addition:</p>
+      <div style="font-family: var(--font-mono); font-size: var(--text-sm); background: var(--surface-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); margin: var(--space-3) 0;">
+        <div style="color: var(--sem-attention);">output = x + sublayer(RMSNorm(x))</div>
+      </div>
+      <p>RMSNorm rescales each vector by its root mean square:</p>
+      <div style="font-family: var(--font-mono); font-size: var(--text-sm); background: var(--surface-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); margin: var(--space-3) 0;">
+        <div style="color: var(--sem-token);">RMSNorm(x)&#x1D62; = (x&#x1D62; / RMS(x)) &times; g&#x1D62;</div>
+        <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">RMS(x) = &radic;(mean(x&#xB2;))</div>
+        <div style="color: var(--ink-tertiary);">g is a learned per-element scale parameter</div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Implementation Hook</div>
+      <div class="impl-hook">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          In <code>llama.cpp</code>, the <code>build_norm()</code> function in <code>src/llama-graph.cpp</code> applies RMSNorm (or LayerNorm, depending on the model). You will see it called just before <code>build_attn()</code> and <code>build_ffn()</code> in every layer.
+        </p>
+        <div class="file-path">src/llama-graph.cpp — build_norm()</div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Performance Hook</div>
+      <div class="perf-hook">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          RMSNorm is cheap — it only needs a mean-of-squares, a square root, and an elementwise multiply. The residual addition is even cheaper. These operations are negligible compared to the matrix multiplies in attention and FFN, but they are critical for training stability and inference quality.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Check Yourself</div>
+      <GatePanel
+        client:load
+        lessonId="L15"
+        gateStrength="hard"
+        questions={[
+          {
+            id: 'L15-q1',
+            type: 'single_choice',
+            prompt: 'What does a residual connection do in plain language?',
+            tag: 'conceptual',
+            choices: [
+              { id: 'a', text: 'It replaces the input with the layer output', isCorrect: false },
+              { id: 'b', text: 'It adds the layer output to the original input, so the layer only needs to learn the difference', isCorrect: true },
+              { id: 'c', text: 'It normalizes the input before passing it to the next layer', isCorrect: false },
+            ],
+            explanation: 'A residual connection adds the sub-layer output to its input. The layer learns a delta — the change — rather than an entirely new representation. This preserves information and stabilizes training.',
+          },
+          {
+            id: 'L15-q2',
+            type: 'single_choice',
+            prompt: 'In a pre-norm transformer block, where does RMSNorm appear?',
+            tag: 'shape',
+            choices: [
+              { id: 'a', text: 'After the attention and FFN sub-layers', isCorrect: false },
+              { id: 'b', text: 'Before each sub-layer (attention and FFN), inside the residual branch', isCorrect: true },
+              { id: 'c', text: 'Only once, at the very start of the block', isCorrect: false },
+            ],
+            explanation: 'Pre-norm means the norm is applied before each transform: norm → attention → add residual, then norm → FFN → add residual.',
+          },
+        ]}
+      />
+    </div>
+
+  </LessonPage>
+</BaseLayout>

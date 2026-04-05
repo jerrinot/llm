@@ -1,0 +1,138 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import '../../styles/global.css';
+import '../../styles/course.css';
+import LessonPage from '../../components/course/LessonPage';
+import GatePanel from '../../components/assessment/GatePanel';
+---
+
+<BaseLayout title="MoE Runs Selected Experts and Weights Their Outputs">
+  <LessonPage lessonId="L25" client:load>
+
+    <div class="lesson-section">
+      <div class="section-label">Question</div>
+      <div class="lesson-question">How are expert outputs combined?</div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Intuition</div>
+      <p>
+        Once the router has selected the top-<em>k</em> experts for a token, each selected expert processes the token independently. Every expert is a small FFN — it takes in the hidden state and produces an output of the same shape.
+      </p>
+      <p>
+        The final output is not a simple average. The router's gating weights are <strong>renormalized</strong> over just the selected experts so they sum to 1. Then the expert outputs are combined as a <strong>weighted sum</strong> using these normalized weights.
+      </p>
+      <p>
+        If Expert A got gating weight 0.8 and Expert B got 0.2, the combined output is 80% Expert A's answer and 20% Expert B's answer. This soft blending lets the model smoothly mix information from multiple specialists.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Toy Example</div>
+      <div class="toy-example">
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-bottom: var(--space-3);">
+          Top-2 experts selected. Raw gating weights: Expert 2 = 0.74, Expert 0 = 0.18.
+        </p>
+        <div style="font-family: var(--font-mono); font-size: var(--text-sm);">
+          <div style="margin-bottom: var(--space-2);">
+            <span style="color: var(--ink-ghost);">renormalize:</span> sum = 0.74 + 0.18 = 0.92
+          </div>
+          <div style="margin-bottom: var(--space-2);">
+            <span style="color: var(--sem-router);">w&#x2082; = 0.74 / 0.92 = 0.804</span> &nbsp;&nbsp; <span style="color: var(--sem-expert);">w&#x2080; = 0.18 / 0.92 = 0.196</span>
+          </div>
+          <div style="margin-bottom: var(--space-2);">
+            <span style="color: var(--ink-ghost);">expert outputs (d_model = 3):</span>
+          </div>
+          <div style="margin-bottom: var(--space-1); padding-left: var(--space-4);">
+            Expert 2: [1.0, &nbsp;0.5, -0.2]
+          </div>
+          <div style="margin-bottom: var(--space-2); padding-left: var(--space-4);">
+            Expert 0: [0.3, -0.1, &nbsp;0.8]
+          </div>
+          <div style="color: var(--sem-router);">
+            output = 0.804 &times; [1.0, 0.5, -0.2] + 0.196 &times; [0.3, -0.1, 0.8]
+          </div>
+          <div style="color: var(--sem-router); margin-top: var(--space-1);">
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; = [0.804+0.059, 0.402-0.020, -0.161+0.157]
+          </div>
+          <div style="color: var(--sem-router); margin-top: var(--space-1);">
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; = [0.863, 0.382, -0.004]
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Shapes</div>
+      <div class="shape-card">
+        <div>Each expert input: [d_model]</div>
+        <div>Each expert output: [d_model]</div>
+        <div>Normalized weights: [k] &nbsp; <span style="color: var(--ink-tertiary);">(sum to 1)</span></div>
+        <div style="color: var(--sem-router); margin-top: var(--space-2);">Combined output: [d_model] &nbsp; <span style="color: var(--ink-tertiary);">same shape as if a single FFN ran</span></div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Math</div>
+      <div style="font-family: var(--font-mono); font-size: var(--text-sm); background: var(--surface-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); margin: var(--space-3) 0;">
+        <div style="color: var(--sem-router);">w'&#x1D62; = gate&#x1D62; / &sum;&#x2C7C; gate&#x2C7C; &nbsp; <span style="color: var(--ink-tertiary);">// renormalize over selected experts</span></div>
+        <div style="color: var(--sem-router); margin-top: var(--space-2);">output = &sum;&#x1D62; w'&#x1D62; &middot; expert&#x1D62;(x) &nbsp; <span style="color: var(--ink-tertiary);">// weighted sum of expert outputs</span></div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Implementation Hook</div>
+      <div class="impl-hook">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          In <code>llama.cpp</code>, <code>build_moe_ffn()</code> handles the full pipeline: router scoring, top-k selection, dispatching tokens to their selected experts, running each expert FFN, and combining the weighted outputs. The aggregation is a scatter-gather pattern.
+        </p>
+        <div class="file-path">src/llama-graph.cpp &mdash; build_moe_ffn()</div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Performance Hook</div>
+      <div class="perf-hook">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          Each expert is a smaller FFN than the dense alternative, so individual expert compute is cheap. But different tokens may select different experts, creating irregular memory access patterns. Efficient MoE implementations batch tokens per expert to maximize GPU utilization. Load imbalance — when most tokens pick the same expert — is a real problem that auxiliary loss terms try to prevent.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Check Yourself</div>
+      <GatePanel
+        client:load
+        lessonId="L25"
+        gateStrength="hard"
+        questions={[
+          {
+            id: 'L25-q1',
+            type: 'single_choice',
+            prompt: 'Two experts are selected with raw gating weights 0.6 and 0.2. After renormalization, what are the weights?',
+            tag: 'math',
+            choices: [
+              { id: 'a', text: '0.6 and 0.2 (unchanged)', isCorrect: false },
+              { id: 'b', text: '0.75 and 0.25', isCorrect: true },
+              { id: 'c', text: '0.5 and 0.5', isCorrect: false },
+            ],
+            explanation: 'Renormalization divides by the sum: 0.6 + 0.2 = 0.8. So 0.6/0.8 = 0.75 and 0.2/0.8 = 0.25. The ratio is preserved but they now sum to 1.',
+          },
+          {
+            id: 'L25-q2',
+            type: 'single_choice',
+            prompt: 'If Expert A outputs [2, 4] with weight 0.75 and Expert B outputs [6, 0] with weight 0.25, what is the combined output?',
+            tag: 'math',
+            choices: [
+              { id: 'a', text: '[3.0, 3.0]', isCorrect: true },
+              { id: 'b', text: '[4.0, 2.0]', isCorrect: false },
+              { id: 'c', text: '[8.0, 4.0]', isCorrect: false },
+            ],
+            explanation: '0.75 * [2,4] + 0.25 * [6,0] = [1.5, 3.0] + [1.5, 0.0] = [3.0, 3.0].',
+          },
+        ]}
+      />
+    </div>
+
+  </LessonPage>
+</BaseLayout>

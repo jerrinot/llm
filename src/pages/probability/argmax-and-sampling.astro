@@ -1,0 +1,115 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import '../../styles/global.css';
+import '../../styles/course.css';
+import LessonPage from '../../components/course/LessonPage';
+import GatePanel from '../../components/assessment/GatePanel';
+---
+
+<BaseLayout title="Argmax, Sampling, and Next-Token Choice">
+  <LessonPage lessonId="L13" client:load>
+
+    <div class="lesson-section">
+      <div class="section-label">Question</div>
+      <div class="lesson-question">How is the next token chosen?</div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Intuition</div>
+      <p>
+        After softmax converts logits to probabilities, something must choose the next token from that distribution. This choice is called the <strong>decoding strategy</strong>, and it is separate from the model itself.
+      </p>
+      <p>
+        <strong>Argmax</strong> (or greedy decoding) always picks the highest-probability token. It is deterministic — the same input always produces the same output.
+      </p>
+      <p>
+        <strong>Sampling</strong> randomly picks a token according to the probability distribution. Higher-probability tokens are more likely, but lower-probability tokens can still be chosen. This is why model outputs can vary between runs.
+      </p>
+      <p>
+        The key insight: the model computes the same logits regardless of the decoding strategy. Argmax vs sampling is a policy choice made <em>after</em> the model runs. It changes generation quality and diversity, not the model's computation.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Toy Example</div>
+      <div class="toy-example">
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-bottom: var(--space-3);">
+          Given probabilities: "on" = 0.65, "in" = 0.20, "at" = 0.10, "the" = 0.05
+        </p>
+        <div style="font-family: var(--font-mono); font-size: var(--text-sm);">
+          <div style="display: flex; gap: var(--space-6);">
+            <div>
+              <div style="color: var(--ink-ghost); font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px;">Argmax</div>
+              <div>Always picks: <span style="color: var(--sem-logits); font-weight: 600;">"on"</span></div>
+              <div style="color: var(--ink-tertiary); font-size: var(--text-xs); margin-top: 2px;">deterministic</div>
+            </div>
+            <div>
+              <div style="color: var(--ink-ghost); font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px;">Sampling</div>
+              <div>Usually picks <span style="color: var(--sem-logits);">"on"</span>, sometimes <span style="color: var(--ink-secondary);">"in"</span> or <span style="color: var(--ink-secondary);">"at"</span></div>
+              <div style="color: var(--ink-tertiary); font-size: var(--text-xs); margin-top: 2px;">stochastic</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Shapes</div>
+      <div class="shape-card">
+        <div>Input to decoding: probabilities [|V|]</div>
+        <div>Output of decoding: one token ID (a single integer)</div>
+        <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">The decoding step reduces |V| probabilities to 1 choice.</div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Math</div>
+      <div style="font-family: var(--font-mono); font-size: var(--text-sm); background: var(--surface-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); margin: var(--space-3) 0;">
+        <div style="color: var(--sem-logits);">argmax: next = arg max&#x1D62; p&#x1D62;</div>
+        <div style="color: var(--sem-logits); margin-top: var(--space-2);">sampling: next ~ Categorical(p)</div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Implementation Hook</div>
+      <div class="impl-hook">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          In <code>llama.cpp</code>, decoding happens outside the model graph. The graph produces logits.
+          Sampling logic — including top-k, top-p, temperature scaling, and repetition penalty — is applied separately. These knobs change generation behavior without changing the model.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Performance Hook</div>
+      <div class="perf-hook">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          Sampling itself is trivially cheap compared to model computation. The performance-relevant insight is that decoding strategy does not change the cost of running the model — it only changes which token gets appended for the next step.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Check Yourself</div>
+      <GatePanel
+        client:load
+        lessonId="L13"
+        gateStrength="soft"
+        questions={[
+          {
+            id: 'L13-q1',
+            type: 'single_choice',
+            prompt: 'If you switch from argmax to sampling, does the model compute different logits?',
+            tag: 'conceptual',
+            choices: [
+              { id: 'a', text: 'Yes, the model adjusts its computation', isCorrect: false },
+              { id: 'b', text: 'No, the model always produces the same logits — decoding is a separate step', isCorrect: true },
+            ],
+            explanation: 'The model computation is identical. Decoding strategy is applied after the model produces logits. It changes which token is selected, not how the model runs.',
+          },
+        ]}
+      />
+    </div>
+
+  </LessonPage>
+</BaseLayout>

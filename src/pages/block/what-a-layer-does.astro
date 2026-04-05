@@ -1,0 +1,139 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import '../../styles/global.css';
+import '../../styles/course.css';
+import LessonPage from '../../components/course/LessonPage';
+import GatePanel from '../../components/assessment/GatePanel';
+---
+
+<BaseLayout title="What a Transformer Layer Does">
+  <LessonPage lessonId="L14" client:load>
+
+    <div class="lesson-section">
+      <div class="section-label">Question</div>
+      <div class="lesson-question">What does a transformer layer do?</div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Intuition</div>
+      <p>
+        A transformer model is a stack of identical layers. Each layer takes in a set of hidden states — one vector per token — and produces updated hidden states.
+      </p>
+      <p>
+        Inside each layer, two things happen:
+      </p>
+      <ul style="list-style: none; padding: 0; margin: var(--space-3) 0;">
+        <li style="display: flex; gap: var(--space-3); padding: var(--space-2) 0; font-size: var(--text-sm);">
+          <span style="color: var(--sem-attention); font-weight: 600; min-width: 80px;">Attention</span>
+          <span style="color: var(--ink-secondary);">Tokens look at each other. Information moves between positions. This is <strong>token mixing</strong>.</span>
+        </li>
+        <li style="display: flex; gap: var(--space-3); padding: var(--space-2) 0; font-size: var(--text-sm);">
+          <span style="color: var(--sem-ffn); font-weight: 600; min-width: 80px;">FFN</span>
+          <span style="color: var(--ink-secondary);">Each token is transformed independently. No cross-token communication. This is <strong>per-token transformation</strong>.</span>
+        </li>
+      </ul>
+      <p>
+        That is the entire structure. Every layer does attention then FFN, with normalization and residual connections around each. A model with 32 layers repeats this pattern 32 times.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Toy Example</div>
+      <div class="toy-example">
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-bottom: var(--space-3);">
+          3 tokens passing through one layer:
+        </p>
+        <div style="font-family: var(--font-mono); font-size: var(--text-sm);">
+          <div style="margin-bottom: var(--space-3);">
+            <span style="color: var(--ink-ghost);">input:</span> h&#x2080; = [token₁_vec, token₂_vec, token₃_vec]
+          </div>
+          <div style="padding-left: var(--space-4); border-left: 2px solid var(--sem-attention-dim); margin-bottom: var(--space-2);">
+            <span style="color: var(--sem-attention);">attention</span> — tokens mix information
+          </div>
+          <div style="padding-left: var(--space-4); border-left: 2px solid var(--sem-ffn-dim);">
+            <span style="color: var(--sem-ffn);">FFN</span> — each token transformed independently
+          </div>
+          <div style="margin-top: var(--space-3);">
+            <span style="color: var(--ink-ghost);">output:</span> h&#x2081; = [updated₁_vec, updated₂_vec, updated₃_vec]
+          </div>
+        </div>
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-top: var(--space-2);">
+          Same number of tokens, same vector dimensions. The values changed, the shape did not.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Shapes</div>
+      <div class="shape-card">
+        <div>Layer input: [n_tokens, d_model]</div>
+        <div>Layer output: [n_tokens, d_model]</div>
+        <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">Shape is preserved. Content changes.</div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Math</div>
+      <p>No new formulas. The key concept is the two-phase structure:</p>
+      <div style="font-family: var(--font-mono); font-size: var(--text-sm); background: var(--surface-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); margin: var(--space-3) 0;">
+        <div style="color: var(--sem-attention);">h' = attention(h) &nbsp; <span style="color: var(--ink-tertiary);">// tokens interact</span></div>
+        <div style="color: var(--sem-ffn);">h'' = FFN(h') &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color: var(--ink-tertiary);">// each token independently</span></div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Implementation Hook</div>
+      <div class="impl-hook">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          In <code>llama.cpp</code>, each model builder (e.g. <code>src/models/gemma.cpp</code>) loops over layers, calling <code>build_attn()</code> and <code>build_ffn()</code> in sequence. You will see this structure explicitly in the case studies.
+        </p>
+        <div class="file-path">src/llama-graph.cpp — build_attn(), build_ffn()</div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Performance Hook</div>
+      <div class="perf-hook">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          Attention and FFN have different compute profiles. Attention cost grows with sequence length (token-to-token interactions). FFN cost grows with model width but is independent of sequence length. Understanding which one dominates requires knowing the shapes — which you now can.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Check Yourself</div>
+      <GatePanel
+        client:load
+        lessonId="L14"
+        gateStrength="hard"
+        questions={[
+          {
+            id: 'L14-q1',
+            type: 'single_choice',
+            prompt: 'Which operation allows tokens to exchange information with each other?',
+            tag: 'conceptual',
+            choices: [
+              { id: 'a', text: 'FFN — it processes all tokens together', isCorrect: false },
+              { id: 'b', text: 'Attention — it computes interactions between token positions', isCorrect: true },
+              { id: 'c', text: 'Both — they are interchangeable', isCorrect: false },
+            ],
+            explanation: 'Attention is the token-mixing operation. FFN operates on each token independently — it never looks at other tokens.',
+          },
+          {
+            id: 'L14-q2',
+            type: 'single_choice',
+            prompt: 'If the input to a layer has shape [8, 512], what is the output shape?',
+            tag: 'shape',
+            choices: [
+              { id: 'a', text: '[8, 512]', isCorrect: true },
+              { id: 'b', text: '[8, 1024]', isCorrect: false },
+              { id: 'c', text: '[1, 512]', isCorrect: false },
+            ],
+            explanation: 'A transformer layer preserves the shape. 8 tokens in, 8 tokens out. Same d_model dimension.',
+          },
+        ]}
+      />
+    </div>
+
+  </LessonPage>
+</BaseLayout>

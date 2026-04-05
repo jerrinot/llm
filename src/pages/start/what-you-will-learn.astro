@@ -1,0 +1,179 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import '../../styles/global.css';
+import '../../styles/course.css';
+import LessonPage from '../../components/course/LessonPage';
+import GatePanel from '../../components/assessment/GatePanel';
+import PipelineStepper from '../../components/interactive/PipelineStepper';
+---
+
+<BaseLayout title="What This Course Teaches">
+  <LessonPage lessonId="L00" client:load>
+
+    <!-- Question -->
+    <div class="lesson-section">
+      <div class="section-label">Question</div>
+      <div class="lesson-question">
+        What will this course actually teach me?
+      </div>
+    </div>
+
+    <!-- Intuition -->
+    <div class="lesson-section">
+      <div class="section-label">Intuition</div>
+      <p>
+        A large language model takes text as input and predicts the next piece of text. Everything else — the architecture, the math, the engineering — is machinery for doing that prediction well.
+      </p>
+      <p>
+        This course teaches you the machinery. Not as abstract theory, but as something you can trace through real code.
+      </p>
+      <p>
+        The path is cumulative. You will start from how text becomes numbers, move through the math and the model structure, and end by reading real <code>llama.cpp</code> code and reasoning about performance.
+      </p>
+      <p style="color: var(--ink-tertiary); font-style: italic;">
+        This course focuses on inference and systems understanding. It teaches only the minimum training and evaluation concepts needed for that purpose. It is not a full machine learning curriculum.
+      </p>
+    </div>
+
+    <!-- Toy Example -->
+    <div class="lesson-section">
+      <div class="section-label">Toy Example</div>
+      <div class="toy-example">
+        <p style="margin-bottom: var(--space-3);">
+          Here is the simplest possible picture of what an LLM does:
+        </p>
+        <div style="font-family: var(--font-mono); font-size: var(--text-sm); color: var(--ink-secondary); display: flex; flex-wrap: wrap; gap: 8px; align-items: center;">
+          <span style="color: var(--ink-primary);">"The cat sat"</span>
+          <span style="color: var(--ink-ghost);">→</span>
+          <span style="color: var(--sem-token);">tokenize</span>
+          <span style="color: var(--ink-ghost);">→</span>
+          <span style="color: var(--sem-token);">[791, 2368, 3290]</span>
+          <span style="color: var(--ink-ghost);">→</span>
+          <span style="color: var(--sem-attention);">model</span>
+          <span style="color: var(--ink-ghost);">→</span>
+          <span style="color: var(--sem-logits);">logits</span>
+          <span style="color: var(--ink-ghost);">→</span>
+          <span style="color: var(--sem-logits);">"on"</span>
+        </div>
+        <p style="margin-top: var(--space-3); font-size: var(--text-sm); color: var(--ink-tertiary);">
+          The model received three token IDs and predicted that the next token should be "on". That is one inference step. Generation repeats this process.
+        </p>
+      </div>
+    </div>
+
+    <!-- The journey map -->
+    <div class="lesson-section">
+      <div class="section-label">The Journey</div>
+      <p>You will move through these stages, in order:</p>
+      <ol style="list-style: none; padding: 0; margin: var(--space-4) 0;">
+        <li style="display: flex; gap: var(--space-3); padding: var(--space-2) 0; font-size: var(--text-sm);">
+          <span style="font-family: var(--font-mono); color: var(--ink-ghost); min-width: 24px;">01</span>
+          <span><strong style="color: var(--ink-primary);">Orientation</strong> — <span style="color: var(--ink-secondary);">what an LLM does, the end-to-end pipeline</span></span>
+        </li>
+        <li style="display: flex; gap: var(--space-3); padding: var(--space-2) 0; font-size: var(--text-sm);">
+          <span style="font-family: var(--font-mono); color: var(--ink-ghost); min-width: 24px;">02</span>
+          <span><strong style="color: var(--sem-token);">Tokens</strong> — <span style="color: var(--ink-secondary);">how text becomes integer IDs</span></span>
+        </li>
+        <li style="display: flex; gap: var(--space-3); padding: var(--space-2) 0; font-size: var(--text-sm);">
+          <span style="font-family: var(--font-mono); color: var(--ink-ghost); min-width: 24px;">03</span>
+          <span><strong style="color: var(--sem-token);">Math</strong> — <span style="color: var(--ink-secondary);">vectors, matrices, projections</span></span>
+        </li>
+        <li style="display: flex; gap: var(--space-3); padding: var(--space-2) 0; font-size: var(--text-sm);">
+          <span style="font-family: var(--font-mono); color: var(--ink-ghost); min-width: 24px;">04</span>
+          <span><strong style="color: var(--sem-logits);">Probability</strong> — <span style="color: var(--ink-secondary);">logits, softmax, sampling</span></span>
+        </li>
+        <li style="display: flex; gap: var(--space-3); padding: var(--space-2) 0; font-size: var(--text-sm);">
+          <span style="font-family: var(--font-mono); color: var(--ink-ghost); min-width: 24px;">05</span>
+          <span><strong style="color: var(--sem-attention);">Transformer Block</strong> — <span style="color: var(--ink-secondary);">attention, FFN, residuals, the full decoder</span></span>
+        </li>
+        <li style="display: flex; gap: var(--space-3); padding: var(--space-2) 0; font-size: var(--text-sm);">
+          <span style="font-family: var(--font-mono); color: var(--ink-ghost); min-width: 24px;">06</span>
+          <span><strong style="color: var(--sem-router);">Variants</strong> — <span style="color: var(--ink-secondary);">GQA, SWA, shared-KV, MoE</span></span>
+        </li>
+        <li style="display: flex; gap: var(--space-3); padding: var(--space-2) 0; font-size: var(--text-sm);">
+          <span style="font-family: var(--font-mono); color: var(--ink-ghost); min-width: 24px;">07</span>
+          <span><strong style="color: var(--sem-kvcache);">Inference</strong> — <span style="color: var(--ink-secondary);">prefill, decode, KV cache, batching</span></span>
+        </li>
+        <li style="display: flex; gap: var(--space-3); padding: var(--space-2) 0; font-size: var(--text-sm);">
+          <span style="font-family: var(--font-mono); color: var(--ink-ghost); min-width: 24px;">08</span>
+          <span><strong style="color: var(--sem-ffn);">Performance</strong> — <span style="color: var(--ink-secondary);">bottlenecks, quantization, validation</span></span>
+        </li>
+        <li style="display: flex; gap: var(--space-3); padding: var(--space-2) 0; font-size: var(--text-sm);">
+          <span style="font-family: var(--font-mono); color: var(--ink-ghost); min-width: 24px;">09</span>
+          <span><strong style="color: var(--sem-expert);">Case Studies</strong> — <span style="color: var(--ink-secondary);">real llama.cpp code walkthroughs</span></span>
+        </li>
+      </ol>
+    </div>
+
+    <!-- Shapes (minimal for L00) -->
+    <div class="lesson-section">
+      <div class="section-label">Shapes</div>
+      <p>We have not introduced tensor shapes yet. For now, notice only that the model's input is a sequence of integers and its output is a set of scores — one per possible next token.</p>
+      <div class="shape-card">
+        <div>input: sequence of token IDs &nbsp; <span style="color: var(--ink-tertiary);">e.g. [791, 2368, 3290]</span></div>
+        <div>output: one score per vocabulary entry &nbsp; <span style="color: var(--ink-tertiary);">e.g. [2.1, 0.8, 5.4, ...]</span></div>
+      </div>
+    </div>
+
+    <!-- Implementation Hook -->
+    <div class="lesson-section">
+      <div class="section-label">Implementation Hook</div>
+      <div class="impl-hook">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-bottom: var(--space-2);">
+          The model code you will eventually read lives in <code>llama.cpp</code>. Specifically:
+        </p>
+        <div class="file-path">src/models/gemma.cpp</div>
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-top: var(--space-2);">
+          That file builds the computation graph for a dense Gemma model — one of the case studies at the end of this course. You do not need to understand it yet. You will.
+        </p>
+      </div>
+    </div>
+
+    <!-- Performance Hook -->
+    <div class="lesson-section">
+      <div class="section-label">Performance Hook</div>
+      <div class="perf-hook">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          Everything you learn in this course matters because inference is real-time work. The model must produce tokens fast enough to be useful. Understanding the machinery is the first step toward understanding where time goes.
+        </p>
+      </div>
+    </div>
+
+    <!-- Check Yourself -->
+    <div class="lesson-section">
+      <div class="section-label">Check Yourself</div>
+      <GatePanel
+        client:load
+        lessonId="L00"
+        gateStrength="soft"
+        questions={[
+          {
+            id: 'L00-q1',
+            type: 'single_choice',
+            prompt: 'Which of these is the direct input to the model?',
+            tag: 'conceptual',
+            choices: [
+              { id: 'a', text: 'Raw text characters', isCorrect: false },
+              { id: 'b', text: 'A sequence of token IDs (integers)', isCorrect: true },
+              { id: 'c', text: 'A probability distribution', isCorrect: false },
+            ],
+            explanation: 'The model receives integer token IDs, not raw text. The tokenizer converts text to IDs before the model runs.',
+          },
+          {
+            id: 'L00-q2',
+            type: 'single_choice',
+            prompt: 'What does the model produce as output?',
+            tag: 'conceptual',
+            choices: [
+              { id: 'a', text: 'The next word in the sentence', isCorrect: false },
+              { id: 'b', text: 'A set of scores (logits), one per vocabulary entry', isCorrect: true },
+              { id: 'c', text: 'An embedding vector', isCorrect: false },
+            ],
+            explanation: 'The model outputs logits — raw scores over the entire vocabulary. These are then converted to probabilities and used to select the next token.',
+          },
+        ]}
+      />
+    </div>
+
+  </LessonPage>
+</BaseLayout>

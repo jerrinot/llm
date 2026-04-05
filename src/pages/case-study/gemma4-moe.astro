@@ -1,0 +1,163 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import '../../styles/global.css';
+import '../../styles/course.css';
+import LessonPage from '../../components/course/LessonPage';
+import GatePanel from '../../components/assessment/GatePanel';
+---
+
+<BaseLayout title="Case Study: Gemma 4 MoE Layer">
+  <LessonPage lessonId="L41" client:load>
+
+    <div class="lesson-section">
+      <div class="section-label">Question</div>
+      <div class="lesson-question">How does Gemma 4 route tokens to experts?</div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Intuition</div>
+      <p>
+        In a dense FFN, every token passes through every parameter. A Mixture-of-Experts (MoE) layer replaces the single FFN with many parallel "expert" FFNs and a <strong>router</strong> that decides which experts each token should use.
+      </p>
+      <p>
+        The process has three stages:
+      </p>
+      <ol style="list-style: decimal; padding-left: var(--space-5); margin: var(--space-3) 0;">
+        <li style="padding: var(--space-1) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          <strong style="color: var(--ink-primary);">Router scoring</strong> &mdash; The router is a small linear layer that takes each token's hidden state and produces a score for every expert. These scores are passed through softmax to become probabilities.
+        </li>
+        <li style="padding: var(--space-1) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          <strong style="color: var(--sem-attention);">Top-k selection</strong> &mdash; Only the top-k experts (typically k=2) with the highest scores are selected for each token. All other experts are skipped for that token.
+        </li>
+        <li style="padding: var(--space-1) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          <strong style="color: var(--sem-ffn);">Weighted aggregation</strong> &mdash; Each selected expert processes the token independently, producing its own output. The final output is a weighted sum of the expert outputs, where the weights are the router probabilities (renormalized over just the selected experts).
+        </li>
+      </ol>
+      <p>
+        This means each token only activates a fraction of the total parameters. A model can have enormous total parameter counts but a small "active" parameter count per token, keeping compute costs manageable.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Toy Example</div>
+      <div class="toy-example">
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-bottom: var(--space-3);">
+          4 experts, top-2 selection for one token:
+        </p>
+        <div style="font-family: var(--font-mono); font-size: var(--text-sm);">
+          <div style="margin-bottom: var(--space-2);">
+            <span style="color: var(--ink-ghost);">token hidden state:</span> h = [0.3, &minus;0.7, 1.2, 0.5]
+          </div>
+          <div style="margin-bottom: var(--space-2);">
+            <span style="color: var(--ink-ghost);">router scores:</span> [0.1, <strong style="color: var(--sem-attention);">0.6</strong>, 0.05, <strong style="color: var(--sem-attention);">0.25</strong>]
+          </div>
+          <div style="margin-bottom: var(--space-2);">
+            <span style="color: var(--sem-attention);">selected:</span> expert 1 (w=0.71), expert 3 (w=0.29) &nbsp; <span style="color: var(--ink-tertiary);">(renormalized)</span>
+          </div>
+          <div style="padding-left: var(--space-4); border-left: 2px solid var(--sem-ffn-dim); margin-bottom: var(--space-2);">
+            <span style="color: var(--sem-ffn);">expert 1(h)</span> = [0.2, 0.4, &minus;0.1, 0.8]
+          </div>
+          <div style="padding-left: var(--space-4); border-left: 2px solid var(--sem-ffn-dim); margin-bottom: var(--space-2);">
+            <span style="color: var(--sem-ffn);">expert 3(h)</span> = [&minus;0.3, 0.1, 0.6, 0.2]
+          </div>
+          <div style="margin-top: var(--space-2);">
+            <span style="color: var(--ink-ghost);">output:</span> 0.71 &times; expert1 + 0.29 &times; expert3 = [0.05, 0.31, 0.10, 0.63]
+          </div>
+        </div>
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-top: var(--space-3);">
+          Experts 0 and 2 were never computed for this token. Only 2 of 4 FFNs ran.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Shapes</div>
+      <div class="shape-card">
+        <div>Router weight: [d_model, n_experts]</div>
+        <div>Router output: [n_tokens, n_experts] &rarr; softmax &rarr; top-k selection</div>
+        <div style="margin-top: var(--space-2);">Each expert FFN: [n_tokens_routed, d_model] &rarr; [n_tokens_routed, d_model]</div>
+        <div>Final output: weighted sum &rarr; [n_tokens, d_model]</div>
+        <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">n_tokens_routed varies per expert &mdash; different experts may process different numbers of tokens.</div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Math</div>
+      <p>Router scoring and weighted aggregation:</p>
+      <div style="font-family: var(--font-mono); font-size: var(--text-sm); background: var(--surface-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); margin: var(--space-3) 0;">
+        <div style="color: var(--ink-primary);">scores = softmax(h &sdot; W<sub>router</sub>)</div>
+        <div style="color: var(--sem-attention);">selected = top_k(scores, k)</div>
+        <div style="color: var(--sem-ffn);">output = &sum;<sub>i &isin; selected</sub> w<sub>i</sub> &times; expert<sub>i</sub>(h)</div>
+        <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">w<sub>i</sub> = scores[i] / &sum;<sub>j &isin; selected</sub> scores[j] &nbsp; (renormalized weights)</div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Implementation Hook</div>
+      <div class="impl-hook">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          The Gemma 4 builder calls <code>build_moe_ffn()</code> instead of <code>build_ffn()</code> for MoE layers. Inside <code>build_moe_ffn()</code>, the router scores are computed via a matrix multiply against the router weights, softmax is applied, and top-k experts are selected. Each selected expert runs as a standard FFN (gate-up-down projections), and the outputs are combined using the renormalized router weights.
+        </p>
+        <div class="file-path">src/models/gemma4-iswa.cpp</div>
+        <div class="file-path">src/llama-graph.cpp &mdash; build_moe_ffn()</div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Performance Hook</div>
+      <div class="perf-hook">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          MoE trades total parameter count for active parameter count. A model with 64 experts but top-2 routing uses only 2/64 = 3.1% of expert parameters per token. This keeps compute (FLOPs) manageable but means all expert weights must still be loaded into memory. MoE models are often memory-bandwidth bound during decode because the weights are large even though the compute per token is small.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Check Yourself</div>
+      <GatePanel
+        client:load
+        lessonId="L41"
+        gateStrength="hard"
+        questions={[
+          {
+            id: 'L41-q1',
+            type: 'single_choice',
+            prompt: 'What does the router in a MoE layer do?',
+            tag: 'conceptual',
+            choices: [
+              { id: 'a', text: 'It routes tokens to different transformer layers based on their content', isCorrect: false },
+              { id: 'b', text: 'It scores each expert for a given token and selects the top-k experts to process that token', isCorrect: true },
+              { id: 'c', text: 'It splits the hidden state into chunks and sends each chunk to a different expert', isCorrect: false },
+            ],
+            explanation: 'The router is a linear layer that produces a score for each expert. After softmax, the top-k experts are selected. Each token may be routed to different experts based on its hidden state.',
+          },
+          {
+            id: 'L41-q2',
+            type: 'single_choice',
+            prompt: 'If a MoE layer has 8 experts and uses top-2 routing, how are the two expert outputs combined?',
+            tag: 'conceptual',
+            choices: [
+              { id: 'a', text: 'The outputs are concatenated to double the hidden dimension', isCorrect: false },
+              { id: 'b', text: 'Only the highest-scoring expert output is used; the second is discarded', isCorrect: false },
+              { id: 'c', text: 'The outputs are summed using the renormalized router probabilities as weights', isCorrect: true },
+            ],
+            explanation: 'The final output is a weighted sum: w1 * expert1(h) + w2 * expert2(h), where w1 and w2 are the router probabilities renormalized to sum to 1 over just the two selected experts.',
+          },
+          {
+            id: 'L41-q3',
+            type: 'single_choice',
+            prompt: 'In build_moe_ffn(), what is the role of the softmax applied to the router output?',
+            tag: 'conceptual',
+            choices: [
+              { id: 'a', text: 'It converts raw router logits into a probability distribution over experts, so the top-k weights are meaningful', isCorrect: true },
+              { id: 'b', text: 'It normalizes the expert FFN outputs before aggregation', isCorrect: false },
+              { id: 'c', text: 'It determines the hidden dimension each expert will use', isCorrect: false },
+            ],
+            explanation: 'The router produces raw logits (one per expert). Softmax converts these into probabilities that sum to 1, making them interpretable as weights. The top-k selection then picks the highest-probability experts.',
+          },
+        ]}
+      />
+    </div>
+
+  </LessonPage>
+</BaseLayout>

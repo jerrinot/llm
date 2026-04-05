@@ -1,0 +1,136 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import '../../styles/global.css';
+import '../../styles/course.css';
+import LessonPage from '../../components/course/LessonPage';
+import GatePanel from '../../components/assessment/GatePanel';
+---
+
+<BaseLayout title="Dot Product as Weighted Comparison">
+  <LessonPage lessonId="L07" client:load>
+
+    <div class="lesson-section">
+      <div class="section-label">Question</div>
+      <div class="lesson-question">What does a dot product mean?</div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Intuition</div>
+      <p>
+        The dot product takes two vectors of the same length and produces a single number.
+        It multiplies corresponding elements and adds them up.
+      </p>
+      <p>
+        The result tells you something about how similar or aligned the two vectors are.
+        If both vectors have large positive values in the same positions, the dot product is large and positive.
+        If they point in opposite directions, it is negative.
+      </p>
+      <p>
+        In LLMs, the dot product is everywhere. Attention scores are dot products between query and key vectors.
+        Projections are collections of dot products. Understanding this operation is essential.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Toy Example</div>
+      <div class="toy-example">
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-bottom: var(--space-3);">
+          Dot product of a = [2, 3, -1] and b = [4, -1, 2]:
+        </p>
+        <div style="font-family: var(--font-mono); font-size: var(--text-sm);">
+          <div style="display: flex; gap: var(--space-4); align-items: center; flex-wrap: wrap;">
+            <div style="display: flex; flex-direction: column; align-items: center;">
+              <span style="color: var(--ink-ghost); font-size: var(--text-xs);">multiply</span>
+              <div style="display: flex; gap: 12px; margin-top: 4px;">
+                <span style="color: var(--sem-token);">2&times;4=<strong>8</strong></span>
+                <span style="color: var(--sem-attention);">3&times;(-1)=<strong>-3</strong></span>
+                <span style="color: var(--sem-ffn);">(-1)&times;2=<strong>-2</strong></span>
+              </div>
+            </div>
+            <span style="color: var(--ink-ghost);">→</span>
+            <div style="display: flex; flex-direction: column; align-items: center;">
+              <span style="color: var(--ink-ghost); font-size: var(--text-xs);">sum</span>
+              <span style="color: var(--ink-primary); font-size: var(--text-lg); font-weight: 600; margin-top: 4px;">8 + (-3) + (-2) = 3</span>
+            </div>
+          </div>
+        </div>
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-top: var(--space-3);">
+          Result: <strong>3</strong>. A positive number — the vectors are somewhat aligned.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Shapes</div>
+      <div class="shape-card">
+        <div>a: [d] &nbsp;&nbsp; b: [d] &nbsp;&nbsp; <span style="color: var(--ink-tertiary);">(same dimension required)</span></div>
+        <div style="color: var(--sem-token); margin-top: var(--space-2);">a &middot; b: scalar &nbsp;&nbsp; <span style="color: var(--ink-tertiary);">(two vectors in, one number out)</span></div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Math</div>
+      <div style="font-family: var(--font-mono); font-size: var(--text-sm); background: var(--surface-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); margin: var(--space-3) 0;">
+        <div style="color: var(--sem-token);">a &middot; b = &sum;&#x1D62; a&#x1D62; &times; b&#x1D62;</div>
+      </div>
+      <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+        Multiply each pair, sum the results. Both vectors must have the same dimension.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Implementation Hook</div>
+      <div class="impl-hook">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          The dot product is the primitive behind matrix multiplication. In <code>llama.cpp</code>, attention scores are computed as dot products between query and key vectors. The <code>ggml_mul_mat</code> operation performs many dot products at once.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Performance Hook</div>
+      <div class="perf-hook">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          A dot product of dimension <em>d</em> requires <em>d</em> multiplications and <em>d-1</em> additions.
+          In attention, every token pair requires a dot product. This is why attention cost grows with both sequence length and model dimension.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Check Yourself</div>
+      <GatePanel
+        client:load
+        lessonId="L07"
+        gateStrength="soft"
+        questions={[
+          {
+            id: 'L07-q1',
+            type: 'single_choice',
+            prompt: 'What is the dot product of [1, 0, 3] and [2, 5, -1]?',
+            tag: 'math',
+            choices: [
+              { id: 'a', text: '-1', isCorrect: true },
+              { id: 'b', text: '5', isCorrect: false },
+              { id: 'c', text: '10', isCorrect: false },
+            ],
+            explanation: '(1×2) + (0×5) + (3×(-1)) = 2 + 0 + (-3) = -1',
+          },
+          {
+            id: 'L07-q2',
+            type: 'single_choice',
+            prompt: 'Why does the dot product appear in attention?',
+            tag: 'conceptual',
+            choices: [
+              { id: 'a', text: 'Because it measures how similar two vectors are', isCorrect: true },
+              { id: 'b', text: 'Because it is the fastest operation on GPUs', isCorrect: false },
+              { id: 'c', text: 'Because it was invented for transformers', isCorrect: false },
+            ],
+            explanation: 'Attention uses dot products to compute how much one token should attend to another. Higher dot product = more similar = more attention.',
+          },
+        ]}
+      />
+    </div>
+
+  </LessonPage>
+</BaseLayout>

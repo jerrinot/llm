@@ -1,0 +1,133 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import '../../styles/global.css';
+import '../../styles/course.css';
+import LessonPage from '../../components/course/LessonPage';
+import GatePanel from '../../components/assessment/GatePanel';
+---
+
+<BaseLayout title="Grouped-Query and Multi-Query Attention">
+  <LessonPage lessonId="L21" client:load>
+
+    <div class="lesson-section">
+      <div class="section-label">Question</div>
+      <div class="lesson-question">Why use fewer K/V heads than Q heads?</div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Intuition</div>
+      <p>
+        Standard multi-head attention gives every head its own Q, K, and V projections. That means the KV cache stores one key vector and one value vector per head, per token, per layer. For long sequences, this cache dominates memory.
+      </p>
+      <p>
+        <strong>Grouped-Query Attention (GQA)</strong> reduces the number of K/V heads. Instead of giving every Q head its own K/V pair, several Q heads share the same K and V. If you have 32 Q heads and 8 KV heads, each KV head serves a group of 4 Q heads.
+      </p>
+      <p>
+        <strong>Multi-Query Attention (MQA)</strong> is the extreme case: a single K/V head shared by all Q heads. This minimizes KV cache size but reduces the model's ability to learn diverse attention patterns across heads.
+      </p>
+      <p>
+        GQA is the practical middle ground used in most modern models. It saves memory and bandwidth without the quality loss that MQA can cause.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Toy Example</div>
+      <div class="toy-example">
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-bottom: var(--space-3);">
+          A model with 8 Q heads, comparing MHA vs GQA vs MQA:
+        </p>
+        <div style="font-family: var(--font-mono); font-size: var(--text-sm);">
+          <div style="margin-bottom: var(--space-2);">
+            <span style="color: var(--sem-attention);">MHA</span> &nbsp; 8 Q heads, 8 KV heads &rarr; 8 K + 8 V cached per token
+          </div>
+          <div style="margin-bottom: var(--space-2);">
+            <span style="color: var(--sem-router);">GQA</span> &nbsp; 8 Q heads, 2 KV heads &rarr; 2 K + 2 V cached per token
+          </div>
+          <div>
+            <span style="color: var(--sem-ffn);">MQA</span> &nbsp; 8 Q heads, 1 KV head &nbsp;&rarr; 1 K + 1 V cached per token
+          </div>
+        </div>
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-top: var(--space-3);">
+          GQA uses 4x less KV cache than MHA here. MQA uses 8x less.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Shapes</div>
+      <div class="shape-card">
+        <div>Q: [n_tokens, n_q_heads, d_head]</div>
+        <div>K: [n_tokens, <strong>n_kv_heads</strong>, d_head] &nbsp; <span style="color: var(--ink-tertiary);">where n_kv_heads &le; n_q_heads</span></div>
+        <div>V: [n_tokens, <strong>n_kv_heads</strong>, d_head]</div>
+        <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">Each KV head is broadcast to (n_q_heads / n_kv_heads) Q heads.</div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Math</div>
+      <p>The attention formula stays the same. What changes is the shape of K and V:</p>
+      <div style="font-family: var(--font-mono); font-size: var(--text-sm); background: var(--surface-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); margin: var(--space-3) 0;">
+        <div style="color: var(--sem-attention);">group_size = n_q_heads / n_kv_heads</div>
+        <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">Q heads [i*group_size .. (i+1)*group_size) all use K&#x1D62;, V&#x1D62;</div>
+      </div>
+      <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+        MHA: group_size = 1. MQA: group_size = n_q_heads. GQA: anything in between.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Implementation Hook</div>
+      <div class="impl-hook">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          In <code>llama.cpp</code>, the number of KV heads is a model hyperparameter (<code>n_head_kv</code>). The <code>build_attn()</code> function handles repeating KV heads to match Q head count. When <code>n_head_kv &lt; n_head</code>, GQA is active.
+        </p>
+        <div class="file-path">src/llama-graph.cpp &mdash; build_attn()</div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Performance Hook</div>
+      <div class="perf-hook">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          Fewer KV heads means a smaller KV cache. This directly reduces memory usage and the bandwidth required to read K/V during decode. For long-context models, this is the primary reason GQA exists: it makes long sequences feasible on limited hardware.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Check Yourself</div>
+      <GatePanel
+        client:load
+        lessonId="L21"
+        gateStrength="hard"
+        questions={[
+          {
+            id: 'L21-q1',
+            type: 'single_choice',
+            prompt: 'In GQA with 32 Q heads and 8 KV heads, what is the shape of the K projection per token?',
+            tag: 'shape',
+            choices: [
+              { id: 'a', text: '[32, d_head] — one K per Q head', isCorrect: false },
+              { id: 'b', text: '[8, d_head] — one K per KV head', isCorrect: true },
+              { id: 'c', text: '[1, d_head] — a single shared K', isCorrect: false },
+            ],
+            explanation: 'GQA produces one K vector per KV head. With 8 KV heads, K has shape [8, d_head]. Each KV head serves a group of 4 Q heads.',
+          },
+          {
+            id: 'L21-q2',
+            type: 'single_choice',
+            prompt: 'Why does reducing the number of KV heads save memory during inference?',
+            tag: 'conceptual',
+            choices: [
+              { id: 'a', text: 'The Q projections become smaller', isCorrect: false },
+              { id: 'b', text: 'The KV cache stores fewer key and value vectors per token per layer', isCorrect: true },
+              { id: 'c', text: 'The model uses fewer layers overall', isCorrect: false },
+            ],
+            explanation: 'The KV cache stores one K and one V vector per KV head per token per layer. Fewer KV heads means fewer vectors stored, directly reducing memory.',
+          },
+        ]}
+      />
+    </div>
+
+  </LessonPage>
+</BaseLayout>

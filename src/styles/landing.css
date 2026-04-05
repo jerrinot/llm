@@ -1,0 +1,366 @@
+@import './tokens.css';
+
+/* ============================================
+   LANDING PAGE — Systems Noir
+   ============================================ */
+
+.landing {
+  position: relative;
+  z-index: 1;
+}
+
+/* ---- HERO ---- */
+.hero {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: var(--space-16) var(--space-8);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Crosshair grid overlay */
+.hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(rgba(232, 148, 74, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(232, 148, 74, 0.03) 1px, transparent 1px);
+  background-size: 60px 60px;
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 50%, black 30%, transparent 70%);
+  pointer-events: none;
+}
+
+/* Accent glow */
+.hero::after {
+  content: '';
+  position: absolute;
+  top: 20%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(232, 148, 74, 0.04) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.hero-inner {
+  max-width: 54rem;
+  margin: 0 auto;
+  position: relative;
+  z-index: 1;
+}
+
+.hero-tag {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-wider);
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: var(--space-5);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.hero-tag::before {
+  content: '';
+  width: 24px;
+  height: 1px;
+  background: var(--accent);
+}
+
+.hero-title {
+  font-family: var(--font-display);
+  font-size: clamp(2.5rem, 6vw, var(--text-6xl));
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  margin-bottom: var(--space-6);
+  color: var(--ink-primary);
+}
+
+.hero-title em {
+  font-style: italic;
+  color: var(--accent);
+}
+
+.hero-subtitle {
+  font-size: var(--text-lg);
+  line-height: var(--leading-normal);
+  color: var(--ink-secondary);
+  max-width: 38rem;
+  margin-bottom: var(--space-10);
+}
+
+.hero-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.btn-start {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  letter-spacing: var(--tracking-wide);
+  padding: var(--space-3) var(--space-6);
+  background: var(--accent);
+  color: var(--ink-inverse);
+  border: none;
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  cursor: pointer;
+  transition: all var(--duration-normal) var(--ease-out);
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-start:hover {
+  background: var(--accent-hover);
+  color: var(--ink-inverse);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-glow);
+}
+
+.btn-start::after {
+  content: '→';
+  transition: transform var(--duration-fast) var(--ease-out);
+}
+
+.btn-start:hover::after {
+  transform: translateX(3px);
+}
+
+.btn-secondary {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  letter-spacing: var(--tracking-wide);
+  padding: var(--space-3) var(--space-5);
+  background: none;
+  color: var(--ink-secondary);
+  border: var(--border-default);
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  transition: all var(--duration-fast) var(--ease-out);
+}
+
+.btn-secondary:hover {
+  border-color: var(--ink-tertiary);
+  color: var(--ink-primary);
+}
+
+/* ---- PROMISE ---- */
+.promise-section {
+  padding: var(--space-24) var(--space-8);
+  position: relative;
+}
+
+.promise-section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 1px;
+  height: var(--space-12);
+  background: linear-gradient(to bottom, transparent, var(--surface-4));
+}
+
+.promise-inner {
+  max-width: var(--content-width);
+  margin: 0 auto;
+}
+
+.promise-title {
+  font-family: var(--font-display);
+  font-size: var(--text-3xl);
+  text-align: center;
+  margin-bottom: var(--space-3);
+}
+
+.promise-subtitle {
+  text-align: center;
+  color: var(--ink-secondary);
+  margin-bottom: var(--space-12);
+  max-width: 32rem;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.promise-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-4);
+}
+
+.promise-card {
+  background: var(--surface-2);
+  border: var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: var(--space-5);
+  transition: all var(--duration-normal) var(--ease-out);
+  position: relative;
+}
+
+.promise-card:hover {
+  border-color: rgba(255,255,255,0.1);
+  transform: translateY(-2px);
+}
+
+.promise-card-icon {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  margin-bottom: var(--space-3);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.promise-card h3 {
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  font-weight: 600;
+  margin-bottom: var(--space-2);
+}
+
+.promise-card p {
+  font-size: var(--text-sm);
+  color: var(--ink-secondary);
+  line-height: var(--leading-normal);
+}
+
+/* ---- CURRICULUM MAP ---- */
+.curriculum-section {
+  padding: var(--space-24) var(--space-8);
+  background: var(--surface-1);
+}
+
+.curriculum-inner {
+  max-width: var(--content-width);
+  margin: 0 auto;
+}
+
+.curriculum-title {
+  font-family: var(--font-display);
+  font-size: var(--text-3xl);
+  text-align: center;
+  margin-bottom: var(--space-3);
+}
+
+.curriculum-subtitle {
+  text-align: center;
+  color: var(--ink-secondary);
+  margin-bottom: var(--space-12);
+}
+
+.curriculum-modules {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  position: relative;
+}
+
+/* Vertical line */
+.curriculum-modules::before {
+  content: '';
+  position: absolute;
+  left: 15px;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--surface-4);
+}
+
+.module-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-5);
+  padding: var(--space-4) 0;
+  position: relative;
+}
+
+.module-dot {
+  width: 31px;
+  height: 31px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border: 2px solid;
+  background: var(--surface-1);
+  position: relative;
+  z-index: 1;
+}
+
+.module-dot-inner {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+}
+
+.module-info {
+  flex: 1;
+  padding-top: 2px;
+}
+
+.module-id {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: var(--tracking-wider);
+  text-transform: uppercase;
+  color: var(--ink-ghost);
+}
+
+.module-name {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  margin-top: 2px;
+}
+
+.module-desc {
+  font-size: var(--text-sm);
+  color: var(--ink-tertiary);
+  margin-top: 2px;
+}
+
+.module-lessons-count {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--ink-ghost);
+  margin-top: var(--space-2);
+}
+
+/* ---- FOOTER ---- */
+.landing-footer {
+  padding: var(--space-12) var(--space-8);
+  text-align: center;
+  border-top: var(--border-subtle);
+}
+
+.landing-footer p {
+  font-size: var(--text-sm);
+  color: var(--ink-ghost);
+}
+
+/* ---- RESPONSIVE ---- */
+@media (max-width: 768px) {
+  .hero {
+    padding: var(--space-10) var(--space-4);
+  }
+  .promise-grid {
+    grid-template-columns: 1fr;
+  }
+  .curriculum-section,
+  .promise-section {
+    padding: var(--space-16) var(--space-4);
+  }
+}

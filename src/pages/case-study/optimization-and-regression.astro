@@ -1,0 +1,164 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import '../../styles/global.css';
+import '../../styles/course.css';
+import LessonPage from '../../components/course/LessonPage';
+import GatePanel from '../../components/assessment/GatePanel';
+---
+
+<BaseLayout title="Case Study: A Speed Win That Failed Equivalence">
+  <LessonPage lessonId="L43" client:load>
+
+    <div class="lesson-section">
+      <div class="section-label">Question</div>
+      <div class="lesson-question">What happens when a speed win is invalid?</div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Intuition</div>
+      <p>
+        You optimize a kernel, get a 15% speedup, merge it &mdash; and a week later someone discovers the model outputs are subtly wrong. Perplexity increased, certain prompts produce garbled text, or a downstream benchmark regressed. The speed was real. The answers were wrong.
+      </p>
+      <p>
+        This happens more often than you might expect, and there are two common causes:
+      </p>
+      <ul style="list-style: none; padding: 0; margin: var(--space-3) 0;">
+        <li style="display: flex; gap: var(--space-3); padding: var(--space-2) 0; font-size: var(--text-sm);">
+          <span style="color: var(--sem-attention); font-weight: 600; min-width: 130px;">Layout changes</span>
+          <span style="color: var(--ink-secondary);">Repacking weights into a different memory layout for faster access can introduce transposition errors, alignment bugs, or incorrect stride calculations that silently corrupt results.</span>
+        </li>
+        <li style="display: flex; gap: var(--space-3); padding: var(--space-2) 0; font-size: var(--text-sm);">
+          <span style="color: var(--sem-ffn); font-weight: 600; min-width: 130px;">Selector changes</span>
+          <span style="color: var(--ink-secondary);">Choosing a different kernel variant (e.g., a quantized path or a fused operator) may have subtle numerical differences or outright bugs for certain input shapes.</span>
+        </li>
+      </ul>
+      <p>
+        The fix is a discipline: <strong>every optimization must be accompanied by a correctness check.</strong> The standard approach is to measure perplexity on a reference dataset before and after the change. If perplexity increases beyond a small tolerance, the optimization is rejected regardless of how fast it is.
+      </p>
+      <p>
+        Isolating the regression means bisecting: which commit introduced the divergence? Once found, you compare the before-and-after numerics at each operator boundary to find where the values first diverge. Often the divergence is tiny per operation but compounds across layers.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Toy Example</div>
+      <div class="toy-example">
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-bottom: var(--space-3);">
+          A weight repack optimization that introduces a silent bug:
+        </p>
+        <div style="font-family: var(--font-mono); font-size: var(--text-sm);">
+          <div style="margin-bottom: var(--space-3);">
+            <div style="color: var(--ink-ghost); margin-bottom: var(--space-1);">Before (correct):</div>
+            <div style="padding-left: var(--space-4);">
+              W stored as [d_out, d_in] row-major<br/>
+              GEMV reads rows sequentially &rarr; correct output
+            </div>
+          </div>
+          <div style="margin-bottom: var(--space-3);">
+            <div style="color: var(--sem-attention); margin-bottom: var(--space-1);">After (optimized repack):</div>
+            <div style="padding-left: var(--space-4);">
+              W repacked into [d_out/4, d_in, 4] blocked layout<br/>
+              GEMV uses vectorized loads &rarr; 15% faster<br/>
+              <span style="color: var(--sem-ffn);">Bug: stride calculation off by 1 for d_in not divisible by 4</span>
+            </div>
+          </div>
+          <div>
+            <div style="color: var(--ink-ghost); margin-bottom: var(--space-1);">Effect:</div>
+            <div style="padding-left: var(--space-4);">
+              Most layers: correct (d_in divisible by 4)<br/>
+              Two layers: wrong values &rarr; perplexity +0.3<br/>
+              <span style="color: var(--ink-tertiary);">Undetectable by spot-checking a single layer</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Shapes</div>
+      <div class="shape-card">
+        <div>Original layout: [d_out, d_in] contiguous</div>
+        <div>Repacked layout: [d_out/block, d_in, block] &nbsp; <span style="color: var(--ink-tertiary);">(blocked for vectorized access)</span></div>
+        <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">The mathematical result must be identical. Any difference is a bug.</div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Math</div>
+      <p>Perplexity as a correctness metric:</p>
+      <div style="font-family: var(--font-mono); font-size: var(--text-sm); background: var(--surface-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); margin: var(--space-3) 0;">
+        <div style="color: var(--ink-primary);">PPL = exp(&minus;(1/N) &sum; log P(token<sub>i</sub> | context))</div>
+        <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">Lower PPL = better predictions. A correct optimization should not change PPL.</div>
+        <div style="color: var(--ink-tertiary);">Acceptable tolerance: PPL change &lt; 0.01 (implementation-dependent).</div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Implementation Hook</div>
+      <div class="impl-hook">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          The perplexity tool runs the model on a reference dataset and reports the PPL score. If an optimization changes the PPL beyond tolerance, it is flagged. The repack code in the CPU backend handles weight layout transformations &mdash; this is exactly the kind of code where subtle stride or alignment bugs cause regressions.
+        </p>
+        <div class="file-path">tools/perplexity/perplexity.cpp</div>
+        <div class="file-path">ggml/src/ggml-cpu/repack.cpp</div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Performance Hook</div>
+      <div class="perf-hook">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          Speed without correctness is meaningless. The fastest code that produces wrong answers is not an optimization &mdash; it is a bug. In practice, the validation step (running perplexity) takes minutes but prevents days of debugging regressions downstream. Many projects run perplexity checks in CI to catch these issues automatically.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Check Yourself</div>
+      <GatePanel
+        client:load
+        lessonId="L43"
+        gateStrength="hard"
+        questions={[
+          {
+            id: 'L43-q1',
+            type: 'single_choice',
+            prompt: 'A kernel optimization gives a 20% speedup. What must you verify before accepting it?',
+            tag: 'conceptual',
+            choices: [
+              { id: 'a', text: 'That the kernel runs on all GPU architectures', isCorrect: false },
+              { id: 'b', text: 'That model output quality (e.g., perplexity) is unchanged within tolerance', isCorrect: true },
+              { id: 'c', text: 'That the kernel uses less memory than before', isCorrect: false },
+            ],
+            explanation: 'Speed is only valid if correctness is preserved. The standard check is to measure perplexity before and after the change. If perplexity increases beyond a small tolerance, the optimization is rejected.',
+          },
+          {
+            id: 'L43-q2',
+            type: 'single_choice',
+            prompt: 'Why are weight layout changes a common source of silent regressions?',
+            tag: 'conceptual',
+            choices: [
+              { id: 'a', text: 'They change the model architecture', isCorrect: false },
+              { id: 'b', text: 'They can introduce stride, alignment, or transposition errors that produce wrong values without crashing', isCorrect: true },
+              { id: 'c', text: 'They always reduce numerical precision', isCorrect: false },
+            ],
+            explanation: 'Layout changes (repacking) rearrange how weights are stored in memory. If the repack code has a stride or alignment bug, the matrix multiply reads wrong values. The code does not crash — it just silently produces incorrect results.',
+          },
+          {
+            id: 'L43-q3',
+            type: 'single_choice',
+            prompt: 'How do you isolate which part of an optimization introduced a numerical regression?',
+            tag: 'conceptual',
+            choices: [
+              { id: 'a', text: 'Run the model at half precision and compare', isCorrect: false },
+              { id: 'b', text: 'Bisect commits, then compare per-operator numerics between the before and after versions to find where values first diverge', isCorrect: true },
+              { id: 'c', text: 'Profile the model and find the slowest operator', isCorrect: false },
+            ],
+            explanation: 'First bisect to find the offending commit, then compare intermediate tensor values at each operator boundary. The first point of divergence reveals which operator has the bug. Often the per-operator error is tiny but compounds across layers.',
+          },
+        ]}
+      />
+    </div>
+
+  </LessonPage>
+</BaseLayout>

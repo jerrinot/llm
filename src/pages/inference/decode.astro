@@ -1,0 +1,133 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import '../../styles/global.css';
+import '../../styles/course.css';
+import LessonPage from '../../components/course/LessonPage';
+import GatePanel from '../../components/assessment/GatePanel';
+---
+
+<BaseLayout title="Decode Adds One Token at a Time">
+  <LessonPage lessonId="L28" client:load>
+
+    <div class="lesson-section">
+      <div class="section-label">Question</div>
+      <div class="lesson-question">Why is decode different from prefill?</div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Intuition</div>
+      <p>
+        After prefill, the model has processed the entire prompt. Now it needs to generate output — one token at a time. Each new token depends on the one before it, so you cannot generate them in parallel.
+      </p>
+      <p>
+        During decode, the model runs a forward pass for <strong>one new token</strong>. It computes Q for that single token, but it needs K and V from all previous tokens to compute attention. Instead of recomputing K and V from scratch, it reuses the <span style="color: var(--sem-kvcache);">KV cache</span> — the stored keys and values from prefill and all prior decode steps.
+      </p>
+      <p>
+        This changes the computational profile completely. The matrices are thin: Q has 1 row (one new token), while K and V have many rows (all previous tokens). The FFN also processes just 1 row. These are small matrix multiplies — or more precisely, matrix-vector products — which cannot saturate the GPU's compute units. Decode is <strong>memory-bandwidth-bound</strong>: the bottleneck is reading the model weights and KV cache from memory, not doing arithmetic.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Toy Example</div>
+      <div class="toy-example">
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-bottom: var(--space-3);">
+          After prefill of "The cat sat on" (4 tokens), generating the 5th token:
+        </p>
+        <div style="font-family: var(--font-mono); font-size: var(--text-sm);">
+          <div style="margin-bottom: var(--space-2);">
+            <span style="color: var(--ink-ghost);">new token:</span> [the] &mdash; 1 token
+          </div>
+          <div style="padding-left: var(--space-4); border-left: 2px solid var(--sem-attention-dim); margin-bottom: var(--space-2);">
+            <span style="color: var(--sem-attention);">attention</span> &mdash; Q is [1, d_head], K from <span style="color: var(--sem-kvcache);">cache</span> is [5, d_head]
+          </div>
+          <div style="padding-left: var(--space-4); border-left: 2px solid var(--sem-ffn-dim); margin-bottom: var(--space-2);">
+            <span style="color: var(--sem-ffn);">FFN</span> &mdash; 1 row, a matrix-vector product
+          </div>
+          <div style="margin-top: var(--space-2);">
+            <span style="color: var(--ink-ghost);">output:</span> logits for token 6 + <span style="color: var(--sem-kvcache);">KV cache updated</span>
+          </div>
+        </div>
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-top: var(--space-3);">
+          Same computation graph as prefill, but with 1 row instead of n_prompt rows. Very different performance characteristics.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Shapes</div>
+      <div class="shape-card">
+        <div>New Q per head: [1, d_head]</div>
+        <div>Cached K per head: <span style="color: var(--sem-kvcache);">[n_past, d_head]</span></div>
+        <div>Attention scores: [1, n_past]</div>
+        <div>FFN input: [1, d_model]</div>
+        <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">One row everywhere. The "width" comes from n_past in the KV cache, not from the batch dimension.</div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Math</div>
+      <p>During decode, attention is a matrix-vector product, not a matrix-matrix product:</p>
+      <div style="font-family: var(--font-mono); font-size: var(--text-sm); background: var(--surface-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); margin: var(--space-3) 0;">
+        <div style="color: var(--sem-attention);">q = x_new &middot; W_Q &nbsp; <span style="color: var(--ink-tertiary);">// [1, d_head]</span></div>
+        <div style="color: var(--sem-kvcache);">K_cached &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color: var(--ink-tertiary);">// [n_past, d_head] from cache</span></div>
+        <div style="color: var(--sem-attention);">scores = q &middot; K&#x1d40; &nbsp; <span style="color: var(--ink-tertiary);">// [1, n_past] &mdash; vector, not matrix</span></div>
+        <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">The arithmetic is tiny; the cost is reading K_cached from memory.</div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Implementation Hook</div>
+      <div class="impl-hook">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          In <code>llama.cpp</code>, decode calls the same <code>llama_decode()</code> function as prefill, but with a batch of size 1. The computation graph is identical — what changes is the shape of the input tensors. Different backends may select different kernels for the small matrix sizes typical of decode.
+        </p>
+        <div class="file-path">src/llama-context.cpp &mdash; llama_decode() with single-token batch</div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Performance Hook</div>
+      <div class="perf-hook">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          Decode is memory-bandwidth-bound. Each step reads the full model weights plus the KV cache, but only does a tiny amount of arithmetic (one row). Faster memory (higher GB/s) helps decode more than faster compute (higher TFLOPS). This is why decode tokens per second is often much lower than prefill tokens per second — the GPU arithmetic units are mostly idle, waiting for data.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Check Yourself</div>
+      <GatePanel
+        client:load
+        lessonId="L28"
+        gateStrength="hard"
+        questions={[
+          {
+            id: 'L28-q1',
+            type: 'single_choice',
+            prompt: 'Why is decode not simply "a smaller prefill"?',
+            tag: 'conceptual',
+            choices: [
+              { id: 'a', text: 'Decode uses a completely different computation graph', isCorrect: false },
+              { id: 'b', text: 'Decode processes one row, making it memory-bandwidth-bound instead of compute-bound, and it reuses cached K/V instead of computing them fresh', isCorrect: true },
+              { id: 'c', text: 'Decode skips the attention step to save time', isCorrect: false },
+            ],
+            explanation: 'Prefill and decode use the same computation graph, but decode has 1 row instead of n_prompt rows. This changes the bottleneck from compute to memory bandwidth. Additionally, decode reuses K and V from the cache rather than recomputing them. These differences make the performance profile fundamentally different, not just "smaller."',
+          },
+          {
+            id: 'L28-q2',
+            type: 'single_choice',
+            prompt: 'During decode, what determines the width of the attention score vector?',
+            tag: 'shape',
+            choices: [
+              { id: 'a', text: 'd_model — the hidden dimension', isCorrect: false },
+              { id: 'b', text: 'n_past — the number of previously processed tokens', isCorrect: true },
+              { id: 'c', text: '|V| — the vocabulary size', isCorrect: false },
+            ],
+            explanation: 'The attention scores during decode have shape [1, n_past]. The new token (Q) attends to all n_past cached keys, so the score vector has one entry per past token.',
+          },
+        ]}
+      />
+    </div>
+
+  </LessonPage>
+</BaseLayout>

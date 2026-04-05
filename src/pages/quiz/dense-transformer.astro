@@ -1,0 +1,94 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import '../../styles/global.css';
+import '../../styles/course.css';
+import LessonPage from '../../components/course/LessonPage';
+import GatePanel from '../../components/assessment/GatePanel';
+---
+
+<BaseLayout title="Quiz: Dense Transformer Block">
+  <LessonPage lessonId="Q-M4" client:load>
+
+    <div class="lesson-section">
+      <div class="section-label">Module Quiz</div>
+      <h2 style="font-family: var(--font-display); font-size: var(--text-2xl); margin-bottom: var(--space-3);">Dense Transformer Block</h2>
+      <p style="color: var(--ink-secondary);">
+        This quiz covers everything from M4: layer structure, residuals, normalization, Q/K/V projections, positional encoding, causal attention, multi-head attention, FFN, and the full decoder block.
+      </p>
+      <p style="color: var(--ink-tertiary); font-size: var(--text-sm); margin-top: var(--space-2);">
+        You need 80% or better to proceed.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <GatePanel
+        client:load
+        lessonId="Q-M4"
+        gateStrength="hard"
+        questions={[
+          {
+            id: 'QM4-q1',
+            type: 'single_choice',
+            prompt: 'What is the purpose of a residual connection in a transformer layer?',
+            tag: 'conceptual',
+            choices: [
+              { id: 'a', text: 'It doubles the output dimensionality', isCorrect: false },
+              { id: 'b', text: 'It adds the sublayer input back to the sublayer output, preserving information', isCorrect: true },
+              { id: 'c', text: 'It removes noise from the hidden states', isCorrect: false },
+            ],
+            explanation: 'The residual connection adds the input back to the output: output = sublayer(input) + input. This ensures information from earlier layers can flow through without being lost.',
+          },
+          {
+            id: 'QM4-q2',
+            type: 'single_choice',
+            prompt: 'In causal attention, what does the mask prevent?',
+            tag: 'conceptual',
+            choices: [
+              { id: 'a', text: 'Tokens from attending to themselves', isCorrect: false },
+              { id: 'b', text: 'Tokens from attending to future positions', isCorrect: true },
+              { id: 'c', text: 'Tokens from attending to the first token', isCorrect: false },
+            ],
+            explanation: 'Causal masking ensures token i can only attend to positions 0..i, never to future positions. This enforces left-to-right generation.',
+          },
+          {
+            id: 'QM4-q3',
+            type: 'single_choice',
+            prompt: 'If d_model = 512 and there are 8 attention heads, what is d_head?',
+            tag: 'shape',
+            choices: [
+              { id: 'a', text: '64', isCorrect: true },
+              { id: 'b', text: '512', isCorrect: false },
+              { id: 'c', text: '4096', isCorrect: false },
+            ],
+            explanation: 'd_head = d_model / n_heads = 512 / 8 = 64. Each head operates in a 64-dimensional subspace.',
+          },
+          {
+            id: 'QM4-q4',
+            type: 'single_choice',
+            prompt: 'Which operation in a transformer layer mixes information between tokens?',
+            tag: 'conceptual',
+            choices: [
+              { id: 'a', text: 'RMSNorm', isCorrect: false },
+              { id: 'b', text: 'FFN', isCorrect: false },
+              { id: 'c', text: 'Attention', isCorrect: true },
+            ],
+            explanation: 'Attention computes token-to-token interactions. FFN and RMSNorm operate on each token independently.',
+          },
+          {
+            id: 'QM4-q5',
+            type: 'single_choice',
+            prompt: 'What is the correct order of operations in a standard decoder block?',
+            tag: 'conceptual',
+            choices: [
+              { id: 'a', text: 'FFN → Attention → Norm → Residual', isCorrect: false },
+              { id: 'b', text: 'Norm → Attention → Residual → Norm → FFN → Residual', isCorrect: true },
+              { id: 'c', text: 'Attention → FFN → Norm → Residual', isCorrect: false },
+            ],
+            explanation: 'The standard pre-norm decoder block: normalize, then attention with residual, then normalize again, then FFN with residual.',
+          },
+        ]}
+      />
+    </div>
+
+  </LessonPage>
+</BaseLayout>

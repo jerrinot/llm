@@ -1,0 +1,91 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import '../../styles/global.css';
+import '../../styles/course.css';
+import LessonPage from '../../components/course/LessonPage';
+import GatePanel from '../../components/assessment/GatePanel';
+---
+
+<BaseLayout title="Quiz: Architecture Variants">
+  <LessonPage lessonId="Q-M5" client:load>
+
+    <div class="lesson-section">
+      <div class="section-label">Module 5 Quiz</div>
+      <p>
+        This quiz covers all of Module 5: GQA/MQA, sliding-window attention, shared-KV layers, MoE routing, MoE aggregation, and heterogeneous architectures. You must pass all questions to proceed.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Check Yourself</div>
+      <GatePanel
+        client:load
+        lessonId="Q-M5"
+        gateStrength="hard"
+        questions={[
+          {
+            id: 'QM5-q1',
+            type: 'single_choice',
+            prompt: 'What does GQA stand for?',
+            tag: 'conceptual',
+            choices: [
+              { id: 'a', text: 'General Query Architecture', isCorrect: false },
+              { id: 'b', text: 'Grouped-Query Attention', isCorrect: true },
+              { id: 'c', text: 'Gated Query Aggregation', isCorrect: false },
+            ],
+            explanation: 'GQA stands for Grouped-Query Attention. Multiple Q heads share a single KV head within each group.',
+          },
+          {
+            id: 'QM5-q2',
+            type: 'single_choice',
+            prompt: 'In MoE, what does the router produce?',
+            tag: 'conceptual',
+            choices: [
+              { id: 'a', text: 'A new hidden state for each token', isCorrect: false },
+              { id: 'b', text: 'One score per expert for each token, used to select which experts run', isCorrect: true },
+              { id: 'c', text: 'A compressed version of the KV cache', isCorrect: false },
+            ],
+            explanation: 'The router is a linear projection that produces one logit per expert. These scores determine which experts are selected via top-k.',
+          },
+          {
+            id: 'QM5-q3',
+            type: 'single_choice',
+            prompt: 'A model uses SWA with window size w = 512 and has 24 SWA layers stacked. What is the maximum theoretical receptive field?',
+            tag: 'math',
+            choices: [
+              { id: 'a', text: '512 tokens', isCorrect: false },
+              { id: 'b', text: '12,288 tokens', isCorrect: true },
+              { id: 'c', text: 'Unlimited — SWA has no upper bound', isCorrect: false },
+            ],
+            explanation: 'Each SWA layer extends the receptive field by w tokens. With 24 layers and w = 512, the maximum reach is 24 * 512 = 12,288 tokens.',
+          },
+          {
+            id: 'QM5-q4',
+            type: 'single_choice',
+            prompt: 'Why do shared-KV layers reduce memory bandwidth during decode?',
+            tag: 'conceptual',
+            choices: [
+              { id: 'a', text: 'They skip the FFN entirely', isCorrect: false },
+              { id: 'b', text: 'They avoid loading W_K and W_V weights and writing new KV cache entries', isCorrect: true },
+              { id: 'c', text: 'They use a smaller d_model', isCorrect: false },
+            ],
+            explanation: 'A shared-KV layer has no K or V weight matrices to load and writes nothing to the KV cache. It reads K/V from an earlier layer\'s cache, saving both the matmul compute and the memory bandwidth for weight loading and cache writes.',
+          },
+          {
+            id: 'QM5-q5',
+            type: 'single_choice',
+            prompt: 'A GQA model has 32 Q heads and 4 KV heads, with d_head = 128. What is the K shape per token per layer?',
+            tag: 'shape',
+            choices: [
+              { id: 'a', text: '[32, 128]', isCorrect: false },
+              { id: 'b', text: '[4, 128]', isCorrect: true },
+              { id: 'c', text: '[1, 128]', isCorrect: false },
+            ],
+            explanation: 'K has one vector per KV head. With 4 KV heads and d_head = 128, the shape is [4, 128]. Each KV head is shared by a group of 32/4 = 8 Q heads.',
+          },
+        ]}
+      />
+    </div>
+
+  </LessonPage>
+</BaseLayout>

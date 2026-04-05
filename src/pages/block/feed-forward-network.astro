@@ -1,0 +1,139 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import '../../styles/global.css';
+import '../../styles/course.css';
+import LessonPage from '../../components/course/LessonPage';
+import GatePanel from '../../components/assessment/GatePanel';
+---
+
+<BaseLayout title="The FFN Transforms Each Token Independently">
+  <LessonPage lessonId="L19" client:load>
+
+    <div class="lesson-section">
+      <div class="section-label">Question</div>
+      <div class="lesson-question">What does the FFN do?</div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Intuition</div>
+      <p>
+        After attention has mixed information between tokens, the <strong>feed-forward network</strong> (FFN) processes each token <em>independently</em>. No token looks at any other token here — it is a per-position transformation.
+      </p>
+      <p>
+        The FFN first <strong>expands</strong> the hidden state to a larger dimension (typically 4&times; wider), applies a nonlinear <strong>activation function</strong>, then <strong>projects back</strong> to the original dimension. This expand-activate-contract pattern lets the model learn complex per-token transformations that a single linear layer could not represent.
+      </p>
+      <p>
+        Modern models often use a <strong>gated</strong> variant (SwiGLU), where two parallel projections are computed in the expanded space — one acts as a gate controlling how much of the other passes through. This is why you may see the FFN described as having three weight matrices instead of two.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Toy Example</div>
+      <div class="toy-example">
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-bottom: var(--space-3);">
+          One token, d_model=4, d_ff=8 (expansion factor 2&times;):
+        </p>
+        <div style="font-family: var(--font-mono); font-size: var(--text-sm);">
+          <div style="margin-bottom: var(--space-2);">
+            <span style="color: var(--ink-ghost);">input:</span> x = [0.5, -1.0, 0.3, 0.8] &nbsp; <span style="color: var(--ink-tertiary);">(4 dims)</span>
+          </div>
+          <div style="padding-left: var(--space-4); border-left: 2px solid var(--sem-ffn-dim); margin-bottom: var(--space-2);">
+            <span style="color: var(--sem-ffn);">up-project:</span> x &times; W_up &rarr; [_, _, _, _, _, _, _, _] &nbsp; <span style="color: var(--ink-tertiary);">(8 dims)</span>
+          </div>
+          <div style="padding-left: var(--space-4); border-left: 2px solid var(--sem-ffn-dim); margin-bottom: var(--space-2);">
+            <span style="color: var(--sem-ffn);">activate:</span> SiLU(expanded) &nbsp; <span style="color: var(--ink-tertiary);">(nonlinearity, still 8 dims)</span>
+          </div>
+          <div style="padding-left: var(--space-4); border-left: 2px solid var(--sem-ffn-dim); margin-bottom: var(--space-2);">
+            <span style="color: var(--sem-ffn);">down-project:</span> activated &times; W_down &rarr; [_, _, _, _] &nbsp; <span style="color: var(--ink-tertiary);">(back to 4 dims)</span>
+          </div>
+          <div style="margin-top: var(--space-2);">
+            <span style="color: var(--ink-ghost);">output:</span> [0.7, -0.4, 0.1, 1.2] &nbsp; <span style="color: var(--ink-tertiary);">(same shape, different values)</span>
+          </div>
+        </div>
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-top: var(--space-3);">
+          Same operation runs independently on every token. No cross-token interaction.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Shapes</div>
+      <div class="shape-card">
+        <div>Input: [n_tokens, d_model]</div>
+        <div>W_up: [d_model, d_ff] &nbsp; <span style="color: var(--ink-tertiary);">(expand)</span></div>
+        <div>After up-project + activation: [n_tokens, d_ff]</div>
+        <div>W_down: [d_ff, d_model] &nbsp; <span style="color: var(--ink-tertiary);">(contract)</span></div>
+        <div style="color: var(--sem-ffn); margin-top: var(--space-2);">Output: [n_tokens, d_model] &nbsp; (same shape as input)</div>
+        <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">Gated variant adds W_gate: [d_model, d_ff] for the gating projection.</div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Math</div>
+      <p>Standard FFN:</p>
+      <div style="font-family: var(--font-mono); font-size: var(--text-sm); background: var(--surface-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); margin: var(--space-3) 0;">
+        <div style="color: var(--sem-ffn);">FFN(x) = W_down &sdot; activation(W_up &sdot; x)</div>
+      </div>
+      <p>Gated variant (SwiGLU):</p>
+      <div style="font-family: var(--font-mono); font-size: var(--text-sm); background: var(--surface-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); margin: var(--space-3) 0;">
+        <div style="color: var(--sem-ffn);">FFN(x) = W_down &sdot; (SiLU(W_gate &sdot; x) &odot; (W_up &sdot; x))</div>
+        <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">&odot; = elementwise multiply (the gating mechanism)</div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Implementation Hook</div>
+      <div class="impl-hook">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          In <code>llama.cpp</code>, <code>build_ffn()</code> in <code>src/llama-graph.cpp</code> handles the FFN computation. It supports different FFN types (plain, gated, SwiGLU). The gate and up projections often run in parallel since they are independent matrix multiplies on the same input.
+        </p>
+        <div class="file-path">src/llama-graph.cpp — build_ffn()</div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Performance Hook</div>
+      <div class="perf-hook">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          The FFN is often the most parameter-heavy part of a layer. With d_ff = 4 &times; d_model, the two (or three) weight matrices contain more parameters than the attention weights. FFN cost scales with n_tokens &times; d_model &times; d_ff — linear in sequence length, unlike attention's quadratic scaling. For short sequences, FFN dominates compute; for long sequences, attention dominates.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Check Yourself</div>
+      <GatePanel
+        client:load
+        lessonId="L19"
+        gateStrength="hard"
+        questions={[
+          {
+            id: 'L19-q1',
+            type: 'single_choice',
+            prompt: 'What is the key difference between what attention does and what the FFN does?',
+            tag: 'conceptual',
+            choices: [
+              { id: 'a', text: 'Attention processes tokens independently; FFN mixes information between tokens', isCorrect: false },
+              { id: 'b', text: 'Attention mixes information between tokens; FFN transforms each token independently', isCorrect: true },
+              { id: 'c', text: 'They do the same thing but with different weight matrices', isCorrect: false },
+            ],
+            explanation: 'Attention is the token-mixing operation — it lets tokens read from other positions. The FFN is a per-token transform — each token is processed through the same network independently, with no cross-token communication.',
+          },
+          {
+            id: 'L19-q2',
+            type: 'single_choice',
+            prompt: 'If d_model = 256 and d_ff = 1024, what is the shape of W_up?',
+            tag: 'shape',
+            choices: [
+              { id: 'a', text: '[256, 256]', isCorrect: false },
+              { id: 'b', text: '[256, 1024]', isCorrect: true },
+              { id: 'c', text: '[1024, 1024]', isCorrect: false },
+            ],
+            explanation: 'W_up projects from d_model to d_ff, so its shape is [256, 1024]. It expands each token from 256 to 1024 dimensions.',
+          },
+        ]}
+      />
+    </div>
+
+  </LessonPage>
+</BaseLayout>

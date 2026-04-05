@@ -1,0 +1,151 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import '../../styles/global.css';
+import '../../styles/course.css';
+import LessonPage from '../../components/course/LessonPage';
+import GatePanel from '../../components/assessment/GatePanel';
+---
+
+<BaseLayout title="Compute-Bound and Memory-Bound">
+  <LessonPage lessonId="L34" client:load>
+
+    <div class="lesson-section">
+      <div class="section-label">Question</div>
+      <div class="lesson-question">How do you tell if a workload is compute-bound or memory-bound?</div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Intuition</div>
+      <p>
+        Every operation needs two things: it needs to <em>move data</em> (load weights, read inputs, write outputs) and it needs to <em>do arithmetic</em> (multiply, add). Hardware has a maximum rate for each: memory bandwidth (bytes/second) and compute throughput (FLOPs/second).
+      </p>
+      <p>
+        If the operation finishes its arithmetic before the data has arrived, it is <strong>memory-bound</strong> &mdash; the compute units sit idle waiting for memory. If data arrives faster than the hardware can process it, the operation is <strong>compute-bound</strong> &mdash; the memory system sits idle waiting for the ALUs.
+      </p>
+      <p>
+        The dividing line is the hardware's <strong>operational intensity threshold</strong>: the ratio of peak FLOPs/second to peak bytes/second. If your operation's arithmetic intensity (FLOPs per byte moved) is below this threshold, it is memory-bound. If above, it is compute-bound.
+      </p>
+      <p>
+        A key insight: an operation can have very few total FLOPs and still be slow if it is memory-bound. A GEMV with a 7B-parameter weight matrix does relatively little arithmetic but must load gigabytes of weights through the memory bus.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Toy Example</div>
+      <div class="toy-example">
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-bottom: var(--space-3);">
+          Hardware: 10 TFLOP/s compute, 100 GB/s memory bandwidth. Threshold = 100 FLOP/byte.
+        </p>
+        <div style="font-family: var(--font-mono); font-size: var(--text-sm);">
+          <div style="margin-bottom: var(--space-3); padding: var(--space-3); background: var(--surface-3); border-radius: var(--radius-sm);">
+            <div style="color: var(--sem-attention); font-weight: 600;">Operation A: Large GEMM</div>
+            <div style="padding-left: var(--space-4); margin-top: var(--space-1);">
+              <div>FLOPs: 2 billion &nbsp;|&nbsp; Bytes moved: 8 MB</div>
+              <div>Intensity: 2B / 8M = <strong>250 FLOP/byte</strong></div>
+              <div style="color: var(--sem-ffn);">250 &gt; 100 &rarr; compute-bound</div>
+              <div style="color: var(--ink-tertiary);">Time &asymp; 2B / 10T = 0.2 ms (limited by ALUs)</div>
+            </div>
+          </div>
+          <div style="padding: var(--space-3); background: var(--surface-3); border-radius: var(--radius-sm);">
+            <div style="color: var(--sem-kvcache); font-weight: 600;">Operation B: GEMV (decode projection)</div>
+            <div style="padding-left: var(--space-4); margin-top: var(--space-1);">
+              <div>FLOPs: 33 million &nbsp;|&nbsp; Bytes moved: 32 MB</div>
+              <div>Intensity: 33M / 32M = <strong>~1 FLOP/byte</strong></div>
+              <div style="color: var(--sem-ffn);">1 &lt; 100 &rarr; memory-bound</div>
+              <div style="color: var(--ink-tertiary);">Time &asymp; 32M / 100G = 0.32 ms (limited by bandwidth)</div>
+            </div>
+          </div>
+        </div>
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-top: var(--space-3);">
+          Operation B does 60&times; fewer FLOPs than A but takes longer, because it is memory-bound.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Shapes</div>
+      <div class="shape-card">
+        <div style="font-weight: 600;">The roofline model divides workloads into two regimes:</div>
+        <div style="margin-top: var(--space-2);">
+          <div style="color: var(--sem-kvcache);">Memory-bound: intensity &lt; peak_FLOPS / peak_bandwidth</div>
+          <div style="color: var(--sem-attention);">Compute-bound: intensity &gt; peak_FLOPS / peak_bandwidth</div>
+        </div>
+        <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">
+          GEMV is almost always memory-bound. Large GEMM is almost always compute-bound. Attention score computation falls in between depending on sequence length.
+        </div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Math</div>
+      <div style="font-family: var(--font-mono); font-size: var(--text-sm); background: var(--surface-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); margin: var(--space-3) 0;">
+        <div style="color: var(--sem-token);">arithmetic_intensity = total_FLOPs / total_bytes_moved</div>
+        <div style="margin-top: var(--space-2);">
+          <div style="color: var(--ink-tertiary);">machine_balance = peak_FLOPs_per_sec / peak_bytes_per_sec</div>
+        </div>
+        <div style="margin-top: var(--space-2);">
+          <div style="color: var(--sem-kvcache);">if arithmetic_intensity &lt; machine_balance: memory-bound</div>
+          <div style="color: var(--sem-attention);">if arithmetic_intensity &gt; machine_balance: compute-bound</div>
+        </div>
+        <div style="margin-top: var(--space-2);">
+          <div style="color: var(--ink-tertiary);">Achievable performance = min(peak_FLOPS, arithmetic_intensity &times; peak_bandwidth)</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Implementation Hook</div>
+      <div class="impl-hook">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          In <code>llama.cpp</code>, whether a <code>ggml_mul_mat</code> call ends up compute-bound or memory-bound depends on the input batch size. The same kernel, the same weights &mdash; but with <code>n_tokens = 1</code> (decode) the operation is memory-bound, and with <code>n_tokens = 512</code> (prefill) it is compute-bound. Backend code may choose different execution strategies based on these shapes.
+        </p>
+        <div class="file-path">ggml/src/ggml-cpu/ggml-cpu.c &mdash; mul_mat task dispatch</div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Performance Hook</div>
+      <div class="perf-hook">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          Correctly classifying your bottleneck changes your optimization strategy entirely. For compute-bound work, you want better SIMD utilization, tiling, and instruction scheduling. For memory-bound work, you want to reduce bytes moved: quantization, smaller data types, and better memory access patterns. Applying the wrong optimization category wastes effort.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Check Yourself</div>
+      <GatePanel
+        client:load
+        lessonId="L34"
+        gateStrength="hard"
+        questions={[
+          {
+            id: 'L34-q1',
+            type: 'single_choice',
+            prompt: 'An operation does 50 million FLOPs and moves 200 MB of data. On hardware with a machine balance of 100 FLOP/byte, is it compute-bound or memory-bound?',
+            tag: 'reasoning',
+            choices: [
+              { id: 'a', text: 'Compute-bound, because 50 million FLOPs is a lot of work', isCorrect: false },
+              { id: 'b', text: 'Memory-bound, because its intensity (0.25 FLOP/byte) is far below the machine balance (100 FLOP/byte)', isCorrect: true },
+              { id: 'c', text: 'Neither — the two are always balanced', isCorrect: false },
+            ],
+            explanation: 'Arithmetic intensity = 50M / 200M = 0.25 FLOP/byte. The machine balance is 100 FLOP/byte. Since 0.25 is far below 100, the operation is severely memory-bound — the compute units finish long before the data arrives.',
+          },
+          {
+            id: 'L34-q2',
+            type: 'single_choice',
+            prompt: 'Why can a low-FLOP operation still be slow?',
+            tag: 'conceptual',
+            choices: [
+              { id: 'a', text: 'Because hardware always processes operations sequentially', isCorrect: false },
+              { id: 'b', text: 'Because if it moves a lot of data relative to its compute, it waits on memory bandwidth', isCorrect: true },
+              { id: 'c', text: 'Because low-FLOP operations use slower instruction sets', isCorrect: false },
+            ],
+            explanation: 'The total time is determined by whichever resource is the bottleneck. A GEMV does relatively few FLOPs but must load the entire weight matrix. The time is dominated by memory transfer, not arithmetic.',
+          },
+        ]}
+      />
+    </div>
+
+  </LessonPage>
+</BaseLayout>

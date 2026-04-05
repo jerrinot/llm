@@ -1,0 +1,133 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import '../../styles/global.css';
+import '../../styles/course.css';
+import LessonPage from '../../components/course/LessonPage';
+import GatePanel from '../../components/assessment/GatePanel';
+---
+
+<BaseLayout title="The KV Cache Stores Past Attention State">
+  <LessonPage lessonId="L29" client:load>
+
+    <div class="lesson-section">
+      <div class="section-label">Question</div>
+      <div class="lesson-question">What does the KV cache store?</div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Intuition</div>
+      <p>
+        During attention, each token's query (Q) needs to interact with the keys (K) and values (V) of all previous tokens. Without caching, every decode step would recompute K and V for every token from scratch — repeating all the work from every prior step.
+      </p>
+      <p>
+        The <strong style="color: var(--sem-kvcache);">KV cache</strong> stores the K and V projections that have already been computed. When a new token arrives during decode, the model only computes K and V for that one new token and appends them to the cache. The query then attends to the full cached sequence.
+      </p>
+      <p>
+        This avoids quadratic recomputation — but it costs memory. The cache stores one K vector and one V vector per token, per layer, per KV head. (In GQA/MQA models, there are fewer KV heads than query heads — which is one reason those variants exist.) For a dense model with 32 layers, 32 KV heads, d_head=128, and float16, the cache is 2 &times; 32 &times; 32 &times; 128 &times; 2 bytes = <strong>512 KB per token</strong>. A 4,096-token context uses about 2 GB of KV cache alone.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Toy Example</div>
+      <div class="toy-example">
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-bottom: var(--space-3);">
+          Generating tokens after a 3-token prompt, showing cache growth:
+        </p>
+        <div style="font-family: var(--font-mono); font-size: var(--text-sm);">
+          <div style="margin-bottom: var(--space-3);">
+            <span style="color: var(--ink-ghost);">prefill:</span> process [A, B, C] &rarr; <span style="color: var(--sem-kvcache);">cache = [K,V for A, B, C]</span>
+          </div>
+          <div style="margin-bottom: var(--space-2);">
+            <span style="color: var(--ink-ghost);">decode step 1:</span> process [D] &rarr; <span style="color: var(--sem-kvcache);">cache = [K,V for A, B, C, D]</span>
+          </div>
+          <div style="margin-bottom: var(--space-2);">
+            <span style="color: var(--ink-ghost);">decode step 2:</span> process [E] &rarr; <span style="color: var(--sem-kvcache);">cache = [K,V for A, B, C, D, E]</span>
+          </div>
+        </div>
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-top: var(--space-3);">
+          The cache grows by one entry per token generated. Each entry is (K, V) for every layer and KV head.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Shapes</div>
+      <div class="shape-card">
+        <div style="color: var(--sem-kvcache);">K cache per layer per KV head: [n_past, d_head]</div>
+        <div style="color: var(--sem-kvcache);">V cache per layer per KV head: [n_past, d_head]</div>
+        <div style="margin-top: var(--space-2);">Total cache: 2 &times; n_layers &times; n_kv_heads &times; n_past &times; d_head &times; sizeof(element)</div>
+        <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">Memory grows linearly with n_past. Longer sequences = more cache memory.</div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Math</div>
+      <p>Without the cache, decode step t would recompute K for all t tokens:</p>
+      <div style="font-family: var(--font-mono); font-size: var(--text-sm); background: var(--surface-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); margin: var(--space-3) 0;">
+        <div style="color: var(--ink-tertiary);">// Without cache (wasteful):</div>
+        <div>K = X_[1:t] &middot; W_K &nbsp; <span style="color: var(--ink-tertiary);">// recompute K for ALL tokens every step</span></div>
+        <div style="margin-top: var(--space-3); color: var(--ink-tertiary);">// With cache (actual):</div>
+        <div style="color: var(--sem-kvcache);">k_new = x_t &middot; W_K &nbsp; <span style="color: var(--ink-tertiary);">// compute K for new token only</span></div>
+        <div style="color: var(--sem-kvcache);">K = concat(K_cached, k_new) &nbsp; <span style="color: var(--ink-tertiary);">// append to cache</span></div>
+      </div>
+      <p style="font-size: var(--text-sm); color: var(--ink-tertiary);">
+        The same applies to V. This turns O(t&sup2;) recomputation into O(t) append-and-read.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Implementation Hook</div>
+      <div class="impl-hook">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          In <code>llama.cpp</code>, the KV cache is allocated once when the context is created. During each decode step, new K and V entries are written into the cache at the current position. The cache memory is pre-allocated for the full context length, even if only a fraction is used so far.
+        </p>
+        <div class="file-path">src/llama-kv-cache.cpp &mdash; KV cache allocation and update</div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Performance Hook</div>
+      <div class="perf-hook">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          The KV cache is often the dominant memory consumer during inference — larger than the memory needed for activations. Quantizing the cache (e.g., to Q8 or Q4) reduces its footprint but introduces approximation. Techniques like GQA (grouped-query attention) reduce cache size by sharing K/V across head groups, which is why many modern models use it.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Check Yourself</div>
+      <GatePanel
+        client:load
+        lessonId="L29"
+        gateStrength="hard"
+        questions={[
+          {
+            id: 'L29-q1',
+            type: 'single_choice',
+            prompt: 'What is reused from the KV cache across decoding steps?',
+            tag: 'conceptual',
+            choices: [
+              { id: 'a', text: 'The Q (query) vectors from all previous tokens', isCorrect: false },
+              { id: 'b', text: 'The K (key) and V (value) vectors from all previous tokens', isCorrect: true },
+              { id: 'c', text: 'The full hidden states from all previous tokens', isCorrect: false },
+            ],
+            explanation: 'The KV cache stores the K and V projections from all previously processed tokens. Q is only needed for the current token and is not cached. Full hidden states are not stored — only the attention-specific K and V projections.',
+          },
+          {
+            id: 'L29-q2',
+            type: 'single_choice',
+            prompt: 'Why does the KV cache consume more memory as the conversation gets longer?',
+            tag: 'conceptual',
+            choices: [
+              { id: 'a', text: 'Because the model weights grow with context length', isCorrect: false },
+              { id: 'b', text: 'Because each new token adds a K and V entry per layer per KV head', isCorrect: true },
+              { id: 'c', text: 'Because the FFN intermediate size scales with sequence length', isCorrect: false },
+            ],
+            explanation: 'Each token that enters the cache adds one K vector and one V vector per layer per KV head. Model weights do not change. FFN cost is per-token and independent of sequence length. Only the KV cache grows with the number of tokens processed.',
+          },
+        ]}
+      />
+    </div>
+
+  </LessonPage>
+</BaseLayout>

@@ -1,0 +1,94 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import '../../styles/global.css';
+import '../../styles/course.css';
+import LessonPage from '../../components/course/LessonPage';
+import GatePanel from '../../components/assessment/GatePanel';
+---
+
+<BaseLayout title="Quiz: Performance Reasoning">
+  <LessonPage lessonId="Q-M7" client:load>
+
+    <div class="lesson-section">
+      <div class="section-label">Module Quiz</div>
+      <h2 style="font-family: var(--font-display); font-size: var(--text-2xl); margin-bottom: var(--space-3);">Performance Reasoning</h2>
+      <p style="color: var(--ink-secondary);">
+        This quiz covers everything from M7: operator time breakdown, GEMM vs GEMV, compute-bound vs memory-bound analysis, quantization, memory layout and repacking, thread count and affinity, and validation of speedups.
+      </p>
+      <p style="color: var(--ink-tertiary); font-size: var(--text-sm); margin-top: var(--space-2);">
+        You need 80% or better to proceed.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <GatePanel
+        client:load
+        lessonId="Q-M7"
+        gateStrength="hard"
+        questions={[
+          {
+            id: 'QM7-q1',
+            type: 'single_choice',
+            prompt: 'What does "arithmetic intensity" measure?',
+            tag: 'vocab',
+            choices: [
+              { id: 'a', text: 'The total number of FLOPs in an operation', isCorrect: false },
+              { id: 'b', text: 'The ratio of FLOPs performed to bytes moved through memory', isCorrect: true },
+              { id: 'c', text: 'The clock speed of the processor during the operation', isCorrect: false },
+            ],
+            explanation: 'Arithmetic intensity is FLOPs divided by bytes of memory traffic. It determines whether an operation is compute-bound (high intensity) or memory-bound (low intensity) relative to the hardware\'s balance point.',
+          },
+          {
+            id: 'QM7-q2',
+            type: 'single_choice',
+            prompt: 'What does perplexity measure?',
+            tag: 'vocab',
+            choices: [
+              { id: 'a', text: 'How many tokens per second the model generates', isCorrect: false },
+              { id: 'b', text: 'The size of the model in memory after quantization', isCorrect: false },
+              { id: 'c', text: 'How surprised the model is by a test dataset — lower means better predictions', isCorrect: true },
+            ],
+            explanation: 'Perplexity is the exponentiated average negative log-likelihood. Lower perplexity means the model assigns higher probability to the correct next token on average. It is used to validate that optimizations have not degraded model quality.',
+          },
+          {
+            id: 'QM7-q3',
+            type: 'single_choice',
+            prompt: 'Decode processes one token per step, making weight projections into GEMV. An engineer adds a GEMM tiling optimization that improves large-matrix throughput by 30%. Which phase benefits more?',
+            tag: 'reasoning',
+            choices: [
+              { id: 'a', text: 'Decode, because it runs more steps overall', isCorrect: false },
+              { id: 'b', text: 'Prefill, because it runs large GEMMs that are compute-bound and can use the extra throughput; decode is memory-bound and will not benefit much', isCorrect: true },
+              { id: 'c', text: 'Both benefit equally since they use the same weight matrices', isCorrect: false },
+            ],
+            explanation: 'Prefill processes many tokens at once, creating large GEMM operations that are compute-bound. A 30% compute throughput improvement translates directly to prefill speed. Decode runs GEMV (1 token), which is memory-bound — extra compute throughput sits idle waiting for data.',
+          },
+          {
+            id: 'QM7-q4',
+            type: 'single_choice',
+            prompt: 'A model is quantized from FP16 to Q4_0. Decode speed improves by 50%, but perplexity on wikitext-2 increases from 5.8 to 7.2. What should you conclude?',
+            tag: 'reasoning',
+            choices: [
+              { id: 'a', text: 'The optimization is successful because it is faster', isCorrect: false },
+              { id: 'b', text: 'The speed gain is real but the model quality has degraded significantly — this is not a safe drop-in replacement', isCorrect: true },
+              { id: 'c', text: 'Perplexity always increases with quantization, so this is expected and acceptable', isCorrect: false },
+            ],
+            explanation: 'A perplexity increase from 5.8 to 7.2 is a 24% regression — the model is meaningfully worse at predicting next tokens. The speed gain is real, but the model produces different (worse) outputs. Whether this trade-off is acceptable depends on the use case, but it is not a transparent optimization.',
+          },
+          {
+            id: 'QM7-q5',
+            type: 'single_choice',
+            prompt: 'A weight matrix has logical shape [4096, 4096]. After repacking for a SIMD kernel, what changes?',
+            tag: 'shape',
+            choices: [
+              { id: 'a', text: 'The logical shape changes to match the SIMD register width', isCorrect: false },
+              { id: 'b', text: 'The weight values are modified to be more SIMD-friendly', isCorrect: false },
+              { id: 'c', text: 'The physical memory layout changes so the kernel loads contiguous cache lines of useful data, but the logical shape and weight values stay the same', isCorrect: true },
+            ],
+            explanation: 'Repacking rearranges how values are stored in physical memory (e.g., tiling rows together) without changing the values or the logical matrix dimensions. The kernel computes the same result but loads data more efficiently because each cache line contains exactly the elements it needs next.',
+          },
+        ]}
+      />
+    </div>
+
+  </LessonPage>
+</BaseLayout>

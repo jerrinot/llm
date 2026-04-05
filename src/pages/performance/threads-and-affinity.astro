@@ -1,0 +1,148 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import '../../styles/global.css';
+import '../../styles/course.css';
+import LessonPage from '../../components/course/LessonPage';
+import GatePanel from '../../components/assessment/GatePanel';
+---
+
+<BaseLayout title="Threads, Affinity, and Scheduling">
+  <LessonPage lessonId="L37" client:load>
+
+    <div class="lesson-section">
+      <div class="section-label">Question</div>
+      <div class="lesson-question">Why does thread count affect inference?</div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Intuition</div>
+      <p>
+        Inference workloads can be split across multiple CPU threads. Each thread processes a portion of the matrix multiply, attention computation, or FFN. More threads means more parallelism &mdash; up to a point.
+      </p>
+      <p>
+        The ideal thread count depends on the hardware and the workload. A machine has a fixed number of <strong>physical cores</strong>, each with its own execution units and L1/L2 caches. Many machines also support <strong>SMT</strong> (Simultaneous Multi-Threading, also called Hyper-Threading on Intel), which exposes two <em>logical</em> cores per physical core. For memory-bound workloads, using SMT threads rarely helps because both logical cores share the same cache and memory port &mdash; you get more threads competing for the same bandwidth.
+      </p>
+      <p>
+        <strong>Thread affinity</strong> pins each thread to a specific core. Without affinity, the operating system may migrate threads between cores, evicting warm caches. With affinity, each thread stays on its core and its working data stays in cache.
+      </p>
+      <p>
+        Different inference phases benefit from different thread counts. <strong>Prefill</strong> is compute-bound (large GEMM), so using all physical cores helps. <strong>Decode</strong> is memory-bound (GEMV), so adding more threads beyond the number needed to saturate memory bandwidth can actually slow things down due to synchronization overhead.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Toy Example</div>
+      <div class="toy-example">
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-bottom: var(--space-3);">
+          Machine: 8 physical cores, 16 logical cores (SMT). Memory bandwidth: 50 GB/s.
+        </p>
+        <div style="font-family: var(--font-mono); font-size: var(--text-sm);">
+          <div style="margin-bottom: var(--space-3); padding: var(--space-3); background: var(--surface-3); border-radius: var(--radius-sm);">
+            <div style="color: var(--sem-attention); font-weight: 600;">Prefill (compute-bound GEMM)</div>
+            <div style="padding-left: var(--space-4); margin-top: var(--space-1);">
+              <div>4 threads: 55% of peak FLOPS &nbsp;<span style="color: var(--ink-tertiary);">(cores underutilized)</span></div>
+              <div>8 threads: 92% of peak FLOPS &nbsp;<span style="color: var(--sem-ffn);">(all physical cores busy)</span></div>
+              <div>16 threads: 88% of peak FLOPS &nbsp;<span style="color: var(--ink-tertiary);">(SMT contention hurts slightly)</span></div>
+            </div>
+          </div>
+          <div style="padding: var(--space-3); background: var(--surface-3); border-radius: var(--radius-sm);">
+            <div style="color: var(--sem-kvcache); font-weight: 600;">Decode (memory-bound GEMV)</div>
+            <div style="padding-left: var(--space-4); margin-top: var(--space-1);">
+              <div>4 threads: 85% of peak bandwidth &nbsp;<span style="color: var(--sem-ffn);">(already near bandwidth limit)</span></div>
+              <div>8 threads: 95% of peak bandwidth &nbsp;<span style="color: var(--sem-ffn);">(saturated)</span></div>
+              <div>16 threads: 90% of peak bandwidth &nbsp;<span style="color: var(--ink-tertiary);">(sync overhead eats gains)</span></div>
+            </div>
+          </div>
+        </div>
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-top: var(--space-3);">
+          The best thread count is 8 for both, but for different reasons. Prefill wants all ALUs. Decode saturates bandwidth early and does not benefit from more threads.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Shapes</div>
+      <div class="shape-card">
+        <div>Work partitioning for [m, k] &times; [k, n] across T threads:</div>
+        <div style="margin-top: var(--space-2);">
+          <div style="color: var(--sem-attention);">GEMM: split m rows across T threads &rarr; each thread does [m/T, k] &times; [k, n]</div>
+          <div style="color: var(--sem-kvcache);">GEMV: split n columns across T threads &rarr; each thread does [1, k] &times; [k, n/T]</div>
+        </div>
+        <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">
+          Threads must synchronize to combine results. More threads means more synchronization.
+        </div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Math</div>
+      <div style="font-family: var(--font-mono); font-size: var(--text-sm); background: var(--surface-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); margin: var(--space-3) 0;">
+        <div style="color: var(--sem-token);">Ideal speedup with T threads: time = time_single / T</div>
+        <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">
+          Real speedup: time = (work / T) + sync_overhead(T)
+        </div>
+        <div style="color: var(--ink-tertiary);">
+          For memory-bound work: time &ge; bytes_moved / peak_bandwidth, regardless of T.
+        </div>
+        <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">
+          Adding threads past the bandwidth saturation point only increases sync_overhead without reducing the memory wait.
+        </div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Implementation Hook</div>
+      <div class="impl-hook">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          In <code>llama.cpp</code>, the <code>-t</code> flag sets the thread count for computation. The backend threadpool is created at startup and threads are dispatched per operation. Thread affinity can be set via environment variables or OS-level tools like <code>taskset</code> on Linux.
+        </p>
+        <div class="file-path">ggml/src/ggml-cpu/ggml-cpu.c &mdash; threadpool dispatch</div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Performance Hook</div>
+      <div class="perf-hook">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          The best practice is to benchmark with different thread counts rather than assuming "more is better." Start with the number of physical cores, then try fewer. On big.LITTLE architectures (common in ARM), restricting threads to performance cores and avoiding efficiency cores often helps. Separate thread counts for prefill and decode (<code>-t</code> vs <code>-tb</code> in some builds) can yield the best overall throughput.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Check Yourself</div>
+      <GatePanel
+        client:load
+        lessonId="L37"
+        gateStrength="hard"
+        questions={[
+          {
+            id: 'L37-q1',
+            type: 'single_choice',
+            prompt: 'Why can the best thread count differ between prefill and decode?',
+            tag: 'reasoning',
+            choices: [
+              { id: 'a', text: 'Prefill uses different CPU instructions than decode', isCorrect: false },
+              { id: 'b', text: 'Prefill is compute-bound and benefits from more threads doing arithmetic; decode is memory-bound and saturates bandwidth with fewer threads, so extra threads just add synchronization cost', isCorrect: true },
+              { id: 'c', text: 'Decode requires threads to be on different machines', isCorrect: false },
+            ],
+            explanation: 'Prefill runs large GEMMs that benefit from parallelizing arithmetic across all physical cores. Decode runs GEMVs that are bottlenecked on memory bandwidth, which fewer threads can already saturate. Additional threads in decode add synchronization overhead without reducing the memory wait.',
+          },
+          {
+            id: 'L37-q2',
+            type: 'single_choice',
+            prompt: 'Why does using SMT (Hyper-Threading) threads often not help memory-bound workloads?',
+            tag: 'conceptual',
+            choices: [
+              { id: 'a', text: 'SMT threads run on separate physical cores with separate caches', isCorrect: false },
+              { id: 'b', text: 'SMT threads share the same physical core and memory port, so they compete for the same bandwidth instead of adding more', isCorrect: true },
+              { id: 'c', text: 'SMT threads cannot execute SIMD instructions', isCorrect: false },
+            ],
+            explanation: 'Two SMT threads share a single physical core, including its memory interface. For memory-bound work, they compete for the same bandwidth. This can hurt performance because of added scheduling and context-switch overhead without increasing the available memory throughput.',
+          },
+        ]}
+      />
+    </div>
+
+  </LessonPage>
+</BaseLayout>

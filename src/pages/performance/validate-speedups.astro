@@ -1,0 +1,144 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import '../../styles/global.css';
+import '../../styles/course.css';
+import LessonPage from '../../components/course/LessonPage';
+import GatePanel from '../../components/assessment/GatePanel';
+---
+
+<BaseLayout title="A Speedup Is Not Valid Until You Validate Outputs">
+  <LessonPage lessonId="L38" client:load>
+
+    <div class="lesson-section">
+      <div class="section-label">Question</div>
+      <div class="lesson-question">How do you know a speedup is safe?</div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Intuition</div>
+      <p>
+        Making inference faster is only useful if the model still produces correct outputs. Many optimizations &mdash; quantization, kernel rewrites, layout changes, reduced precision &mdash; can subtly alter the numbers flowing through the model. A speed benchmark alone (tokens per second) cannot detect whether the outputs have degraded.
+      </p>
+      <p>
+        <strong>Logits comparison</strong> is the most direct check: run the same prompt through the original and optimized models and compare the raw logit vectors. If the logits match (or differ by only floating-point rounding), the optimization is safe. If they diverge meaningfully, something has changed.
+      </p>
+      <p>
+        <strong>Perplexity</strong> provides a higher-level check. Perplexity measures how surprised the model is by a test dataset &mdash; specifically, it is the exponentiated average negative log-likelihood of the correct next token. <em>Lower</em> perplexity means the model assigns higher probability to the right answers, which means better predictions. If perplexity increases after an optimization, the model has gotten worse at predicting, even if it runs faster.
+      </p>
+      <p>
+        A valid speedup shows: same or negligibly different logits, and no perplexity regression on a standard test set.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Toy Example</div>
+      <div class="toy-example">
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-bottom: var(--space-3);">
+          Comparing baseline vs optimized on a test set:
+        </p>
+        <div style="font-family: var(--font-mono); font-size: var(--text-sm);">
+          <div style="margin-bottom: var(--space-3); padding: var(--space-3); background: var(--surface-3); border-radius: var(--radius-sm);">
+            <div style="color: var(--sem-ffn); font-weight: 600;">Optimization A (safe repack):</div>
+            <div style="padding-left: var(--space-4); margin-top: var(--space-1);">
+              <div>Speed: 42 tok/s &rarr; 51 tok/s &nbsp;<span style="color: var(--sem-ffn);">(+21%)</span></div>
+              <div>Max logit diff: 0.00001 &nbsp;<span style="color: var(--ink-tertiary);">(FP rounding only)</span></div>
+              <div>Perplexity: 5.82 &rarr; 5.82 &nbsp;<span style="color: var(--sem-ffn);">(unchanged)</span></div>
+              <div style="color: var(--sem-ffn); margin-top: var(--space-1);">Valid speedup.</div>
+            </div>
+          </div>
+          <div style="padding: var(--space-3); background: var(--surface-3); border-radius: var(--radius-sm);">
+            <div style="color: var(--sem-attention); font-weight: 600;">Optimization B (aggressive quantization):</div>
+            <div style="padding-left: var(--space-4); margin-top: var(--space-1);">
+              <div>Speed: 42 tok/s &rarr; 68 tok/s &nbsp;<span style="color: var(--sem-ffn);">(+62%)</span></div>
+              <div>Max logit diff: 2.4 &nbsp;<span style="color: var(--sem-attention);">(significant divergence)</span></div>
+              <div>Perplexity: 5.82 &rarr; 6.41 &nbsp;<span style="color: var(--sem-attention);">(+10% regression)</span></div>
+              <div style="color: var(--sem-attention); margin-top: var(--space-1);">Faster but different logits &mdash; not a valid drop-in replacement.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Shapes</div>
+      <div class="shape-card">
+        <div>Logits vector: [vocab_size] per token position</div>
+        <div>Perplexity: scalar computed over a test set of N tokens</div>
+        <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">
+          Logit comparison is per-token and per-position. Perplexity is a single aggregate number summarizing prediction quality across the entire test set.
+        </div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Math</div>
+      <div style="font-family: var(--font-mono); font-size: var(--text-sm); background: var(--surface-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); margin: var(--space-3) 0;">
+        <div style="color: var(--sem-token);">perplexity = exp( &minus;(1/N) &sum;&#x1D62; log P(token&#x1D62; | context&#x1D62;) )</div>
+        <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">
+          P(token&#x1D62; | context&#x1D62;) is the model's predicted probability for the correct next token at position i.
+        </div>
+        <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">
+          Lower perplexity = higher average probability assigned to correct tokens = better model.
+        </div>
+        <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">
+          A perplexity of 1.0 means the model perfectly predicts every token. Real models on wikitext-2 typically score 5&ndash;10.
+        </div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Implementation Hook</div>
+      <div class="impl-hook">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          In <code>llama.cpp</code>, the <code>perplexity</code> tool evaluates a model on a test dataset (typically wikitext-2) and reports perplexity. This is the standard way to check whether a quantization or kernel change has regressed model quality. Running it before and after any optimization is essential practice.
+        </p>
+        <div class="file-path">tools/perplexity/perplexity.cpp</div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Performance Hook</div>
+      <div class="perf-hook">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          Every performance optimization PR in a serious inference project should include both speed numbers <em>and</em> quality validation. "Faster" alone is not enough &mdash; you need to show that logits or perplexity have not regressed. Without this, a speed win might ship a broken model.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Check Yourself</div>
+      <GatePanel
+        client:load
+        lessonId="L38"
+        gateStrength="hard"
+        questions={[
+          {
+            id: 'L38-q1',
+            type: 'single_choice',
+            prompt: 'An optimization makes inference 40% faster but the logits diverge significantly from the baseline. Is this a successful optimization?',
+            tag: 'reasoning',
+            choices: [
+              { id: 'a', text: 'Yes, because speed is the goal of optimization', isCorrect: false },
+              { id: 'b', text: 'No, because different logits mean the model is producing different predictions — the speedup is not a safe drop-in replacement', isCorrect: true },
+              { id: 'c', text: 'It depends only on whether the generated text looks reasonable to a human', isCorrect: false },
+            ],
+            explanation: 'A valid speedup must preserve model outputs. If logits diverge significantly, the model is effectively a different model that happens to be faster. It cannot be used as a drop-in replacement for the original without evaluating the quality impact.',
+          },
+          {
+            id: 'L38-q2',
+            type: 'single_choice',
+            prompt: 'Why is lower perplexity better?',
+            tag: 'conceptual',
+            choices: [
+              { id: 'a', text: 'Lower perplexity means the model generates fewer tokens, saving time', isCorrect: false },
+              { id: 'b', text: 'Lower perplexity means the model assigns higher probability to correct next tokens — it is less "surprised" by the test data', isCorrect: true },
+              { id: 'c', text: 'Lower perplexity means the model uses less memory', isCorrect: false },
+            ],
+            explanation: 'Perplexity measures how surprised the model is by a test set. Lower values mean the model predicts the correct next token with higher confidence on average. A perplexity increase after optimization indicates the model has become worse at prediction.',
+          },
+        ]}
+      />
+    </div>
+
+  </LessonPage>
+</BaseLayout>

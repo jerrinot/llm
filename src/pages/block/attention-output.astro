@@ -1,0 +1,130 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import '../../styles/global.css';
+import '../../styles/course.css';
+import LessonPage from '../../components/course/LessonPage';
+import GatePanel from '../../components/assessment/GatePanel';
+---
+
+<BaseLayout title="Attention Output Is a Token-Mixing Operation">
+  <LessonPage lessonId="L18" client:load>
+
+    <div class="lesson-section">
+      <div class="section-label">Question</div>
+      <div class="lesson-question">What does the attention output actually produce?</div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Intuition</div>
+      <p>
+        The attention output for each token is a <strong>weighted mix of value vectors</strong> from the positions it attended to. The weights came from the Q-K score computation. The values carry the actual content.
+      </p>
+      <p>
+        This is where cross-token information actually moves. The score computation (Q &sdot; K&#x1D40;) decided <em>where</em> to look. The output computation (weights &times; V) determines <em>what information arrives</em>. These are two distinct steps — and it is important not to conflate them.
+      </p>
+      <p>
+        After the weighted sum of V, the result passes through one more linear projection (W_O) that maps it back to d_model dimensions. This projected result is what gets added to the residual stream.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Toy Example</div>
+      <div class="toy-example">
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-bottom: var(--space-3);">
+          Token 3 has attention weights [0.1, 0.6, 0.3] over 3 positions:
+        </p>
+        <div style="font-family: var(--font-mono); font-size: var(--text-sm);">
+          <div style="margin-bottom: var(--space-2);">
+            V&#x2081; = [1.0, 0.0] &nbsp; V&#x2082; = [0.0, 1.0] &nbsp; V&#x2083; = [0.5, 0.5]
+          </div>
+          <div style="margin-top: var(--space-3); color: var(--sem-attention);">
+            output&#x2083; = 0.1 &times; [1.0, 0.0] + 0.6 &times; [0.0, 1.0] + 0.3 &times; [0.5, 0.5]
+          </div>
+          <div style="color: var(--sem-attention);">
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; = [0.10, 0.00] + [0.00, 0.60] + [0.15, 0.15]
+          </div>
+          <div style="color: var(--sem-ffn); font-weight: 600; margin-top: var(--space-2);">
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; = [0.25, 0.75]
+          </div>
+        </div>
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-top: var(--space-3);">
+          Token 3's output is dominated by V&#x2082; (weight 0.6) — it pulled most of its information from position 2.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Shapes</div>
+      <div class="shape-card">
+        <div>Attention weights: [n_tokens, n_tokens] &nbsp; <span style="color: var(--ink-tertiary);">(from softmax)</span></div>
+        <div>V: [n_tokens, d_head]</div>
+        <div style="color: var(--sem-attention); margin-top: var(--space-2);">Weighted sum: weights &times; V &rarr; [n_tokens, d_head]</div>
+        <div>Output projection W_O: [d_head &times; n_heads, d_model]</div>
+        <div style="color: var(--sem-attention);">Final attention output: [n_tokens, d_model]</div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Math</div>
+      <div style="font-family: var(--font-mono); font-size: var(--text-sm); background: var(--surface-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); margin: var(--space-3) 0;">
+        <div style="color: var(--sem-attention);">attn_out = softmax(Q &sdot; K&#x1D40; / &radic;d_head) &sdot; V &nbsp; <span style="color: var(--ink-tertiary);">// [n_tokens, d_head]</span></div>
+        <div style="color: var(--sem-attention);">output = attn_out &sdot; W_O &nbsp; <span style="color: var(--ink-tertiary);">// project back to d_model</span></div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Implementation Hook</div>
+      <div class="impl-hook">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          In <code>llama.cpp</code>, <code>build_attn()</code> in <code>src/llama-graph.cpp</code> computes the weighted sum of V and applies the output projection (W_O). The result is then added to the residual stream. This is the final step of the attention sub-layer.
+        </p>
+        <div class="file-path">src/llama-graph.cpp — build_attn()</div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Performance Hook</div>
+      <div class="perf-hook">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          The weights &times; V multiply is [n_tokens, n_tokens] &times; [n_tokens, d_head], costing n_tokens&#xB2; &times; d_head operations. The output projection W_O is an additional matrix multiply. Together, these represent a significant portion of attention's total cost.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Check Yourself</div>
+      <GatePanel
+        client:load
+        lessonId="L18"
+        gateStrength="hard"
+        questions={[
+          {
+            id: 'L18-q1',
+            type: 'single_choice',
+            prompt: 'What is the difference between the score computation and the value mixing in attention?',
+            tag: 'conceptual',
+            choices: [
+              { id: 'a', text: 'They are the same operation — Q·K^T produces the output directly', isCorrect: false },
+              { id: 'b', text: 'Scores (Q·K^T) determine WHERE to attend; value mixing (weights × V) determines WHAT information is gathered', isCorrect: true },
+              { id: 'c', text: 'Score computation uses V; value mixing uses Q and K', isCorrect: false },
+            ],
+            explanation: 'Attention has two distinct phases. Q·K^T computes compatibility scores (where to look). The softmaxed scores are then used to take a weighted sum of V (what to gather). Confusing these two steps is a common misconception.',
+          },
+          {
+            id: 'L18-q2',
+            type: 'single_choice',
+            prompt: 'If a token has attention weights [0.0, 0.0, 1.0] over 3 positions, what is its attention output?',
+            tag: 'math',
+            choices: [
+              { id: 'a', text: 'An average of all three V vectors', isCorrect: false },
+              { id: 'b', text: 'Exactly V₃ — the value vector from position 3', isCorrect: true },
+              { id: 'c', text: 'Zero — the first two weights are zero so nothing passes through', isCorrect: false },
+            ],
+            explanation: 'The output is 0.0×V₁ + 0.0×V₂ + 1.0×V₃ = V₃. When all weight is on a single position, the output is simply that position\'s value vector.',
+          },
+        ]}
+      />
+    </div>
+
+  </LessonPage>
+</BaseLayout>

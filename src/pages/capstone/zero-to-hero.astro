@@ -1,0 +1,175 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import '../../styles/global.css';
+import '../../styles/course.css';
+import LessonPage from '../../components/course/LessonPage';
+import GatePanel from '../../components/assessment/GatePanel';
+---
+
+<BaseLayout title="Capstone: From Concept to Performance Diagnosis">
+  <LessonPage lessonId="CAPSTONE" client:load>
+
+    <div class="lesson-section">
+      <div class="section-label">Overview</div>
+      <p>
+        This capstone covers the full arc of the course: from the structure of a transformer block, through attention variants and expert routing, to performance profiling and correctness validation.
+      </p>
+      <p>
+        There are six questions below. Each tests a different core competency. You need to pass all of them.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Task 1 &mdash; Dense Transformer Block</div>
+      <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+        A dense transformer block has a specific internal structure. You should be able to name every phase in order and explain what each one does. The pattern is: two sub-blocks (attention and FFN), each wrapped in normalization and a residual connection.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Task 2 &mdash; MoE Expert Selection</div>
+      <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+        A Mixture-of-Experts layer replaces the dense FFN with a router and multiple expert FFNs. You should be able to explain how the router scores experts, how top-k selection works, and how the selected expert outputs are combined.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Task 3 &mdash; Positional Information in Attention</div>
+      <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+        Transformers have no inherent notion of position. You should be able to explain how positional information enters the attention computation &mdash; whether through absolute embeddings, relative encodings, or rotary position embeddings (RoPE) &mdash; and why it matters for the model to know token order.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Task 4 &mdash; Prefill vs Decode</div>
+      <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+        Inference has two distinct phases with different computational characteristics. You should be able to explain what happens during prefill versus decode, why they have different bottlenecks, and how batch size (number of tokens processed at once) determines whether the system is compute-bound or memory-bound.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Task 5 &mdash; Profile Interpretation</div>
+      <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+        Given a profile showing operator-level time distribution, you should be able to identify the bottleneck class and propose a plausible diagnosis. The key is to read the distribution, not just the hottest function.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Task 6 &mdash; Correctness Validation</div>
+      <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+        Speed without correctness is a bug, not an optimization. You should be able to explain why correctness validation is required after any optimization and how to detect a regression.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Capstone Assessment</div>
+      <GatePanel
+        client:load
+        lessonId="CAPSTONE"
+        gateStrength="hard"
+        questions={[
+          {
+            id: 'CAPSTONE-q1',
+            type: 'single_choice',
+            prompt: 'What are the six phases of a dense transformer block, in order?',
+            tag: 'architecture',
+            choices: [
+              { id: 'a', text: 'Attention, norm, FFN, norm, residual, residual', isCorrect: false },
+              { id: 'b', text: 'Norm, attention, residual, norm, FFN, residual', isCorrect: true },
+              { id: 'c', text: 'Embedding, norm, attention, FFN, norm, output', isCorrect: false },
+              { id: 'd', text: 'Norm, FFN, residual, norm, attention, residual', isCorrect: false },
+            ],
+            explanation: 'A pre-norm dense transformer block follows: RMSNorm → self-attention → residual add → RMSNorm → FFN → residual add. Normalization comes before each transform, and each sub-block ends with a residual connection that adds the output back to the input.',
+          },
+          {
+            id: 'CAPSTONE-q2',
+            type: 'single_choice',
+            prompt: 'In a MoE layer with 8 experts and top-2 routing, how is the final output for a token produced?',
+            tag: 'architecture',
+            choices: [
+              { id: 'a', text: 'All 8 experts process the token, and their outputs are averaged', isCorrect: false },
+              { id: 'b', text: 'The router selects 2 experts, each processes the token, and their outputs are summed with renormalized router weights', isCorrect: true },
+              { id: 'c', text: 'The router selects 2 experts, only the highest-scoring one is used', isCorrect: false },
+              { id: 'd', text: 'The token is split into 2 parts, each sent to a different expert', isCorrect: false },
+            ],
+            explanation: 'The router produces scores for all experts, softmax converts them to probabilities, and the top-2 are selected. Each selected expert processes the full token independently. The outputs are combined as a weighted sum using the renormalized router probabilities.',
+          },
+          {
+            id: 'CAPSTONE-q3',
+            type: 'single_choice',
+            prompt: 'Why does attention need positional information, and how does RoPE provide it?',
+            tag: 'architecture',
+            choices: [
+              { id: 'a', text: 'Without positional encoding, attention cannot distinguish token order; RoPE rotates Q and K vectors by position-dependent angles so that dot products depend on relative position', isCorrect: true },
+              { id: 'b', text: 'Attention already knows position from the order of matrix rows; RoPE is optional and only speeds things up', isCorrect: false },
+              { id: 'c', text: 'RoPE adds position numbers directly to the token embeddings before they enter the model', isCorrect: false },
+              { id: 'd', text: 'RoPE replaces the softmax with a position-aware activation function', isCorrect: false },
+            ],
+            explanation: 'Without positional encoding, attention has no way to distinguish token order — the same set of tokens in any arrangement produces the same scores. RoPE applies position-dependent rotations to Q and K so that their dot product depends on relative position, encoding order without explicit position embeddings.',
+          },
+          {
+            id: 'CAPSTONE-q4',
+            type: 'single_choice',
+            prompt: 'Why is prefill compute-bound but decode memory-bound, even though the same model is used?',
+            tag: 'performance',
+            choices: [
+              { id: 'a', text: 'Prefill uses different, more compute-intensive operations', isCorrect: false },
+              { id: 'b', text: 'Decode uses quantized weights which are slower to process', isCorrect: false },
+              { id: 'c', text: 'Prefill processes many tokens at once (high arithmetic intensity), while decode processes one token at a time (weights are loaded but barely reused)', isCorrect: true },
+              { id: 'd', text: 'Decode is memory-bound because it writes to the KV cache', isCorrect: false },
+            ],
+            explanation: 'Arithmetic intensity = FLOPs / bytes loaded. During prefill, many tokens share the same weight load, making the ratio high (compute-bound). During decode, one token loads the full weight matrix for a single vector multiply, making the ratio low (memory-bound).',
+          },
+          {
+            id: 'CAPSTONE-q5',
+            type: 'single_choice',
+            prompt: 'A decode profile shows: GEMV 55%, KV cache reads 20%, softmax 3%, overhead 22%. What is the most likely bottleneck?',
+            tag: 'performance',
+            choices: [
+              { id: 'a', text: 'Softmax — it appears in every attention layer', isCorrect: false },
+              { id: 'b', text: 'GEMV compute — the matrix-vector multiplies are too slow', isCorrect: false },
+              { id: 'c', text: 'Memory bandwidth — GEMV and KV reads are dominated by data movement, not arithmetic', isCorrect: true },
+              { id: 'd', text: 'The overhead percentage — kernel launches are the primary bottleneck', isCorrect: false },
+            ],
+            explanation: 'During decode, GEMV is a matrix-vector multiply: the time is spent loading the weight matrix from memory, not doing arithmetic. Combined with KV cache reads (also memory access), 75% of time is data movement. This is classic memory-bandwidth-bound behavior.',
+          },
+          {
+            id: 'CAPSTONE-q6',
+            type: 'single_choice',
+            prompt: 'Why is perplexity checking required after a kernel optimization, even if the code compiles and runs without errors?',
+            tag: 'correctness',
+            choices: [
+              { id: 'a', text: 'Kernel optimizations always change the model architecture', isCorrect: false },
+              { id: 'b', text: 'Optimizations like weight repacking or kernel selection can introduce silent numerical errors that only show up as degraded model output quality', isCorrect: true },
+              { id: 'c', text: 'Perplexity checks are only needed for quantized models', isCorrect: false },
+              { id: 'd', text: 'The compiler may introduce bugs that crash the program later', isCorrect: false },
+            ],
+            explanation: 'Layout changes, stride bugs, and kernel selection errors can produce wrong numerical results without any crash or error message. Perplexity measures overall model output quality — if it increases beyond tolerance, something is silently wrong. Speed without correctness is a bug.',
+          },
+        ]}
+      />
+    </div>
+
+    <div class="lesson-section" id="capstone-congrats" style="display: none;">
+      <div style="background: var(--surface-3); border: 1px solid var(--sem-ffn-dim); border-radius: var(--radius-md); padding: var(--space-5) var(--space-6); text-align: center;">
+        <div style="font-size: var(--text-lg); font-weight: 600; color: var(--ink-primary); margin-bottom: var(--space-3);">
+          Course Complete
+        </div>
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary); max-width: 480px; margin: 0 auto var(--space-3);">
+          You have demonstrated understanding of transformer architecture, attention variants, expert routing, inference phases, profile interpretation, and correctness validation. You can now read real model code, interpret performance profiles, and reason about optimizations with confidence.
+        </p>
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary);">
+          From zero to hero. Well done.
+        </p>
+      </div>
+    </div>
+
+    <script>
+      (window as any).__gatePass = () => {
+        const el = document.getElementById('capstone-congrats');
+        if (el) el.style.display = 'block';
+      };
+    </script>
+
+  </LessonPage>
+</BaseLayout>

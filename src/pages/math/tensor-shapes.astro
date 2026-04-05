@@ -1,0 +1,120 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import '../../styles/global.css';
+import '../../styles/course.css';
+import LessonPage from '../../components/course/LessonPage';
+import GatePanel from '../../components/assessment/GatePanel';
+---
+
+<BaseLayout title="Tensor Shapes Are the Language of Model Code">
+  <LessonPage lessonId="L10" client:load>
+
+    <div class="lesson-section">
+      <div class="section-label">Question</div>
+      <div class="lesson-question">Why are shapes the language of model code?</div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Intuition</div>
+      <p>
+        When you read model code, you will not see the actual numbers flowing through the model. You will see <strong>shapes</strong>: how many dimensions a tensor has, how large each dimension is, and which axis means what.
+      </p>
+      <p>
+        If you can track shapes, you can follow the code. If you cannot, the code is opaque. Shape reasoning is the single most useful skill for reading model implementations.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Toy Example</div>
+      <div class="toy-example">
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-bottom: var(--space-3);">Common LLM tensor shapes:</p>
+        <div style="font-family: var(--font-mono); font-size: var(--text-sm); display: flex; flex-direction: column; gap: var(--space-3);">
+          <div style="display: flex; gap: var(--space-3);">
+            <span style="min-width: 200px; color: var(--sem-token);">[n_tokens, d_model]</span>
+            <span style="color: var(--ink-secondary);">Hidden states — one vector per token</span>
+          </div>
+          <div style="display: flex; gap: var(--space-3);">
+            <span style="min-width: 200px; color: var(--sem-attention);">[n_tokens, n_heads, d_head]</span>
+            <span style="color: var(--ink-secondary);">Per-head Q/K/V — split across heads</span>
+          </div>
+          <div style="display: flex; gap: var(--space-3);">
+            <span style="min-width: 200px; color: var(--sem-attention);">[n_tokens, n_tokens]</span>
+            <span style="color: var(--ink-secondary);">Attention scores — token-to-token</span>
+          </div>
+          <div style="display: flex; gap: var(--space-3);">
+            <span style="min-width: 200px; color: var(--sem-ffn);">[n_tokens, d_ff]</span>
+            <span style="color: var(--ink-secondary);">FFN intermediate — expanded width</span>
+          </div>
+          <div style="display: flex; gap: var(--space-3);">
+            <span style="min-width: 200px; color: var(--sem-logits);">[n_tokens, |V|]</span>
+            <span style="color: var(--ink-secondary);">Logits — one score per vocab entry</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Shapes</div>
+      <div class="shape-card">
+        <div>Axis 0 (first dimension): usually n_tokens — the sequence axis</div>
+        <div>Axis 1 (second dimension): usually a feature dimension — d_model, d_head, d_ff, |V|</div>
+        <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">Convention: this course always uses row-major [n_tokens, features] order.</div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Math</div>
+      <p>No new formulas. The skill here is reading shapes:</p>
+      <ul style="list-style: disc; padding-left: var(--space-5); font-size: var(--text-sm); color: var(--ink-secondary);">
+        <li>2D tensor [a, b]: a rows, b columns</li>
+        <li>3D tensor [a, b, c]: a groups of [b, c] matrices</li>
+        <li>The token axis tells you "how many tokens"</li>
+        <li>The feature axis tells you "how rich is each token's representation"</li>
+      </ul>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Implementation Hook</div>
+      <div class="impl-hook">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          In <code>llama.cpp</code> code, tensors carry explicit shape metadata.
+          When you see a tensor being created or reshaped, reading the dimensions tells you exactly what data it holds.
+          Real code may use transposed or permuted layouts — but the pedagogical shapes in this course always use [n_tokens, features].
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Performance Hook</div>
+      <div class="perf-hook">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          Shapes determine compute cost. A [1024, 4096] &times; [4096, 4096] multiply is 4&times; more work than [256, 4096] &times; [4096, 4096]. When reasoning about performance, start with shapes.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Check Yourself</div>
+      <GatePanel
+        client:load
+        lessonId="L10"
+        gateStrength="soft"
+        questions={[
+          {
+            id: 'L10-q1',
+            type: 'single_choice',
+            prompt: 'In the tensor shape [32, 2048], which axis represents tokens and which represents features?',
+            tag: 'shape',
+            choices: [
+              { id: 'a', text: 'Axis 0 (32) = tokens, Axis 1 (2048) = features', isCorrect: true },
+              { id: 'b', text: 'Axis 0 (32) = features, Axis 1 (2048) = tokens', isCorrect: false },
+              { id: 'c', text: 'Cannot tell without more context', isCorrect: false },
+            ],
+            explanation: 'In our convention, axis 0 is always the token/sequence axis and axis 1 is the feature axis. So 32 tokens, each with 2048 features.',
+          },
+        ]}
+      />
+    </div>
+
+  </LessonPage>
+</BaseLayout>

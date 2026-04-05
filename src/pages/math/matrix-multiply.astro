@@ -1,0 +1,152 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import '../../styles/global.css';
+import '../../styles/course.css';
+import LessonPage from '../../components/course/LessonPage';
+import GatePanel from '../../components/assessment/GatePanel';
+---
+
+<BaseLayout title="Matrix Multiplication Without Fear">
+  <LessonPage lessonId="L08" client:load>
+
+    <div class="lesson-section">
+      <div class="section-label">Question</div>
+      <div class="lesson-question">How does matrix multiply work?</div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Intuition</div>
+      <p>Matrix multiplication is just many dot products organized into a grid.</p>
+      <p>
+        If you have a matrix A with <em>m</em> rows and a matrix B with <em>n</em> columns, the result C has <em>m</em> rows and <em>n</em> columns.
+        Each entry C[i][j] is the dot product of row <em>i</em> from A and column <em>j</em> from B.
+      </p>
+      <p>
+        The one rule: the inner dimensions must match. If A is [m, <strong>k</strong>] and B is [<strong>k</strong>, n], the result is [m, n]. If the inner <em>k</em>'s don't match, the multiply is invalid.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Toy Example</div>
+      <div class="toy-example">
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-bottom: var(--space-3);">
+          A [2, 3] &times; B [3, 2] = C [2, 2]:
+        </p>
+        <div style="font-family: var(--font-mono); font-size: var(--text-sm); overflow-x: auto;">
+          <div style="display: flex; align-items: center; gap: var(--space-4); flex-wrap: wrap;">
+            <div>
+              <div style="color: var(--ink-ghost); font-size: var(--text-xs); margin-bottom: 4px;">A [2,3]</div>
+              <div style="display: grid; grid-template-columns: repeat(3, 36px); gap: 2px;">
+                <span style="background: var(--sem-token-bg); padding: 4px; text-align: center; border-radius: 2px; color: var(--sem-token);">1</span>
+                <span style="background: var(--sem-token-bg); padding: 4px; text-align: center; border-radius: 2px; color: var(--sem-token);">2</span>
+                <span style="background: var(--sem-token-bg); padding: 4px; text-align: center; border-radius: 2px; color: var(--sem-token);">3</span>
+                <span style="background: var(--sem-token-bg); padding: 4px; text-align: center; border-radius: 2px; color: var(--sem-token);">4</span>
+                <span style="background: var(--sem-token-bg); padding: 4px; text-align: center; border-radius: 2px; color: var(--sem-token);">5</span>
+                <span style="background: var(--sem-token-bg); padding: 4px; text-align: center; border-radius: 2px; color: var(--sem-token);">6</span>
+              </div>
+            </div>
+            <span style="color: var(--ink-ghost); font-size: var(--text-lg);">&times;</span>
+            <div>
+              <div style="color: var(--ink-ghost); font-size: var(--text-xs); margin-bottom: 4px;">B [3,2]</div>
+              <div style="display: grid; grid-template-columns: repeat(2, 36px); gap: 2px;">
+                <span style="background: var(--sem-attention-bg); padding: 4px; text-align: center; border-radius: 2px; color: var(--sem-attention);">7</span>
+                <span style="background: var(--sem-attention-bg); padding: 4px; text-align: center; border-radius: 2px; color: var(--sem-attention);">8</span>
+                <span style="background: var(--sem-attention-bg); padding: 4px; text-align: center; border-radius: 2px; color: var(--sem-attention);">9</span>
+                <span style="background: var(--sem-attention-bg); padding: 4px; text-align: center; border-radius: 2px; color: var(--sem-attention);">10</span>
+                <span style="background: var(--sem-attention-bg); padding: 4px; text-align: center; border-radius: 2px; color: var(--sem-attention);">11</span>
+                <span style="background: var(--sem-attention-bg); padding: 4px; text-align: center; border-radius: 2px; color: var(--sem-attention);">12</span>
+              </div>
+            </div>
+            <span style="color: var(--ink-ghost); font-size: var(--text-lg);">=</span>
+            <div>
+              <div style="color: var(--ink-ghost); font-size: var(--text-xs); margin-bottom: 4px;">C [2,2]</div>
+              <div style="display: grid; grid-template-columns: repeat(2, 42px); gap: 2px;">
+                <span style="background: var(--sem-ffn-bg); padding: 4px; text-align: center; border-radius: 2px; color: var(--sem-ffn); font-weight: 600;">58</span>
+                <span style="background: var(--sem-ffn-bg); padding: 4px; text-align: center; border-radius: 2px; color: var(--sem-ffn); font-weight: 600;">64</span>
+                <span style="background: var(--sem-ffn-bg); padding: 4px; text-align: center; border-radius: 2px; color: var(--sem-ffn); font-weight: 600;">139</span>
+                <span style="background: var(--sem-ffn-bg); padding: 4px; text-align: center; border-radius: 2px; color: var(--sem-ffn); font-weight: 600;">154</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p style="font-size: var(--text-xs); color: var(--ink-tertiary); margin-top: var(--space-3); font-family: var(--font-mono);">
+          C[0,0] = 1&times;7 + 2&times;9 + 3&times;11 = 7 + 18 + 33 = 58
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Shapes</div>
+      <div class="shape-card">
+        <div style="color: var(--sem-token); font-weight: 600;">[m, k] &times; [k, n] &rarr; [m, n]</div>
+        <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">Inner dimensions (k) must match. They "cancel out."</div>
+        <div style="color: var(--ink-tertiary);">Output keeps the outer dimensions (m, n).</div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Math</div>
+      <div style="font-family: var(--font-mono); font-size: var(--text-sm); background: var(--surface-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); margin: var(--space-3) 0;">
+        <div style="color: var(--sem-token);">C[i,j] = &sum;&#x2096; A[i,k] &times; B[k,j]</div>
+        <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">Each output entry is one dot product.</div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Implementation Hook</div>
+      <div class="impl-hook">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          Matrix multiplication is the most common operation in LLM inference.
+          In <code>llama.cpp</code>, the <code>ggml_mul_mat</code> function performs this operation.
+          Every projection (Q, K, V, FFN, output head) is a matrix multiply.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Performance Hook</div>
+      <div class="perf-hook">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          Multiplying [m, k] by [k, n] requires m &times; k &times; n multiply-add operations.
+          This is why matrix multiply dominates inference compute — the shapes are large and the operation runs for every layer.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Check Yourself</div>
+      <GatePanel
+        client:load
+        lessonId="L08"
+        gateStrength="soft"
+        questions={[
+          {
+            id: 'L08-q1',
+            type: 'single_choice',
+            prompt: 'What is the output shape of [4, 3] × [3, 5]?',
+            tag: 'shape',
+            choices: [
+              { id: 'a', text: '[4, 5]', isCorrect: true },
+              { id: 'b', text: '[3, 3]', isCorrect: false },
+              { id: 'c', text: '[4, 3]', isCorrect: false },
+            ],
+            explanation: '[m, k] × [k, n] → [m, n]. So [4, 3] × [3, 5] → [4, 5].',
+          },
+          {
+            id: 'L08-q2',
+            type: 'single_choice',
+            prompt: 'Can you multiply [2, 4] × [3, 5]?',
+            tag: 'shape',
+            choices: [
+              { id: 'a', text: 'Yes, result is [2, 5]', isCorrect: false },
+              { id: 'b', text: 'No, the inner dimensions (4 and 3) do not match', isCorrect: true },
+              { id: 'c', text: 'Yes, result is [2, 3]', isCorrect: false },
+            ],
+            explanation: 'Inner dimensions must match. 4 ≠ 3, so this multiplication is invalid.',
+          },
+        ]}
+      />
+    </div>
+
+  </LessonPage>
+</BaseLayout>

@@ -1,0 +1,127 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import '../../styles/global.css';
+import '../../styles/course.css';
+import LessonPage from '../../components/course/LessonPage';
+import GatePanel from '../../components/assessment/GatePanel';
+import SoftmaxInspector from '../../components/interactive/SoftmaxInspector';
+---
+
+<BaseLayout title="Softmax Turns Scores into a Distribution">
+  <LessonPage lessonId="L12" client:load>
+
+    <div class="lesson-section">
+      <div class="section-label">Question</div>
+      <div class="lesson-question">What does softmax change?</div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Intuition</div>
+      <p>
+        Logits are raw scores — they can be any number. To choose the next token, we need <strong>probabilities</strong>: positive numbers that sum to 1.
+      </p>
+      <p>
+        <strong>Softmax</strong> converts logits to probabilities. It exponentiates each logit (making them all positive), then divides by the total. The result: the largest logit gets the biggest probability, and all probabilities sum to exactly 1.
+      </p>
+      <p>
+        The exponential function amplifies differences. A logit that is just slightly larger than the rest can dominate after softmax. This is why softmax makes the model's top choice stand out sharply.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Interactive — Softmax Inspector</div>
+      <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-bottom: var(--space-3);">
+        Adjust the logits and temperature. Watch how the probability distribution changes. Lower temperature makes the distribution sharper. Higher temperature makes it more uniform.
+      </p>
+      <SoftmaxInspector client:load />
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Toy Example</div>
+      <div class="toy-example">
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-bottom: var(--space-3);">
+          Softmax of [2.0, 1.0, 0.1]:
+        </p>
+        <div style="font-family: var(--font-mono); font-size: var(--text-sm);">
+          <div>exp(2.0) = 7.39 &nbsp;&nbsp; exp(1.0) = 2.72 &nbsp;&nbsp; exp(0.1) = 1.11</div>
+          <div style="margin-top: 4px;">sum = 7.39 + 2.72 + 1.11 = 11.22</div>
+          <div style="margin-top: 8px; color: var(--sem-logits);">
+            probs = [7.39/11.22, 2.72/11.22, 1.11/11.22] = [0.659, 0.242, 0.099]
+          </div>
+        </div>
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-top: var(--space-3);">
+          All positive. Sum to 1.000. The largest logit (2.0) gets 65.9% of the probability.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Shapes</div>
+      <div class="shape-card">
+        <div>Input logits: [|V|]</div>
+        <div style="color: var(--sem-logits);">Output probabilities: [|V|] &nbsp; <span style="color: var(--ink-tertiary);">same shape, but now all positive and sum to 1</span></div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Math</div>
+      <div style="font-family: var(--font-mono); font-size: var(--text-sm); background: var(--surface-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); margin: var(--space-3) 0;">
+        <div style="color: var(--sem-logits);">p&#x1D62; = exp(z&#x1D62;) / &sum;&#x2C7C; exp(z&#x2C7C;)</div>
+        <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">Every p&#x1D62; &gt; 0, and &sum; p&#x1D62; = 1</div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Implementation Hook</div>
+      <div class="impl-hook">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          Softmax appears in two places in a transformer: (1) after the output head to get next-token probabilities, and (2) inside every attention layer to normalize attention scores. In <code>llama.cpp</code>, the <code>ggml_soft_max</code> operation handles both.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Performance Hook</div>
+      <div class="perf-hook">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          Softmax itself is cheap — it is elementwise exp plus a sum. But the exponentiation can cause numerical issues with very large logits. Real implementations subtract the max logit first for numerical stability. This is a detail you will see in code.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Check Yourself</div>
+      <GatePanel
+        client:load
+        lessonId="L12"
+        gateStrength="soft"
+        questions={[
+          {
+            id: 'L12-q1',
+            type: 'single_choice',
+            prompt: 'After softmax, can any probability be negative?',
+            tag: 'conceptual',
+            choices: [
+              { id: 'a', text: 'Yes, if the logit was negative', isCorrect: false },
+              { id: 'b', text: 'No, exp(x) is always positive', isCorrect: true },
+            ],
+            explanation: 'The exponential function always produces positive numbers, so every softmax output is positive regardless of the input logit.',
+          },
+          {
+            id: 'L12-q2',
+            type: 'single_choice',
+            prompt: 'If one logit is much larger than the rest, what happens after softmax?',
+            tag: 'math',
+            choices: [
+              { id: 'a', text: 'All probabilities become roughly equal', isCorrect: false },
+              { id: 'b', text: 'The largest logit gets most of the probability mass', isCorrect: true },
+              { id: 'c', text: 'Softmax outputs stay the same as the logits', isCorrect: false },
+            ],
+            explanation: 'Exponentials amplify differences. A much larger logit dominates the sum, capturing most of the probability. This is why models can be confident.',
+          },
+        ]}
+      />
+    </div>
+
+  </LessonPage>
+</BaseLayout>

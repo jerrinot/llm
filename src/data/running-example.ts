@@ -1,0 +1,101 @@
+// ============================================
+// RUNNING EXAMPLE — Single named example
+// that persists across the entire curriculum
+// ============================================
+
+export const runningExample = {
+  exampleId: 'the-cat-sat',
+  promptText: 'The cat sat',
+  tokenizedForm: {
+    pieces: ['The', ' cat', ' sat'],
+    ids: [791, 2368, 3290],
+  },
+  toyShapes: {
+    nTokens: 3,
+    dModel: 4,       // toy dimension for examples
+    dModelReal: 2048, // realistic dimension for shape cards
+    nHeads: 8,
+    dHead: 256,
+    dFf: 8192,
+    vocabSize: 32000,
+  },
+  predictedNext: {
+    token: ' on',
+    tokenId: 373,
+  },
+  conceptsCovered: [
+    'tokenization',
+    'embedding_lookup',
+    'hidden_states',
+    'layer_computation',
+    'logit_production',
+    'softmax',
+    'next_token_selection',
+  ],
+  revisitedInLessons: [
+    'L00', 'L01', 'L01A', 'L02', 'L03', 'L06', 'L07',
+    'L11', 'L12', 'L14', 'L17', 'L20', 'L27', 'L28', 'L29',
+  ],
+  primaryCodeAnchor: {
+    repository: 'ggml-org/llama.cpp',
+    repoPath: 'src/llama-graph.cpp',
+    description: 'Core computation graph builder with build_attn(), build_ffn(), build_moe_ffn()',
+  },
+} as const;
+
+// Per-lesson running example focus
+export const runningExampleFocus: Record<string, string> = {
+  L00: 'full_pipeline_overview',
+  L01: 'next_token_prediction_loop',
+  L01A: 'one_request_end_to_end',
+  L02: 'tokenization_of_the_cat_sat',
+  L03: 'token_ids_791_2368_3290',
+  L04: 'token_count_vs_context_budget',
+  L05: 'none_yet',
+  L06: 'embedding_lookup_for_3_tokens',
+  L07: 'dot_product_in_attention_preview',
+  L08: 'matrix_multiply_shape_preview',
+  L09: 'projection_to_qkv_preview',
+  L10: 'shape_notation_for_running_example',
+  L11: 'logits_for_next_token_after_sat',
+  L12: 'softmax_of_logits',
+  L13: 'argmax_selects_on',
+  L14: 'one_layer_transforms_3_hidden_states',
+  L15: 'residual_around_attention_and_ffn',
+  L16: 'qkv_projections_for_3_tokens',
+  L16A: 'positional_encoding_for_3_positions',
+  L17: 'attention_scores_for_the_running_request',
+  L18: 'weighted_value_sum_for_token_3',
+  L18A: 'multi_head_split_of_3_token_attention',
+  L19: 'ffn_expand_contract_for_each_token',
+  L20: 'full_block_for_the_cat_sat',
+  'Q-M4': 'none',
+  L21: 'gqa_shape_change_for_3_tokens',
+  L22: 'swa_window_on_running_example',
+  L23: 'shared_kv_reuse',
+  L24: 'router_scores_for_tokens',
+  L25: 'expert_weighted_sum',
+  L26: 'gemma4_heterogeneous_layers',
+  'Q-M5': 'none',
+  L27: 'prefill_of_the_cat_sat',
+  L28: 'decode_step_producing_on',
+  L29: 'kv_cache_after_3_token_prefill',
+  L30: 'ubatch_chunking_of_prompt',
+  L30A: 'serving_vs_benchmark_for_one_request',
+  L31: 'cost_growth_with_longer_prompt',
+  'Q-M6': 'none',
+  L32: 'operator_time_for_one_layer',
+  L33: 'gemm_vs_gemv_in_prefill_vs_decode',
+  L34: 'compute_vs_memory_for_ffn',
+  L35: 'quantized_weights_for_running_model',
+  L36: 'repack_layout_for_weight_matrix',
+  L37: 'thread_count_for_prefill_vs_decode',
+  L38: 'perplexity_validation_of_speedup',
+  'Q-M7': 'none',
+  L39: 'dense_gemma_block_walkthrough',
+  L40: 'gemma4_attention_path',
+  L41: 'gemma4_moe_routing',
+  L42: 'profile_for_the_cat_sat_inference',
+  L43: 'optimization_regression_case',
+  CAPSTONE: 'full_synthesis',
+};

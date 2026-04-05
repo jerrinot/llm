@@ -1,0 +1,144 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import '../../styles/global.css';
+import '../../styles/course.css';
+import LessonPage from '../../components/course/LessonPage';
+import GatePanel from '../../components/assessment/GatePanel';
+---
+
+<BaseLayout title="Where Time Goes in an LLM">
+  <LessonPage lessonId="L32" client:load>
+
+    <div class="lesson-section">
+      <div class="section-label">Question</div>
+      <div class="lesson-question">Where does time go during inference?</div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Intuition</div>
+      <p>
+        An LLM inference request runs through dozens of layers, each containing several operators: attention projections (Q, K, V, O), attention score computation, FFN up/gate/down projections, normalization, and finally an output-head projection. Not all operators cost the same amount of time.
+      </p>
+      <p>
+        The <strong>matrix multiplications</strong> in the projections dominate. Attention projections, FFN projections, and the output head together account for the vast majority of compute. Normalization and elementwise operations (residual adds, activation functions) are comparatively cheap.
+      </p>
+      <p>
+        But the <em>mix</em> changes between <strong>prefill</strong> and <strong>decode</strong>. During prefill, the model processes many tokens at once, so all projections run as large matrix-matrix multiplies and attention score computation over the full prompt can also be significant. During decode, only one token is processed per step, so projections become matrix-vector multiplies and the attention score computation is much smaller per step. The relative cost of loading model weights from memory becomes more important in decode.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Toy Example</div>
+      <div class="toy-example">
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-bottom: var(--space-3);">
+          Rough operator time breakdown for a single layer (illustrative):
+        </p>
+        <div style="font-family: var(--font-mono); font-size: var(--text-sm);">
+          <div style="margin-bottom: var(--space-3);">
+            <div style="color: var(--ink-ghost); margin-bottom: var(--space-1);">Prefill (512 tokens):</div>
+            <div style="padding-left: var(--space-4);">
+              <div><span style="color: var(--sem-attention);">QKV projections:</span> 30%</div>
+              <div><span style="color: var(--sem-attention);">Attention scores + softmax:</span> 15%</div>
+              <div><span style="color: var(--sem-attention);">Output projection:</span> 10%</div>
+              <div><span style="color: var(--sem-ffn);">FFN (up + gate + down):</span> 40%</div>
+              <div><span style="color: var(--ink-tertiary);">Norm + residual:</span> 5%</div>
+            </div>
+          </div>
+          <div>
+            <div style="color: var(--ink-ghost); margin-bottom: var(--space-1);">Decode (1 token):</div>
+            <div style="padding-left: var(--space-4);">
+              <div><span style="color: var(--sem-attention);">QKV projections:</span> 25%</div>
+              <div><span style="color: var(--sem-attention);">Attention (KV cache read):</span> 20%</div>
+              <div><span style="color: var(--sem-attention);">Output projection:</span> 10%</div>
+              <div><span style="color: var(--sem-ffn);">FFN (up + gate + down):</span> 40%</div>
+              <div><span style="color: var(--ink-tertiary);">Norm + residual:</span> 5%</div>
+            </div>
+          </div>
+        </div>
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-top: var(--space-3);">
+          Exact percentages vary by model and hardware, but the pattern is consistent: projections and FFN dominate both phases.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Shapes</div>
+      <div class="shape-card">
+        <div>Each projection: [n_tokens, d_in] &times; [d_in, d_out]</div>
+        <div>Prefill: n_tokens is large &rarr; big GEMM</div>
+        <div>Decode: n_tokens = 1 &rarr; GEMV</div>
+        <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">
+          The same weight matrix is used in both phases, but the workload shape changes completely.
+        </div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Math</div>
+      <p>Total FLOPs per layer (approximate, for one token in decode):</p>
+      <div style="font-family: var(--font-mono); font-size: var(--text-sm); background: var(--surface-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); margin: var(--space-3) 0;">
+        <div style="color: var(--sem-attention);">QKV projections: 3 &times; 2 &times; d_model &times; d_model</div>
+        <div style="color: var(--sem-attention);">Output projection: 2 &times; d_model &times; d_model</div>
+        <div style="color: var(--sem-ffn);">FFN (SwiGLU): 3 &times; 2 &times; d_model &times; d_ffn</div>
+        <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">
+          For a 7B model: d_model ~ 4096, d_ffn ~ 11008 &rarr; FFN alone is ~135M FLOPs per token per layer.
+        </div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Implementation Hook</div>
+      <div class="impl-hook">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          In <code>llama.cpp</code>, each layer's operators are built in <code>src/llama-graph.cpp</code> via functions like <code>build_attn()</code> and <code>build_ffn()</code>. Profiling with <code>GGML_PERF</code> or external tools reveals that <code>ggml_mul_mat</code> calls dominate the trace in both prefill and decode.
+        </p>
+        <div class="file-path">src/llama-graph.cpp &mdash; build_attn(), build_ffn()</div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Performance Hook</div>
+      <div class="perf-hook">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          Knowing where time goes tells you where to look first. If prefill is slow, the large GEMM projections and attention-score computation are the suspects. If decode is slow, model-weight loading (memory bandwidth) for each projection is usually the bottleneck since only one token is processed at a time.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Check Yourself</div>
+      <GatePanel
+        client:load
+        lessonId="L32"
+        gateStrength="hard"
+        questions={[
+          {
+            id: 'L32-q1',
+            type: 'single_choice',
+            prompt: 'During prefill with a long prompt, which operators are likely to dominate wall-clock time?',
+            tag: 'reasoning',
+            choices: [
+              { id: 'a', text: 'RMSNorm and residual additions', isCorrect: false },
+              { id: 'b', text: 'Matrix multiply projections (QKV, FFN) and attention score computation', isCorrect: true },
+              { id: 'c', text: 'Token embedding lookups', isCorrect: false },
+            ],
+            explanation: 'Prefill processes many tokens at once. The large matrix-matrix multiplies in QKV projections, FFN projections, and the attention score computation over the full prompt dominate. Norm and residual are elementwise and comparatively cheap.',
+          },
+          {
+            id: 'L32-q2',
+            type: 'single_choice',
+            prompt: 'Why does the operator mix differ between prefill and decode?',
+            tag: 'reasoning',
+            choices: [
+              { id: 'a', text: 'Different model weights are used in each phase', isCorrect: false },
+              { id: 'b', text: 'Prefill processes many tokens at once (large matrices), while decode processes one token at a time (vectors)', isCorrect: true },
+              { id: 'c', text: 'Decode skips the FFN layers', isCorrect: false },
+            ],
+            explanation: 'The same operators run in both phases, but prefill batches many tokens into large matrix multiplies while decode processes a single token, turning projections into matrix-vector operations with very different performance characteristics.',
+          },
+        ]}
+      />
+    </div>
+
+  </LessonPage>
+</BaseLayout>

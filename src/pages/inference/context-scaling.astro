@@ -1,0 +1,147 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import '../../styles/global.css';
+import '../../styles/course.css';
+import LessonPage from '../../components/course/LessonPage';
+import GatePanel from '../../components/assessment/GatePanel';
+---
+
+<BaseLayout title="Long Context Changes Which Costs Grow">
+  <LessonPage lessonId="L31" client:load>
+
+    <div class="lesson-section">
+      <div class="section-label">Question</div>
+      <div class="lesson-question">Why does longer context change costs?</div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Intuition</div>
+      <p>
+        Not all parts of the model scale the same way with sequence length. When you double the context, some costs double and some more than double. Understanding which is which lets you predict where the bottleneck will be.
+      </p>
+      <p>
+        <strong style="color: var(--sem-ffn);">FFN cost</strong> scales linearly with token count. Each token is processed independently, so twice as many tokens means twice the FFN work. Simple.
+      </p>
+      <p>
+        <strong style="color: var(--sem-attention);">Attention cost</strong> during prefill scales quadratically with sequence length. Each token attends to all tokens before it, so the total attention work grows as n&sup2;. During decode, attention cost per step grows linearly with n_past (the cached sequence length), because the new token attends to all previous tokens.
+      </p>
+      <p>
+        <strong style="color: var(--sem-kvcache);">KV cache memory</strong> scales linearly with sequence length. Twice the context means twice the cache memory.
+      </p>
+      <p>
+        This means a 32,000-token prompt is not just "16,000 tokens twice." The attention computation during prefill is roughly 4x that of a 16,000-token prompt (quadratic), while the FFN work is only 2x (linear). The bottleneck shifts depending on the context length.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Toy Example</div>
+      <div class="toy-example">
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-bottom: var(--space-3);">
+          Comparing costs at 1k, 4k, and 16k context:
+        </p>
+        <div style="font-family: var(--font-mono); font-size: var(--text-sm);">
+          <div style="display: grid; grid-template-columns: auto 1fr 1fr 1fr; gap: 8px 16px; align-items: center;">
+            <span style="color: var(--ink-ghost);"></span>
+            <span style="color: var(--ink-tertiary);">1k tokens</span>
+            <span style="color: var(--ink-tertiary);">4k tokens</span>
+            <span style="color: var(--ink-tertiary);">16k tokens</span>
+
+            <span style="color: var(--sem-ffn);">FFN</span>
+            <span>1x</span>
+            <span>4x</span>
+            <span>16x</span>
+
+            <span style="color: var(--sem-attention);">Attn (prefill)</span>
+            <span>1x</span>
+            <span>16x</span>
+            <span>256x</span>
+
+            <span style="color: var(--sem-kvcache);">KV cache</span>
+            <span>1x</span>
+            <span>4x</span>
+            <span>16x</span>
+          </div>
+        </div>
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-top: var(--space-3);">
+          At 1k, FFN dominates. At 16k, attention prefill dominates. The bottleneck shifts with context length.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Shapes</div>
+      <div class="shape-card">
+        <div style="color: var(--sem-ffn);">FFN work per layer: O(n &times; d_model &times; d_ff)</div>
+        <div style="color: var(--sem-attention);">Attention work per layer (prefill): O(n&sup2; &times; d_head)</div>
+        <div style="color: var(--sem-kvcache);">KV cache memory: O(n &times; n_layers &times; n_heads &times; d_head)</div>
+        <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">n&sup2; for attention vs n for everything else. This divergence drives long-context behavior.</div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Math</div>
+      <p>The scaling difference comes from the attention score matrix:</p>
+      <div style="font-family: var(--font-mono); font-size: var(--text-sm); background: var(--surface-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); margin: var(--space-3) 0;">
+        <div style="color: var(--sem-attention);">Attention scores: Q &middot; K&#x1d40; = [n, d_head] &middot; [d_head, n] = [n, n]</div>
+        <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">n&sup2; entries. Double n &rarr; 4x entries.</div>
+        <div style="margin-top: var(--space-3); color: var(--sem-ffn);">FFN: X &middot; W = [n, d_model] &middot; [d_model, d_ff] = [n, d_ff]</div>
+        <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">n &times; d_ff entries. Double n &rarr; 2x entries.</div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Implementation Hook</div>
+      <div class="impl-hook">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          In <code>llama.cpp</code>, the context size is set with <code>-c</code>. Flash attention (<code>-fa</code>) reduces the memory footprint of attention by not materializing the full [n, n] score matrix, but the compute still scales quadratically. Chunked prefill (controlled by ubatch size) helps manage peak memory when processing very long prompts.
+        </p>
+        <div class="file-path">common/arg.cpp &mdash; -c (context size), -fa (flash attention)</div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Performance Hook</div>
+      <div class="perf-hook">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          For short contexts (under ~2k), FFN typically dominates compute and the model is weight-bound. For long contexts (32k+), attention dominates prefill time and the model becomes compute-bound in the attention kernels. This means the optimization strategy changes: short-context performance improves with memory bandwidth; long-context performance improves with faster compute and efficient attention kernels.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Check Yourself</div>
+      <GatePanel
+        client:load
+        lessonId="L31"
+        gateStrength="hard"
+        questions={[
+          {
+            id: 'L31-q1',
+            type: 'single_choice',
+            prompt: 'Why is a 32k-token prompt not just "16k tokens twice"?',
+            tag: 'conceptual',
+            choices: [
+              { id: 'a', text: 'Because the model uses different weights for longer prompts', isCorrect: false },
+              { id: 'b', text: 'Because attention scales quadratically — doubling context roughly quadruples attention work during prefill, while FFN work only doubles', isCorrect: true },
+              { id: 'c', text: 'Because the tokenizer produces different tokens for longer texts', isCorrect: false },
+            ],
+            explanation: 'FFN scales linearly (2x tokens = 2x work), but attention during prefill scales quadratically (2x tokens = ~4x work). A 32k prompt does 4x the attention work of a 16k prompt, not 2x. This makes the cost more than double.',
+          },
+          {
+            id: 'L31-q2',
+            type: 'single_choice',
+            prompt: 'If you double the sequence length, how does KV cache memory change?',
+            tag: 'shape',
+            choices: [
+              { id: 'a', text: 'It quadruples (4x)', isCorrect: false },
+              { id: 'b', text: 'It doubles (2x)', isCorrect: true },
+              { id: 'c', text: 'It stays the same — cache size is fixed at allocation', isCorrect: false },
+            ],
+            explanation: 'KV cache stores one K and one V entry per token per layer per head. Doubling the number of tokens doubles the cache size. The scaling is linear, not quadratic.',
+          },
+        ]}
+      />
+    </div>
+
+  </LessonPage>
+</BaseLayout>

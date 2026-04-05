@@ -1,0 +1,234 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import '../styles/landing.css';
+import { modules } from '../data/curriculum';
+---
+
+<BaseLayout title="LLM From the Ground Up">
+  <div class="landing">
+    <!-- HERO -->
+    <section class="hero">
+      <div class="hero-inner">
+        <div class="hero-tag">A guided systems curriculum</div>
+        <h1 class="hero-title">
+          LLM From<br/>
+          <em>the Ground Up</em>
+        </h1>
+        <p class="hero-subtitle">
+          Go from zero understanding of LLMs to reading model code and reasoning about inference performance.
+          A strict, linear curriculum for engineers who want practical understanding, not hand-waving.
+        </p>
+        <div class="hero-actions">
+          <a href="/start/what-you-will-learn" class="btn-start">Start the Course</a>
+          <a href="/reference/glossary" class="btn-secondary">Reference</a>
+        </div>
+      </div>
+
+      <!-- Floating pipeline preview -->
+      <div class="hero-pipeline" aria-hidden="true">
+        <div class="hp-stage" style="--delay: 0">
+          <span class="hp-label">text</span>
+        </div>
+        <div class="hp-arrow" style="--delay: 0">→</div>
+        <div class="hp-stage" style="--delay: 1">
+          <span class="hp-label">tokens</span>
+        </div>
+        <div class="hp-arrow" style="--delay: 1">→</div>
+        <div class="hp-stage" style="--delay: 2">
+          <span class="hp-label">vectors</span>
+        </div>
+        <div class="hp-arrow" style="--delay: 2">→</div>
+        <div class="hp-stage" style="--delay: 3">
+          <span class="hp-label">layers</span>
+        </div>
+        <div class="hp-arrow" style="--delay: 3">→</div>
+        <div class="hp-stage" style="--delay: 4">
+          <span class="hp-label">logits</span>
+        </div>
+        <div class="hp-arrow" style="--delay: 4">→</div>
+        <div class="hp-stage" style="--delay: 5">
+          <span class="hp-label">next token</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- PROMISE -->
+    <section class="promise-section">
+      <div class="promise-inner">
+        <h2 class="promise-title">What you will be able to do</h2>
+        <p class="promise-subtitle">
+          By the end, you will have practical, systems-level understanding of how large language models work at inference time.
+        </p>
+        <div class="promise-grid">
+          <div class="promise-card">
+            <div class="promise-card-icon" style="background: var(--sem-token-bg); color: var(--sem-token);">T</div>
+            <h3>Speak the language</h3>
+            <p>Define tokens, embeddings, hidden states, logits, softmax, attention, FFN, MoE, KV cache, prefill, and decode — without bluffing.</p>
+          </div>
+          <div class="promise-card">
+            <div class="promise-card-icon" style="background: var(--sem-attention-bg); color: var(--sem-attention);">A</div>
+            <h3>Sketch the architecture</h3>
+            <p>Draw a decoder transformer block from memory. Explain what Q, K, V do. Distinguish dense, GQA, MoE.</p>
+          </div>
+          <div class="promise-card">
+            <div class="promise-card-icon" style="background: var(--sem-logits-bg); color: var(--sem-logits);">&#x2211;</div>
+            <h3>Follow the math</h3>
+            <p>Read model code without panic. Track tensor shapes through projections, attention, and FFN.</p>
+          </div>
+          <div class="promise-card">
+            <div class="promise-card-icon" style="background: var(--sem-kvcache-bg); color: var(--sem-kvcache);">&#x26A1;</div>
+            <h3>Reason about inference</h3>
+            <p>Explain why prefill and decode are different workloads. Explain the KV cache. Explain batching policy.</p>
+          </div>
+          <div class="promise-card">
+            <div class="promise-card-icon" style="background: var(--sem-ffn-bg); color: var(--sem-ffn);">&#x25A4;</div>
+            <h3>Read real code</h3>
+            <p>Walk through llama.cpp model builders and connect theory to implementation artifact by artifact.</p>
+          </div>
+          <div class="promise-card">
+            <div class="promise-card-icon" style="background: var(--sem-router-bg); color: var(--sem-router);">&#x2298;</div>
+            <h3>Diagnose performance</h3>
+            <p>Look at a profile and produce a plausible first hypothesis. Know when a speedup needs validation.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CURRICULUM MAP -->
+    <section class="curriculum-section">
+      <div class="curriculum-inner">
+        <h2 class="curriculum-title">The guided path</h2>
+        <p class="curriculum-subtitle">9 modules. 48 lessons. One strict, linear sequence.</p>
+
+        <div class="curriculum-modules">
+          {modules.map((mod) => (
+            <div class="module-row">
+              <div class="module-dot" style={`border-color: ${mod.color}`}>
+                <div class="module-dot-inner" style={`background: ${mod.color}`}></div>
+              </div>
+              <div class="module-info">
+                <span class="module-id">{mod.id}</span>
+                <div class="module-name">{mod.title}</div>
+                <div class="module-desc">{mod.description}</div>
+                <div class="module-lessons-count">{mod.lessonIds.length} lessons</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- NOT SECTION -->
+    <section class="promise-section">
+      <div class="promise-inner">
+        <h2 class="promise-title" style="font-size: var(--text-2xl);">This course is not</h2>
+        <div class="not-grid">
+          <div class="not-item"><span class="not-x">&#x2717;</span><span>A marketing site about AI</span></div>
+          <div class="not-item"><span class="not-x">&#x2717;</span><span>A research survey</span></div>
+          <div class="not-item"><span class="not-x">&#x2717;</span><span>A glossary dump</span></div>
+          <div class="not-item"><span class="not-x">&#x2717;</span><span>A random blog collection</span></div>
+          <div class="not-item"><span class="not-x">&#x2717;</span><span>A training researcher curriculum</span></div>
+          <div class="not-item"><span class="not-x">&#x2717;</span><span>A textbook PDF on the web</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="cta-section">
+      <p class="cta-title">Ready?</p>
+      <a href="/start/what-you-will-learn" class="btn-start cta-btn">Start the Course</a>
+    </section>
+
+    <footer class="landing-footer">
+      <p>Built for engineers. No prerequisites beyond code literacy.</p>
+    </footer>
+  </div>
+</BaseLayout>
+
+<style>
+  /* Hero pipeline animation */
+  .hero-pipeline {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: var(--space-16);
+    flex-wrap: wrap;
+  }
+
+  .hp-stage {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-mono);
+    padding: var(--space-2) var(--space-3);
+    background: var(--surface-2);
+    border: var(--border-default);
+    border-radius: var(--radius-sm);
+    color: var(--ink-secondary);
+    opacity: 0;
+    animation: fadeSlideIn 0.5s var(--ease-out) forwards;
+    animation-delay: calc(var(--delay) * 0.15s + 0.8s);
+  }
+
+  .hp-arrow {
+    color: var(--ink-ghost);
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    opacity: 0;
+    animation: fadeIn 0.3s var(--ease-out) forwards;
+    animation-delay: calc(var(--delay) * 0.15s + 1s);
+  }
+
+  .hp-stage:nth-child(1) { border-color: var(--ink-ghost); }
+  .hp-stage:nth-child(3) { border-color: var(--sem-token-dim); color: var(--sem-token); }
+  .hp-stage:nth-child(5) { border-color: var(--sem-token-dim); color: var(--sem-token); }
+  .hp-stage:nth-child(7) { border-color: var(--sem-attention-dim); color: var(--sem-attention); }
+  .hp-stage:nth-child(9) { border-color: var(--sem-logits-dim); color: var(--sem-logits); }
+  .hp-stage:nth-child(11) { border-color: var(--sem-logits-dim); color: var(--sem-logits); }
+
+  .not-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-3);
+    margin-top: var(--space-8);
+    max-width: 36rem;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .not-item {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-3);
+    padding: var(--space-3);
+    font-size: var(--text-sm);
+    color: var(--ink-secondary);
+  }
+  .not-x {
+    color: var(--state-error);
+    font-family: var(--font-mono);
+    flex-shrink: 0;
+  }
+
+  .cta-section {
+    padding: var(--space-24) var(--space-8);
+    text-align: center;
+  }
+  .cta-title {
+    font-family: var(--font-display);
+    font-size: var(--text-2xl);
+    margin-bottom: var(--space-6);
+  }
+  .cta-btn {
+    font-size: var(--text-base);
+  }
+
+  @keyframes fadeSlideIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 0.5; }
+  }
+</style>

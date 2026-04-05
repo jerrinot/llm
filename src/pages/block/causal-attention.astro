@@ -1,0 +1,176 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import '../../styles/global.css';
+import '../../styles/course.css';
+import LessonPage from '../../components/course/LessonPage';
+import GatePanel from '../../components/assessment/GatePanel';
+import AttentionSimulator from '../../components/interactive/AttentionSimulator';
+---
+
+<BaseLayout title="Causal Attention Lets Tokens Read the Past">
+  <LessonPage lessonId="L17" client:load>
+
+    <div class="lesson-section">
+      <div class="section-label">Question</div>
+      <div class="lesson-question">How does a token read information from earlier tokens?</div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Intuition</div>
+      <p>
+        Each token's query asks: "which earlier tokens are relevant to me?" The answer comes from comparing the query against every key. The dot product Q &sdot; K&#x1D40; produces a score for every pair of positions — a matrix of "how much should I attend here?"
+      </p>
+      <p>
+        But in language generation, a token must not look at <em>future</em> tokens — that would be cheating. A <strong>causal mask</strong> sets all future-position scores to negative infinity before softmax, guaranteeing they get zero attention weight.
+      </p>
+      <p>
+        After masking, <strong>softmax</strong> converts the remaining scores into weights that sum to 1. Each token then computes a weighted sum of the value vectors, pulling information from the positions it attended to. This is the core mechanism for cross-token communication.
+      </p>
+      <p>
+        The full sequence: <strong>score &rarr; mask &rarr; softmax &rarr; weighted sum of V</strong>.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Interactive — Attention Simulator</div>
+      <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-bottom: var(--space-3);">
+        Watch how scores are computed, masked, and converted to attention weights. See which values get mixed for each token.
+      </p>
+      <AttentionSimulator client:load />
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Toy Example</div>
+      <div class="toy-example">
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-bottom: var(--space-3);">
+          3 tokens — raw scores, masking, and softmax:
+        </p>
+        <div style="font-family: var(--font-mono); font-size: var(--text-sm);">
+          <div style="margin-bottom: var(--space-2);">
+            <span style="color: var(--ink-ghost);">Q &sdot; K&#x1D40; scores:</span>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(3, 48px); gap: 2px; margin-bottom: var(--space-3);">
+            <span style="background: var(--sem-attention-bg); padding: 4px; text-align: center; border-radius: 2px; color: var(--sem-attention);">2.0</span>
+            <span style="background: var(--surface-3); padding: 4px; text-align: center; border-radius: 2px; color: var(--ink-ghost);">1.5</span>
+            <span style="background: var(--surface-3); padding: 4px; text-align: center; border-radius: 2px; color: var(--ink-ghost);">0.8</span>
+            <span style="background: var(--sem-attention-bg); padding: 4px; text-align: center; border-radius: 2px; color: var(--sem-attention);">1.0</span>
+            <span style="background: var(--sem-attention-bg); padding: 4px; text-align: center; border-radius: 2px; color: var(--sem-attention);">3.0</span>
+            <span style="background: var(--surface-3); padding: 4px; text-align: center; border-radius: 2px; color: var(--ink-ghost);">0.5</span>
+            <span style="background: var(--sem-attention-bg); padding: 4px; text-align: center; border-radius: 2px; color: var(--sem-attention);">0.7</span>
+            <span style="background: var(--sem-attention-bg); padding: 4px; text-align: center; border-radius: 2px; color: var(--sem-attention);">2.1</span>
+            <span style="background: var(--sem-attention-bg); padding: 4px; text-align: center; border-radius: 2px; color: var(--sem-attention);">1.9</span>
+          </div>
+          <div style="margin-bottom: var(--space-2);">
+            <span style="color: var(--ink-ghost);">after causal mask (future = -&infin;):</span>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(3, 48px); gap: 2px; margin-bottom: var(--space-3);">
+            <span style="background: var(--sem-attention-bg); padding: 4px; text-align: center; border-radius: 2px; color: var(--sem-attention);">2.0</span>
+            <span style="background: var(--surface-3); padding: 4px; text-align: center; border-radius: 2px; color: var(--ink-ghost);">-&infin;</span>
+            <span style="background: var(--surface-3); padding: 4px; text-align: center; border-radius: 2px; color: var(--ink-ghost);">-&infin;</span>
+            <span style="background: var(--sem-attention-bg); padding: 4px; text-align: center; border-radius: 2px; color: var(--sem-attention);">1.0</span>
+            <span style="background: var(--sem-attention-bg); padding: 4px; text-align: center; border-radius: 2px; color: var(--sem-attention);">3.0</span>
+            <span style="background: var(--surface-3); padding: 4px; text-align: center; border-radius: 2px; color: var(--ink-ghost);">-&infin;</span>
+            <span style="background: var(--sem-attention-bg); padding: 4px; text-align: center; border-radius: 2px; color: var(--sem-attention);">0.7</span>
+            <span style="background: var(--sem-attention-bg); padding: 4px; text-align: center; border-radius: 2px; color: var(--sem-attention);">2.1</span>
+            <span style="background: var(--sem-attention-bg); padding: 4px; text-align: center; border-radius: 2px; color: var(--sem-attention);">1.9</span>
+          </div>
+          <div style="margin-bottom: var(--space-2);">
+            <span style="color: var(--ink-ghost);">after softmax (rows sum to 1):</span>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(3, 48px); gap: 2px;">
+            <span style="background: var(--sem-ffn-bg); padding: 4px; text-align: center; border-radius: 2px; color: var(--sem-ffn); font-weight: 600;">1.00</span>
+            <span style="background: var(--surface-3); padding: 4px; text-align: center; border-radius: 2px; color: var(--ink-ghost);">0.00</span>
+            <span style="background: var(--surface-3); padding: 4px; text-align: center; border-radius: 2px; color: var(--ink-ghost);">0.00</span>
+            <span style="background: var(--sem-ffn-bg); padding: 4px; text-align: center; border-radius: 2px; color: var(--sem-ffn); font-weight: 600;">0.12</span>
+            <span style="background: var(--sem-ffn-bg); padding: 4px; text-align: center; border-radius: 2px; color: var(--sem-ffn); font-weight: 600;">0.88</span>
+            <span style="background: var(--surface-3); padding: 4px; text-align: center; border-radius: 2px; color: var(--ink-ghost);">0.00</span>
+            <span style="background: var(--sem-ffn-bg); padding: 4px; text-align: center; border-radius: 2px; color: var(--sem-ffn); font-weight: 600;">0.12</span>
+            <span style="background: var(--sem-ffn-bg); padding: 4px; text-align: center; border-radius: 2px; color: var(--sem-ffn); font-weight: 600;">0.48</span>
+            <span style="background: var(--sem-ffn-bg); padding: 4px; text-align: center; border-radius: 2px; color: var(--sem-ffn); font-weight: 600;">0.40</span>
+          </div>
+        </div>
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-top: var(--space-3);">
+          Token 1 can only attend to itself. Token 2 attends mostly to itself (0.88). Token 3 spreads attention across all three positions.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Shapes</div>
+      <div class="shape-card">
+        <div>Q: [n_tokens, d_head] &nbsp;&nbsp; K: [n_tokens, d_head]</div>
+        <div>Scores Q &sdot; K&#x1D40;: [n_tokens, n_tokens]</div>
+        <div>After mask + softmax: [n_tokens, n_tokens] &nbsp; <span style="color: var(--ink-tertiary);">(lower-triangular, rows sum to 1)</span></div>
+        <div>V: [n_tokens, d_head]</div>
+        <div style="color: var(--sem-attention); margin-top: var(--space-2);">Output = weights &times; V: [n_tokens, d_head]</div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Math</div>
+      <div style="font-family: var(--font-mono); font-size: var(--text-sm); background: var(--surface-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); margin: var(--space-3) 0;">
+        <div style="color: var(--sem-attention);">scores = Q &sdot; K&#x1D40; / &radic;d_head</div>
+        <div style="color: var(--sem-attention);">scores[i,j] = -&infin; &nbsp; where j &gt; i &nbsp; <span style="color: var(--ink-tertiary);">(causal mask)</span></div>
+        <div style="color: var(--sem-attention);">weights = softmax(scores, dim=-1)</div>
+        <div style="color: var(--sem-attention);">output = weights &sdot; V</div>
+      </div>
+      <p style="font-size: var(--text-sm); color: var(--ink-tertiary);">
+        The &radic;d_head scaling prevents dot products from growing too large as the dimension increases, which would push softmax into saturation.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Implementation Hook</div>
+      <div class="impl-hook">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          In <code>llama.cpp</code>, <code>build_attn()</code> in <code>src/llama-graph.cpp</code> orchestrates the full attention computation: Q/K/V projection, RoPE, score computation, masking, softmax, and the weighted sum of V. The causal mask is constructed to enforce the left-to-right constraint.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Performance Hook</div>
+      <div class="perf-hook">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          The Q &sdot; K&#x1D40; computation produces an [n_tokens, n_tokens] matrix — cost grows quadratically with sequence length. This quadratic scaling is why long-context inference is expensive. Later modules will cover techniques that reduce or avoid materializing this full matrix.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Check Yourself</div>
+      <GatePanel
+        client:load
+        lessonId="L17"
+        gateStrength="hard"
+        questions={[
+          {
+            id: 'L17-q1',
+            type: 'single_choice',
+            prompt: 'Why is the causal mask required in autoregressive generation?',
+            tag: 'conceptual',
+            choices: [
+              { id: 'a', text: 'To reduce computation by making the score matrix smaller', isCorrect: false },
+              { id: 'b', text: 'To prevent tokens from attending to future positions, since those tokens have not been generated yet', isCorrect: true },
+              { id: 'c', text: 'To normalize the attention scores so they sum to 1', isCorrect: false },
+            ],
+            explanation: 'During generation, token N is produced before token N+1. Allowing token N to see token N+1 would leak future information. The causal mask sets future scores to -infinity so softmax gives them zero weight.',
+          },
+          {
+            id: 'L17-q2',
+            type: 'single_choice',
+            prompt: 'Given Q = [[1,0],[0,1],[1,1]], K = [[1,0],[0,1],[1,1]] (3 tokens, d_head=2), what is the raw score for token 3 attending to token 1 (before scaling and masking)?',
+            tag: 'math',
+            choices: [
+              { id: 'a', text: '0', isCorrect: false },
+              { id: 'b', text: '1', isCorrect: true },
+              { id: 'c', text: '2', isCorrect: false },
+            ],
+            explanation: 'Score[2,0] = Q[2] · K[0] = [1,1] · [1,0] = 1×1 + 1×0 = 1. This is the dot product of the query at position 3 with the key at position 1.',
+          },
+        ]}
+      />
+    </div>
+
+  </LessonPage>
+</BaseLayout>

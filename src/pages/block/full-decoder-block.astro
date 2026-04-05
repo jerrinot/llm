@@ -1,0 +1,164 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import '../../styles/global.css';
+import '../../styles/course.css';
+import LessonPage from '../../components/course/LessonPage';
+import GatePanel from '../../components/assessment/GatePanel';
+---
+
+<BaseLayout title="Putting the Whole Decoder Block Together">
+  <LessonPage lessonId="L20" client:load>
+
+    <div class="lesson-section">
+      <div class="section-label">Question</div>
+      <div class="lesson-question">What does the full decoder block look like?</div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Intuition</div>
+      <p>
+        You now know every piece. A decoder block is just these pieces in a fixed order:
+      </p>
+      <ol style="list-style: none; padding: 0; margin: var(--space-3) 0; counter-reset: step;">
+        <li style="display: flex; gap: var(--space-3); padding: var(--space-2) 0; font-size: var(--text-sm);">
+          <span style="color: var(--ink-ghost); font-weight: 600; min-width: 24px;">1.</span>
+          <span><strong>RMSNorm</strong> the hidden states</span>
+        </li>
+        <li style="display: flex; gap: var(--space-3); padding: var(--space-2) 0; font-size: var(--text-sm);">
+          <span style="color: var(--ink-ghost); font-weight: 600; min-width: 24px;">2.</span>
+          <span><strong style="color: var(--sem-attention);">Multi-head causal attention</strong> (Q/K/V projections, RoPE, masked scores, softmax, weighted V sum, output projection)</span>
+        </li>
+        <li style="display: flex; gap: var(--space-3); padding: var(--space-2) 0; font-size: var(--text-sm);">
+          <span style="color: var(--ink-ghost); font-weight: 600; min-width: 24px;">3.</span>
+          <span><strong>Add residual</strong> (attention output + original input)</span>
+        </li>
+        <li style="display: flex; gap: var(--space-3); padding: var(--space-2) 0; font-size: var(--text-sm);">
+          <span style="color: var(--ink-ghost); font-weight: 600; min-width: 24px;">4.</span>
+          <span><strong>RMSNorm</strong> the result</span>
+        </li>
+        <li style="display: flex; gap: var(--space-3); padding: var(--space-2) 0; font-size: var(--text-sm);">
+          <span style="color: var(--ink-ghost); font-weight: 600; min-width: 24px;">5.</span>
+          <span><strong style="color: var(--sem-ffn);">FFN</strong> (expand, activate, contract — per token)</span>
+        </li>
+        <li style="display: flex; gap: var(--space-3); padding: var(--space-2) 0; font-size: var(--text-sm);">
+          <span style="color: var(--ink-ghost); font-weight: 600; min-width: 24px;">6.</span>
+          <span><strong>Add residual</strong> (FFN output + input to step 4)</span>
+        </li>
+      </ol>
+      <p>
+        That is the entire block. Token mixing happens in step 2. Per-token transformation happens in step 5. The norms stabilize scale. The residuals preserve information. A model with N layers repeats this block N times.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Toy Example</div>
+      <div class="toy-example">
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-bottom: var(--space-3);">
+          Full block flow for hidden states h:
+        </p>
+        <div style="font-family: var(--font-mono); font-size: var(--text-sm);">
+          <div style="margin-bottom: var(--space-3);">
+            <span style="color: var(--ink-ghost);">input:</span> h &nbsp; <span style="color: var(--ink-tertiary);">[n_tokens, d_model]</span>
+          </div>
+          <div style="padding-left: var(--space-4); border-left: 2px solid var(--sem-attention-dim); margin-bottom: var(--space-2);">
+            h_norm = RMSNorm(h)
+          </div>
+          <div style="padding-left: var(--space-4); border-left: 2px solid var(--sem-attention-dim); margin-bottom: var(--space-2);">
+            <span style="color: var(--sem-attention);">attn_out = multi_head_attention(h_norm)</span>
+          </div>
+          <div style="padding-left: var(--space-4); border-left: 2px solid var(--sem-attention-dim); margin-bottom: var(--space-3);">
+            h = h + attn_out &nbsp; <span style="color: var(--ink-tertiary);">// residual</span>
+          </div>
+          <div style="padding-left: var(--space-4); border-left: 2px solid var(--sem-ffn-dim); margin-bottom: var(--space-2);">
+            h_norm = RMSNorm(h)
+          </div>
+          <div style="padding-left: var(--space-4); border-left: 2px solid var(--sem-ffn-dim); margin-bottom: var(--space-2);">
+            <span style="color: var(--sem-ffn);">ffn_out = FFN(h_norm)</span>
+          </div>
+          <div style="padding-left: var(--space-4); border-left: 2px solid var(--sem-ffn-dim); margin-bottom: var(--space-3);">
+            h = h + ffn_out &nbsp; <span style="color: var(--ink-tertiary);">// residual</span>
+          </div>
+          <div>
+            <span style="color: var(--ink-ghost);">output:</span> h &nbsp; <span style="color: var(--ink-tertiary);">[n_tokens, d_model] (same shape)</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Shapes</div>
+      <div class="shape-card">
+        <div>Block input: [n_tokens, d_model]</div>
+        <div>Block output: [n_tokens, d_model]</div>
+        <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">Every operation inside the block preserves this shape. Internally, attention expands to [n_tokens, n_tokens] for scores and the FFN expands to [n_tokens, d_ff], but the block boundary shape is always [n_tokens, d_model].</div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Math</div>
+      <p>The complete block, written compactly:</p>
+      <div style="font-family: var(--font-mono); font-size: var(--text-sm); background: var(--surface-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); margin: var(--space-3) 0;">
+        <div style="color: var(--sem-attention);">h = h + attention(RMSNorm(h)) &nbsp; <span style="color: var(--ink-tertiary);">// token mixing + residual</span></div>
+        <div style="color: var(--sem-ffn);">h = h + FFN(RMSNorm(h)) &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color: var(--ink-tertiary);">// per-token transform + residual</span></div>
+      </div>
+      <p style="font-size: var(--text-sm); color: var(--ink-tertiary);">
+        Two lines. That is the entire decoder block. Everything you learned in this module fills in the details of these two lines.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Implementation Hook</div>
+      <div class="impl-hook">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          In <code>llama.cpp</code>, each model architecture (e.g. <code>src/models/gemma.cpp</code>) implements a <code>build_graph()</code> function that loops over layers. Inside each iteration, it calls <code>build_norm()</code>, <code>build_attn()</code>, adds the residual, calls <code>build_norm()</code> again, <code>build_ffn()</code>, and adds the second residual. The pattern matches the pseudocode above almost line for line.
+        </p>
+        <div class="file-path">src/models/gemma.cpp</div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Performance Hook</div>
+      <div class="perf-hook">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          The full block cost is dominated by matrix multiplies: three for Q/K/V projection, one for the attention output projection, and two or three for the FFN. The norms, residual adds, softmax, and masking are comparatively cheap. For a model with N layers, every operation in this block runs N times per token generated.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Check Yourself</div>
+      <GatePanel
+        client:load
+        lessonId="L20"
+        gateStrength="hard"
+        questions={[
+          {
+            id: 'L20-q1',
+            type: 'single_choice',
+            prompt: 'What is the correct order of operations inside a single decoder block (pre-norm architecture)?',
+            tag: 'conceptual',
+            choices: [
+              { id: 'a', text: 'Attention → FFN → RMSNorm → Residual', isCorrect: false },
+              { id: 'b', text: 'RMSNorm → Attention → Add Residual → RMSNorm → FFN → Add Residual', isCorrect: true },
+              { id: 'c', text: 'FFN → RMSNorm → Attention → RMSNorm → Residual', isCorrect: false },
+            ],
+            explanation: 'In a pre-norm block: normalize, then attention, then add residual. Then normalize again, FFN, then add residual. The norm always comes before the transform, and the residual always comes after.',
+          },
+          {
+            id: 'L20-q2',
+            type: 'single_choice',
+            prompt: 'In the decoder block, which step is the token-mixing step (where tokens exchange information)?',
+            tag: 'shape',
+            choices: [
+              { id: 'a', text: 'RMSNorm — it normalizes across all tokens', isCorrect: false },
+              { id: 'b', text: 'Multi-head causal attention — tokens read from other positions via Q·K^T scores and weighted V sums', isCorrect: true },
+              { id: 'c', text: 'FFN — it processes the full sequence through its weight matrices', isCorrect: false },
+            ],
+            explanation: 'Attention is the only cross-token operation in the block. RMSNorm and FFN both operate on each token independently. The residual addition is also per-token. Attention is where information moves between positions.',
+          },
+        ]}
+      />
+    </div>
+
+  </LessonPage>
+</BaseLayout>

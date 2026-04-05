@@ -1,0 +1,135 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import '../../styles/global.css';
+import '../../styles/course.css';
+import LessonPage from '../../components/course/LessonPage';
+import GatePanel from '../../components/assessment/GatePanel';
+---
+
+<BaseLayout title="Serving Adds Scheduling, Not Just Math">
+  <LessonPage lessonId="L30A" client:load>
+
+    <div class="lesson-section">
+      <div class="section-label">Question</div>
+      <div class="lesson-question">Why does serving behave differently from benchmarks?</div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Intuition</div>
+      <p>
+        A benchmark runs one request at a time: prefill the prompt, decode tokens, measure speed, done. A server handles many requests arriving at different times, with different prompt lengths, finishing at different times.
+      </p>
+      <p>
+        <strong>Continuous batching</strong> is the key scheduling technique. Instead of waiting for all requests in a batch to finish before starting new ones (static batching), the server inserts new requests into the running batch as soon as slots open up. A request that finishes early frees its slot immediately for a new arrival.
+      </p>
+      <p>
+        This means at any given moment, the GPU might be doing prefill for one request and decode for three others — simultaneously. The mix of prefill and decode tokens in the same batch changes the compute profile. The server must balance <strong>throughput</strong> (total tokens per second across all users) against <strong>latency</strong> (time each user waits for their tokens).
+      </p>
+      <p>
+        A setting that maximizes throughput in a benchmark (e.g., huge batch size, large ubatch) may cause unacceptable latency spikes in serving, because a long prefill can stall ongoing decode requests.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Toy Example</div>
+      <div class="toy-example">
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-bottom: var(--space-3);">
+          Server with capacity for 4 concurrent requests:
+        </p>
+        <div style="font-family: var(--font-mono); font-size: var(--text-sm);">
+          <div style="margin-bottom: var(--space-2);">
+            <span style="color: var(--ink-ghost);">t=0:</span> [<span style="color: var(--sem-attention);">R1 prefill</span>] [<span style="color: var(--sem-attention);">R2 prefill</span>] [<span style="color: var(--ink-ghost);">empty</span>] [<span style="color: var(--ink-ghost);">empty</span>]
+          </div>
+          <div style="margin-bottom: var(--space-2);">
+            <span style="color: var(--ink-ghost);">t=1:</span> [<span style="color: var(--sem-ffn);">R1 decode</span>] [<span style="color: var(--sem-ffn);">R2 decode</span>] [<span style="color: var(--sem-attention);">R3 prefill</span>] [<span style="color: var(--ink-ghost);">empty</span>]
+          </div>
+          <div style="margin-bottom: var(--space-2);">
+            <span style="color: var(--ink-ghost);">t=2:</span> [<span style="color: var(--sem-ffn);">R1 decode</span>] [<span style="color: var(--ink-ghost);">R2 done</span>] [<span style="color: var(--sem-ffn);">R3 decode</span>] [<span style="color: var(--sem-attention);">R4 prefill</span>]
+          </div>
+          <div style="margin-bottom: var(--space-2);">
+            <span style="color: var(--ink-ghost);">t=3:</span> [<span style="color: var(--sem-ffn);">R1 decode</span>] [<span style="color: var(--sem-attention);">R5 prefill</span>] [<span style="color: var(--sem-ffn);">R3 decode</span>] [<span style="color: var(--sem-ffn);">R4 decode</span>]
+          </div>
+        </div>
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-top: var(--space-3);">
+          R2 finishes and R5 immediately takes its slot. Prefill and decode run in the same batch. No idle waiting.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Shapes</div>
+      <div class="shape-card">
+        <div>Mixed batch at time t: some tokens are prefill (many rows), some are decode (1 row each)</div>
+        <div>Effective batch shape: [n_prefill + n_decode_requests, d_model]</div>
+        <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">The shape of the combined batch changes every step as requests arrive and complete.</div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Math</div>
+      <p>No new formulas. The key concept is the scheduling tradeoff:</p>
+      <div style="font-family: var(--font-mono); font-size: var(--text-sm); background: var(--surface-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); margin: var(--space-3) 0;">
+        <div style="color: var(--ink-tertiary);">// Static batching:</div>
+        <div>wait until all N requests arrive &rarr; process together &rarr; wait until all finish</div>
+        <div style="margin-top: var(--space-3); color: var(--ink-tertiary);">// Continuous batching:</div>
+        <div>insert request as slot opens &rarr; evict when done &rarr; fill slot immediately</div>
+        <div style="margin-top: var(--space-2); color: var(--ink-tertiary);">Throughput &uarr; but scheduling overhead and latency variance also &uarr;</div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Implementation Hook</div>
+      <div class="impl-hook">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          The <code>llama.cpp</code> server (<code>llama-server</code>) implements continuous batching. It maintains a pool of slots, each tracking one active request's position in the KV cache. When a request completes, its KV cache slot is freed and reassigned. The <code>--parallel</code> flag controls how many concurrent slots are available.
+        </p>
+        <div class="file-path">tools/server/server.cpp &mdash; slot management and continuous batching</div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Performance Hook</div>
+      <div class="perf-hook">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          In benchmarks, you optimize for one request: large batch size, all compute for one sequence. In serving, you split resources across many concurrent requests. A large prefill for a new request can stall decode for existing requests ("prefill interference"). Servers may limit prefill chunk size to keep decode latency stable. The best benchmark setting (maximize single-request throughput) is often a poor serving setting (causes latency spikes for other users).
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Check Yourself</div>
+      <GatePanel
+        client:load
+        lessonId="L30A"
+        gateStrength="hard"
+        questions={[
+          {
+            id: 'L30A-q1',
+            type: 'single_choice',
+            prompt: 'Why might the best single-run benchmark setting not be the best serving setting?',
+            tag: 'conceptual',
+            choices: [
+              { id: 'a', text: 'Because servers use different model weights than benchmarks', isCorrect: false },
+              { id: 'b', text: 'Because serving must balance throughput across many concurrent requests against per-request latency, while benchmarks only optimize one request at a time', isCorrect: true },
+              { id: 'c', text: 'Because benchmarks use GPU and servers use CPU', isCorrect: false },
+            ],
+            explanation: 'Benchmarks measure single-request performance and can dedicate all resources to it. Servers handle many concurrent requests and must keep latency acceptable for all of them. Settings that maximize single-request throughput (e.g., large batch sizes) can cause latency spikes for other users in a serving scenario.',
+          },
+          {
+            id: 'L30A-q2',
+            type: 'single_choice',
+            prompt: 'What does continuous batching do that static batching does not?',
+            tag: 'conceptual',
+            choices: [
+              { id: 'a', text: 'It uses a different transformer architecture', isCorrect: false },
+              { id: 'b', text: 'It inserts new requests into available slots immediately, without waiting for the current batch to complete', isCorrect: true },
+              { id: 'c', text: 'It skips the prefill phase entirely', isCorrect: false },
+            ],
+            explanation: 'Continuous batching fills empty slots as soon as requests finish, rather than waiting for all requests in a batch to complete before accepting new ones. This improves GPU utilization and overall throughput.',
+          },
+        ]}
+      />
+    </div>
+
+  </LessonPage>
+</BaseLayout>

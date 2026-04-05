@@ -1,0 +1,156 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import '../../styles/global.css';
+import '../../styles/course.css';
+import LessonPage from '../../components/course/LessonPage';
+import GatePanel from '../../components/assessment/GatePanel';
+---
+
+<BaseLayout title="Case Study: Gemma 4 Attention Path">
+  <LessonPage lessonId="L40" client:load>
+
+    <div class="lesson-section">
+      <div class="section-label">Question</div>
+      <div class="lesson-question">How does Gemma 4 handle attention?</div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Intuition</div>
+      <p>
+        Full self-attention is powerful but expensive: every token attends to every other token, so cost scales quadratically with sequence length. Gemma 4 solves this by using two types of attention layers that alternate through the model:
+      </p>
+      <ul style="list-style: none; padding: 0; margin: var(--space-3) 0;">
+        <li style="display: flex; gap: var(--space-3); padding: var(--space-2) 0; font-size: var(--text-sm);">
+          <span style="color: var(--sem-attention); font-weight: 600; min-width: 160px;">Full attention</span>
+          <span style="color: var(--ink-secondary);">Every token attends to every other token in the context. Used in a minority of layers.</span>
+        </li>
+        <li style="display: flex; gap: var(--space-3); padding: var(--space-2) 0; font-size: var(--text-sm);">
+          <span style="color: var(--sem-ffn); font-weight: 600; min-width: 160px;">Sliding Window Attention (SWA)</span>
+          <span style="color: var(--ink-secondary);">Each token only attends to a fixed-size local window of nearby tokens. Used in the majority of layers.</span>
+        </li>
+      </ul>
+      <p>
+        SWA layers are much cheaper because the attention matrix is sparse &mdash; each row only has entries for tokens within the window. The occasional full-attention layer ensures the model can still capture long-range dependencies.
+      </p>
+      <p>
+        On top of this, Gemma 4 uses <strong>shared-KV caching</strong>. The SWA layers share a single KV cache across all SWA layers rather than each layer maintaining its own. This dramatically reduces memory usage because SWA layers are the majority of layers in the model. Full-attention layers each keep their own KV cache as usual.
+      </p>
+      <p>
+        The builder code handles this by checking the layer type. If the layer is an SWA layer, it reuses the shared KV cache. If it is a full-attention layer, it uses the layer's own dedicated cache. The attention computation itself is the same &mdash; only the cache source and the window mask differ.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Toy Example</div>
+      <div class="toy-example">
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-bottom: var(--space-3);">
+          A 6-layer Gemma 4 model with window size 3 and layers [SWA, SWA, full, SWA, SWA, full]:
+        </p>
+        <div style="font-family: var(--font-mono); font-size: var(--text-sm);">
+          <div style="margin-bottom: var(--space-2);">
+            <span style="color: var(--ink-ghost);">sequence:</span> [A, B, C, D, E, F, G, H] &nbsp; <span style="color: var(--ink-tertiary);">(8 tokens)</span>
+          </div>
+          <div style="padding-left: var(--space-4); border-left: 2px solid var(--sem-ffn-dim); margin-bottom: var(--space-2);">
+            <span style="color: var(--sem-ffn);">SWA layer (window=3):</span> token H attends to [F, G, H] only
+          </div>
+          <div style="padding-left: var(--space-4); border-left: 2px solid var(--sem-attention-dim); margin-bottom: var(--space-2);">
+            <span style="color: var(--sem-attention);">Full layer:</span> token H attends to [A, B, C, D, E, F, G, H]
+          </div>
+          <div style="margin-top: var(--space-3); color: var(--ink-tertiary);">
+            KV caches: SWA layers 0,1,3,4 share one cache. Full layers 2,5 each have their own.
+          </div>
+        </div>
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-top: var(--space-3);">
+          4 SWA layers share 1 KV cache instead of 4 separate ones &mdash; 75% memory reduction for those layers.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Shapes</div>
+      <div class="shape-card">
+        <div>Full attention: Q &times; K<sup>T</sup> &rarr; [n_tokens, n_tokens] &nbsp; <span style="color: var(--ink-tertiary);">(all-to-all)</span></div>
+        <div>SWA attention: Q &times; K<sup>T</sup> &rarr; [n_tokens, window_size] &nbsp; <span style="color: var(--ink-tertiary);">(local only)</span></div>
+        <div style="margin-top: var(--space-2);">Shared SWA KV cache: [window_size, d_k] &nbsp; <span style="color: var(--ink-tertiary);">(one cache for all SWA layers)</span></div>
+        <div>Per-layer full KV cache: [n_tokens, d_k] &nbsp; <span style="color: var(--ink-tertiary);">(one cache per full-attention layer)</span></div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Math</div>
+      <p>The attention math is unchanged &mdash; the difference is which keys and values are visible:</p>
+      <div style="font-family: var(--font-mono); font-size: var(--text-sm); background: var(--surface-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); margin: var(--space-3) 0;">
+        <div style="color: var(--sem-attention);">Full: scores = Q &sdot; K<sup>T</sup> / &radic;d_k &nbsp; <span style="color: var(--ink-tertiary);">(all positions)</span></div>
+        <div style="color: var(--sem-ffn);">SWA: scores = Q &sdot; K<sub>window</sub><sup>T</sup> / &radic;d_k &nbsp; <span style="color: var(--ink-tertiary);">(local window only)</span></div>
+        <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">Positions outside the SWA window are masked to &minus;&infin; before softmax.</div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Implementation Hook</div>
+      <div class="impl-hook">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          In the Gemma 4 iSWA builder, the layer loop checks whether each layer is an SWA layer or a full-attention layer. SWA layers call into a shared KV cache, while full-attention layers use their own dedicated cache. The <code>build_attn()</code> call is the same in both cases &mdash; the builder just passes a different cache and attention mask depending on the layer type.
+        </p>
+        <div class="file-path">src/models/gemma4-iswa.cpp</div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Performance Hook</div>
+      <div class="perf-hook">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          SWA layers are cheaper in two ways: (1) the attention computation is O(n &times; w) instead of O(n&sup2;), where w is the window size, and (2) sharing one KV cache across all SWA layers reduces memory bandwidth during decode. For long sequences, the memory savings from shared-KV can be the difference between fitting in GPU memory and not.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Check Yourself</div>
+      <GatePanel
+        client:load
+        lessonId="L40"
+        gateStrength="hard"
+        questions={[
+          {
+            id: 'L40-q1',
+            type: 'single_choice',
+            prompt: 'What is the difference between SWA layers and full-attention layers in Gemma 4?',
+            tag: 'conceptual',
+            choices: [
+              { id: 'a', text: 'SWA layers use smaller weight matrices than full-attention layers', isCorrect: false },
+              { id: 'b', text: 'SWA layers only attend to a local window of nearby tokens, while full-attention layers attend to all tokens', isCorrect: true },
+              { id: 'c', text: 'SWA layers skip the attention step entirely and only run FFN', isCorrect: false },
+            ],
+            explanation: 'SWA (Sliding Window Attention) restricts each token to attending only within a fixed-size local window. Full-attention layers allow all-to-all token interactions. Both perform the same Q-K-V attention math — the difference is which keys are visible.',
+          },
+          {
+            id: 'L40-q2',
+            type: 'single_choice',
+            prompt: 'How does shared-KV caching work in the Gemma 4 builder?',
+            tag: 'conceptual',
+            choices: [
+              { id: 'a', text: 'All layers share a single KV cache regardless of attention type', isCorrect: false },
+              { id: 'b', text: 'SWA layers share one KV cache among themselves, while each full-attention layer keeps its own dedicated cache', isCorrect: true },
+              { id: 'c', text: 'Full-attention layers share a cache, SWA layers each have their own', isCorrect: false },
+            ],
+            explanation: 'SWA layers share a single KV cache because they only need a window of recent keys and values. Full-attention layers need the complete sequence history, so each keeps its own cache. This sharing dramatically reduces memory for the majority of layers.',
+          },
+          {
+            id: 'L40-q3',
+            type: 'single_choice',
+            prompt: 'Why does Gemma 4 still include some full-attention layers instead of using SWA everywhere?',
+            tag: 'conceptual',
+            choices: [
+              { id: 'a', text: 'Full-attention layers are needed for the FFN to work correctly', isCorrect: false },
+              { id: 'b', text: 'SWA cannot capture long-range dependencies beyond the window, so occasional full-attention layers provide global context', isCorrect: true },
+              { id: 'c', text: 'Full-attention layers are faster than SWA layers for short sequences', isCorrect: false },
+            ],
+            explanation: 'SWA is limited to local context within the window. Without any full-attention layers, information from distant tokens could never directly influence the current position. A few full-attention layers ensure long-range dependencies are captured.',
+          },
+        ]}
+      />
+    </div>
+
+  </LessonPage>
+</BaseLayout>

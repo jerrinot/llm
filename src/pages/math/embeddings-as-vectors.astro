@@ -1,0 +1,117 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import '../../styles/global.css';
+import '../../styles/course.css';
+import LessonPage from '../../components/course/LessonPage';
+import GatePanel from '../../components/assessment/GatePanel';
+---
+
+<BaseLayout title="Embeddings Turn Token IDs into Vectors">
+  <LessonPage lessonId="L06" client:load>
+
+    <div class="lesson-section">
+      <div class="section-label">Question</div>
+      <div class="lesson-question">How do token IDs become vectors?</div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Intuition</div>
+      <p>
+        The model cannot do math on bare integers. It needs each token to be a vector — a dense list of numbers it can transform.
+      </p>
+      <p>
+        The <strong>embedding table</strong> is a lookup table with one row per vocabulary entry. Given a token ID, the model looks up that row and gets a vector.
+      </p>
+      <p>
+        After embedding, a sequence of <em>n</em> tokens becomes a matrix: <em>n</em> rows, each with <code>d_model</code> columns. This is the model's actual input.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Toy Example</div>
+      <div class="toy-example">
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-bottom: var(--space-3);">Embedding lookup for 3 tokens with d_model = 4:</p>
+        <div style="font-family: var(--font-mono); font-size: var(--text-sm);">
+          <div style="display: grid; grid-template-columns: auto auto auto; gap: 8px; align-items: center;">
+            <span style="color: var(--sem-token);">ID 791</span>
+            <span style="color: var(--ink-ghost);">→</span>
+            <span>[0.12, -0.34, 0.56, 0.78]</span>
+          </div>
+          <div style="display: grid; grid-template-columns: auto auto auto; gap: 8px; align-items: center; margin-top: 4px;">
+            <span style="color: var(--sem-token);">ID 2368</span>
+            <span style="color: var(--ink-ghost);">→</span>
+            <span>[0.91, 0.23, -0.67, 0.45]</span>
+          </div>
+          <div style="display: grid; grid-template-columns: auto auto auto; gap: 8px; align-items: center; margin-top: 4px;">
+            <span style="color: var(--sem-token);">ID 3290</span>
+            <span style="color: var(--ink-ghost);">→</span>
+            <span>[-0.11, 0.89, 0.33, -0.55]</span>
+          </div>
+        </div>
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-top: var(--space-3);">
+          Three integers in, three vectors out. Stacked together, they form a [3, 4] matrix.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Shapes</div>
+      <div class="shape-card">
+        <div>Embedding table: [|V|, d_model] &nbsp; <span style="color: var(--ink-tertiary);">one row per vocab entry</span></div>
+        <div>Token IDs: [n_tokens] &nbsp; <span style="color: var(--ink-tertiary);">integers</span></div>
+        <div style="color: var(--sem-token); margin-top: var(--space-2);">After embedding: [n_tokens, d_model] &nbsp; <span style="color: var(--ink-tertiary);">the sequence matrix</span></div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Math</div>
+      <p>Embedding is a table lookup, not a computation:</p>
+      <div style="font-family: var(--font-mono); font-size: var(--text-sm); background: var(--surface-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); margin: var(--space-3) 0;">
+        <div style="color: var(--sem-token);">X = embedding_table[token_ids]</div>
+        <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">X has shape [n_tokens, d_model]</div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Implementation Hook</div>
+      <div class="impl-hook">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          The embedding table is a learned weight matrix stored in the model file. In <code>llama.cpp</code>, this is the first operation after tokenization. The table is loaded once and used for every token lookup.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Performance Hook</div>
+      <div class="perf-hook">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          The embedding table size is <code>|V| &times; d_model</code> floats. For a 128K vocabulary with d_model=4096, that is 500M+ numbers. This table must fit in memory. The lookup itself is fast — the cost is in storing it.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Check Yourself</div>
+      <GatePanel
+        client:load
+        lessonId="L06"
+        gateStrength="soft"
+        questions={[
+          {
+            id: 'L06-q1',
+            type: 'single_choice',
+            prompt: 'If you embed 5 tokens with d_model = 768, what is the shape of the result?',
+            tag: 'shape',
+            choices: [
+              { id: 'a', text: '[768, 5]', isCorrect: false },
+              { id: 'b', text: '[5, 768]', isCorrect: true },
+              { id: 'c', text: '[5]', isCorrect: false },
+            ],
+            explanation: '5 tokens, each becoming a vector of 768 numbers → shape [5, 768]. The token axis comes first.',
+          },
+        ]}
+      />
+    </div>
+
+  </LessonPage>
+</BaseLayout>

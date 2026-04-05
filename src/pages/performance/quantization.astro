@@ -1,0 +1,147 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import '../../styles/global.css';
+import '../../styles/course.css';
+import LessonPage from '../../components/course/LessonPage';
+import GatePanel from '../../components/assessment/GatePanel';
+---
+
+<BaseLayout title="Quantization Changes Both Math and Data Movement">
+  <LessonPage lessonId="L35" client:load>
+
+    <div class="lesson-section">
+      <div class="section-label">Question</div>
+      <div class="lesson-question">What does quantization actually change?</div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Intuition</div>
+      <p>
+        Model weights are originally trained in high precision (FP32 or BF16) &mdash; each value takes 2 or 4 bytes. <strong>Quantization</strong> converts weights to a lower-precision representation, using fewer bits per value. The motivations are practical: a 7B-parameter model in FP16 is ~14 GB; in 4-bit quantization it is ~3.5 GB. Smaller models fit in less memory and move through the memory bus faster.
+      </p>
+      <p>
+        But quantization is not free compression. It changes two things at once: <strong>data layout</strong> and <strong>arithmetic</strong>. The weights are stored in a different format (e.g., groups of values sharing a scale factor). The kernels that multiply these weights must understand this format &mdash; they dequantize on the fly or use specialized low-precision instructions. Different quantization schemes (Q4_0, Q4_K_M, Q8_0, etc.) trade off size, speed, and quality differently.
+      </p>
+      <p>
+        As an example, <strong>Q8_0</strong> stores each block of 32 weights as 32 int8 values plus one FP16 scale factor. To reconstruct a weight: multiply the int8 value by the block's scale. This is fast to dequantize and preserves most of the original precision, but only saves ~50% compared to FP16.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Toy Example</div>
+      <div class="toy-example">
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-bottom: var(--space-3);">
+          Q8_0 encoding of a block of 4 weights (real blocks are 32):
+        </p>
+        <div style="font-family: var(--font-mono); font-size: var(--text-sm);">
+          <div style="margin-bottom: var(--space-2);">
+            <span style="color: var(--ink-ghost);">Original FP16:</span> [0.12, -0.47, 0.83, -0.05]
+          </div>
+          <div style="margin-bottom: var(--space-2);">
+            <span style="color: var(--ink-ghost);">Max absolute value:</span> 0.83
+          </div>
+          <div style="margin-bottom: var(--space-2);">
+            <span style="color: var(--sem-attention);">Scale:</span> 0.83 / 127 = 0.00654
+          </div>
+          <div style="margin-bottom: var(--space-2);">
+            <span style="color: var(--sem-ffn);">Quantized int8:</span> [18, -72, 127, -8]
+            <span style="color: var(--ink-tertiary);"> &nbsp;(round(value / scale))</span>
+          </div>
+          <div style="margin-bottom: var(--space-2);">
+            <span style="color: var(--ink-ghost);">Stored:</span> scale(FP16) + 4 &times; int8 = 2 + 4 = 6 bytes
+            <span style="color: var(--ink-tertiary);"> &nbsp;(vs 8 bytes in FP16)</span>
+          </div>
+          <div>
+            <span style="color: var(--sem-kvcache);">Dequantized:</span> [0.118, -0.471, 0.830, -0.052]
+            <span style="color: var(--ink-tertiary);"> &nbsp;(int8 &times; scale)</span>
+          </div>
+        </div>
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-top: var(--space-3);">
+          Values are close but not identical to the originals. Lower-bit formats (Q4) lose more precision.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Shapes</div>
+      <div class="shape-card">
+        <div>Weight matrix shape is unchanged: [d_in, d_out]</div>
+        <div>Storage format changes: contiguous FP16 &rarr; blocks of (scale + quantized values)</div>
+        <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">
+          Q8_0: 32 int8 values + 1 FP16 scale per block = 34 bytes per 32 weights (1.0625 bytes/weight vs 2 bytes/weight in FP16).
+        </div>
+        <div style="color: var(--ink-tertiary);">
+          Q4_0: 32 values in 4 bits + 1 FP16 scale per block = 18 bytes per 32 weights (0.5625 bytes/weight).
+        </div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Math</div>
+      <div style="font-family: var(--font-mono); font-size: var(--text-sm); background: var(--surface-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); margin: var(--space-3) 0;">
+        <div style="color: var(--sem-token);">Quantize: q&#x1D62; = round(x&#x1D62; / scale)</div>
+        <div style="color: var(--sem-token);">Dequantize: x&#x0302;&#x1D62; = q&#x1D62; &times; scale</div>
+        <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">scale = max(|x|) / max_int_value</div>
+        <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">
+          Quantization error: |x&#x1D62; &minus; x&#x0302;&#x1D62;| &le; scale / 2 per element.
+          Accumulated across a dot product over thousands of dimensions, small per-element errors can shift the result.
+        </div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Implementation Hook</div>
+      <div class="impl-hook">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          In <code>llama.cpp</code>, quantization formats are defined in <code>ggml/src/ggml-common.h</code>. Each format (Q4_0, Q4_K_M, Q8_0, etc.) has a block structure, and corresponding dequantize and dot-product kernels. Model conversion uses <code>convert_hf_to_gguf.py</code> to produce quantized <code>.gguf</code> files.
+        </p>
+        <div class="file-path">ggml/src/ggml-common.h &mdash; block_q8_0, block_q4_0</div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Performance Hook</div>
+      <div class="perf-hook">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          Quantization improves memory-bound operations (like decode GEMV) significantly because it reduces bytes moved through the memory bus. But it also changes the arithmetic: dequantization has a cost, and specialized integer dot-product instructions may be faster or slower than floating-point equivalents depending on the ISA. The speed gain is real but the output quality changes &mdash; always validate after quantizing.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Check Yourself</div>
+      <GatePanel
+        client:load
+        lessonId="L35"
+        gateStrength="hard"
+        questions={[
+          {
+            id: 'L35-q1',
+            type: 'single_choice',
+            prompt: 'Why can quantization affect both speed and output quality?',
+            tag: 'reasoning',
+            choices: [
+              { id: 'a', text: 'It changes the model architecture by removing layers', isCorrect: false },
+              { id: 'b', text: 'It reduces the precision of weights (affecting quality) and reduces bytes moved through memory (affecting speed)', isCorrect: true },
+              { id: 'c', text: 'It only affects speed — quality stays exactly the same', isCorrect: false },
+            ],
+            explanation: 'Quantization stores weights at lower precision, which introduces small rounding errors that accumulate through layers (affecting quality). At the same time, the smaller data representation means less memory traffic, which speeds up memory-bound operations like decode.',
+          },
+          {
+            id: 'L35-q2',
+            type: 'single_choice',
+            prompt: 'In Q8_0, what does the per-block scale factor do?',
+            tag: 'conceptual',
+            choices: [
+              { id: 'a', text: 'It maps int8 values back to approximate floating-point values during dequantization', isCorrect: true },
+              { id: 'b', text: 'It controls the learning rate for that block during training', isCorrect: false },
+              { id: 'c', text: 'It selects which weights to prune from the block', isCorrect: false },
+            ],
+            explanation: 'The scale factor is computed so that the largest weight in the block maps to the maximum int8 value. During inference, each int8 value is multiplied by this scale to reconstruct an approximation of the original floating-point weight.',
+          },
+        ]}
+      />
+    </div>
+
+  </LessonPage>
+</BaseLayout>

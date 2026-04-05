@@ -1,0 +1,161 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import '../../styles/global.css';
+import '../../styles/course.css';
+import LessonPage from '../../components/course/LessonPage';
+import GatePanel from '../../components/assessment/GatePanel';
+import PipelineStepper from '../../components/interactive/PipelineStepper';
+---
+
+<BaseLayout title="One Request, End to End">
+  <LessonPage lessonId="L01A" client:load>
+
+    <div class="lesson-section">
+      <div class="section-label">Question</div>
+      <div class="lesson-question">What does one real inference request look like end to end?</div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Intuition</div>
+      <p>
+        A single inference step is a pipeline with clear stages. Text goes in. A next-token prediction comes out.
+        There is nothing magical about any individual stage — each one is a well-defined transformation.
+      </p>
+      <p>
+        This lesson shows you the whole pipeline at a glance. You do not need to understand each stage deeply yet.
+        That is what the rest of the course is for. The point right now is to see the map.
+      </p>
+      <p>
+        We will use this same pipeline as a running example throughout the course.
+        Each module will revisit it from a deeper angle.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Interactive — Pipeline Stepper</div>
+      <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-bottom: var(--space-3);">
+        Step through each stage of one inference request. Click a stage or use the navigation buttons.
+      </p>
+      <PipelineStepper client:load />
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Toy Example</div>
+      <div class="toy-example">
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-bottom: var(--space-3);">
+          Our running example — one step of predicting the next token after "The cat sat":
+        </p>
+        <div style="font-family: var(--font-mono); font-size: var(--text-xs); display: flex; flex-direction: column; gap: var(--space-3);">
+          <div style="display: flex; gap: var(--space-3); align-items: flex-start;">
+            <span style="color: var(--ink-ghost); min-width: 90px;">Raw text</span>
+            <span style="color: var(--ink-primary);">"The cat sat"</span>
+          </div>
+          <div style="display: flex; gap: var(--space-3); align-items: flex-start;">
+            <span style="color: var(--sem-token); min-width: 90px;">Tokenized</span>
+            <span>["The", " cat", " sat"] → [791, 2368, 3290]</span>
+          </div>
+          <div style="display: flex; gap: var(--space-3); align-items: flex-start;">
+            <span style="color: var(--sem-token); min-width: 90px;">Embedded</span>
+            <span>3 vectors of dimension d_model</span>
+          </div>
+          <div style="display: flex; gap: var(--space-3); align-items: flex-start;">
+            <span style="color: var(--sem-attention); min-width: 90px;">Layers</span>
+            <span>N layers transform the hidden states</span>
+          </div>
+          <div style="display: flex; gap: var(--space-3); align-items: flex-start;">
+            <span style="color: var(--sem-logits); min-width: 90px;">Logits</span>
+            <span>One score per vocabulary entry for the last token position</span>
+          </div>
+          <div style="display: flex; gap: var(--space-3); align-items: flex-start;">
+            <span style="color: var(--sem-logits); min-width: 90px;">Next token</span>
+            <span>" on" (highest score after softmax)</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Shapes</div>
+      <p>A preview of the shapes you will learn to track through each stage:</p>
+      <div class="shape-card">
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <div><span style="color: var(--ink-tertiary);">Token IDs:</span> [3] &nbsp; <span style="color: var(--ink-ghost);">(3 integers)</span></div>
+          <div><span style="color: var(--ink-tertiary);">After embedding:</span> [3, d_model] &nbsp; <span style="color: var(--ink-ghost);">(3 vectors)</span></div>
+          <div><span style="color: var(--ink-tertiary);">After N layers:</span> [3, d_model] &nbsp; <span style="color: var(--ink-ghost);">(same shape, different values)</span></div>
+          <div><span style="color: var(--ink-tertiary);">Logits:</span> [|V|] &nbsp; <span style="color: var(--ink-ghost);">(one score per vocabulary token)</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Implementation Hook</div>
+      <div class="impl-hook">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-bottom: var(--space-2);">
+          This pipeline is not abstract. Here is where it lives in real code:
+        </p>
+        <div class="file-path">src/llama-graph.cpp</div>
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-top: var(--space-2); margin-bottom: var(--space-3);">
+          This file contains the helpers that build each stage of the pipeline:
+        </p>
+        <ul style="list-style: none; padding: 0; font-family: var(--font-mono); font-size: var(--text-sm);">
+          <li style="padding: var(--space-1) 0;"><span style="color: var(--sem-attention);">build_attn()</span> <span style="color: var(--ink-ghost);">— attention stage</span></li>
+          <li style="padding: var(--space-1) 0;"><span style="color: var(--sem-ffn);">build_ffn()</span> <span style="color: var(--ink-ghost);">— feed-forward stage</span></li>
+          <li style="padding: var(--space-1) 0;"><span style="color: var(--sem-router);">build_moe_ffn()</span> <span style="color: var(--ink-ghost);">— mixture-of-experts stage</span></li>
+        </ul>
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-top: var(--space-3); margin-bottom: var(--space-2);">
+          And here is one complete model that wires them together:
+        </p>
+        <div class="file-path">src/models/gemma.cpp</div>
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-top: var(--space-2);">
+          You do not need to read these files yet. But they exist, they are real, and by the end of this course you will understand every major section.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Performance Hook</div>
+      <div class="perf-hook">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          This pipeline runs end-to-end for every token generated. The cost of each stage — tokenization, embedding, layer computation, output projection — varies dramatically.
+          Understanding where time goes is the goal of the performance modules later in the course.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Check Yourself</div>
+      <GatePanel
+        client:load
+        lessonId="L01A"
+        gateStrength="soft"
+        questions={[
+          {
+            id: 'L01A-q1',
+            type: 'single_choice',
+            prompt: 'Place these stages in the correct order: Embedding, Tokenization, Output Logits, Transformer Layers',
+            tag: 'conceptual',
+            choices: [
+              { id: 'a', text: 'Tokenization → Embedding → Transformer Layers → Output Logits', isCorrect: true },
+              { id: 'b', text: 'Embedding → Tokenization → Output Logits → Transformer Layers', isCorrect: false },
+              { id: 'c', text: 'Transformer Layers → Tokenization → Embedding → Output Logits', isCorrect: false },
+            ],
+            explanation: 'Text is first tokenized into IDs, then embedded into vectors, then transformed through layers, and finally projected to logits.',
+          },
+          {
+            id: 'L01A-q2',
+            type: 'single_choice',
+            prompt: 'Which stage produces the logits?',
+            tag: 'shape',
+            choices: [
+              { id: 'a', text: 'The tokenizer', isCorrect: false },
+              { id: 'b', text: 'The embedding table', isCorrect: false },
+              { id: 'c', text: 'The output head (final projection after the last layer)', isCorrect: true },
+            ],
+            explanation: 'The output head takes the final hidden state and projects it to a vector of size |V| — one score per vocabulary entry.',
+          },
+        ]}
+      />
+    </div>
+
+  </LessonPage>
+</BaseLayout>

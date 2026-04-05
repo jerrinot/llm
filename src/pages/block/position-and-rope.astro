@@ -1,0 +1,138 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import '../../styles/global.css';
+import '../../styles/course.css';
+import LessonPage from '../../components/course/LessonPage';
+import GatePanel from '../../components/assessment/GatePanel';
+---
+
+<BaseLayout title="Attention Needs Positional Information">
+  <LessonPage lessonId="L16A" client:load>
+
+    <div class="lesson-section">
+      <div class="section-label">Question</div>
+      <div class="lesson-question">How does attention know token order?</div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Intuition</div>
+      <p>
+        Attention computes dot products between queries and keys. Dot products are symmetric — they only care about <em>what</em> the vectors contain, not <em>where</em> they came from. If you shuffled the tokens, the attention scores would be exactly the same.
+      </p>
+      <p>
+        But token order matters enormously for language. "The dog bit the man" and "The man bit the dog" have the same tokens but very different meanings. Attention needs to know <em>position</em>.
+      </p>
+      <p>
+        <strong>RoPE</strong> (Rotary Position Embeddings) solves this by rotating the Q and K vectors based on their position in the sequence. Each position gets a unique rotation, so the dot product between Q and K naturally encodes how far apart they are. Tokens that are close together have a different interaction pattern than tokens that are far apart.
+      </p>
+      <p>
+        Critically, RoPE is applied only to <strong>Q and K</strong> — not to V. Position affects <em>where</em> tokens attend (the score computation), not <em>what</em> information is passed along (the values).
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Toy Example</div>
+      <div class="toy-example">
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-bottom: var(--space-3);">
+          Two tokens at positions 0 and 1, with 2D Q/K vectors:
+        </p>
+        <div style="font-family: var(--font-mono); font-size: var(--text-sm);">
+          <div style="margin-bottom: var(--space-2);">
+            <span style="color: var(--ink-ghost);">before RoPE:</span>
+          </div>
+          <div style="margin-bottom: var(--space-2);">
+            Q&#x2080; = [1.0, 0.0] &nbsp; Q&#x2081; = [1.0, 0.0]  <span style="color: var(--ink-tertiary);">(identical)</span>
+          </div>
+          <div style="margin-bottom: var(--space-3);">
+            <span style="color: var(--ink-ghost);">after RoPE (rotation by position &times; &theta;):</span>
+          </div>
+          <div style="color: var(--sem-attention);">
+            Q&#x2080; = [1.0, 0.0] &nbsp; <span style="color: var(--ink-tertiary);">(position 0: no rotation)</span>
+          </div>
+          <div style="color: var(--sem-attention);">
+            Q&#x2081; = [0.54, 0.84] &nbsp; <span style="color: var(--ink-tertiary);">(position 1: rotated by &theta;)</span>
+          </div>
+        </div>
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-top: var(--space-3);">
+          Same original vector, but now distinguishable by position. The dot product between Q and K encodes relative distance.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Shapes</div>
+      <div class="shape-card">
+        <div>Q before RoPE: [n_tokens, d_head]</div>
+        <div>Q after RoPE: [n_tokens, d_head] &nbsp; <span style="color: var(--ink-tertiary);">(same shape, rotated values)</span></div>
+        <div>K before RoPE: [n_tokens, d_head]</div>
+        <div>K after RoPE: [n_tokens, d_head] &nbsp; <span style="color: var(--ink-tertiary);">(same shape, rotated values)</span></div>
+        <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">V is unchanged — RoPE only touches Q and K.</div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Math</div>
+      <p>RoPE applies a rotation matrix to pairs of dimensions in Q and K:</p>
+      <div style="font-family: var(--font-mono); font-size: var(--text-sm); background: var(--surface-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); margin: var(--space-3) 0;">
+        <div style="color: var(--sem-attention);">q'&#x2082;&#x1D62;   = q&#x2082;&#x1D62; &sdot; cos(m&theta;&#x1D62;) - q&#x2082;&#x1D62;&#x208A;&#x2081; &sdot; sin(m&theta;&#x1D62;)</div>
+        <div style="color: var(--sem-attention);">q'&#x2082;&#x1D62;&#x208A;&#x2081; = q&#x2082;&#x1D62; &sdot; sin(m&theta;&#x1D62;) + q&#x2082;&#x1D62;&#x208A;&#x2081; &sdot; cos(m&theta;&#x1D62;)</div>
+        <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">m = token position, &theta;&#x1D62; = base frequency for dimension pair i</div>
+        <div style="color: var(--ink-tertiary);">The same rotation is applied to corresponding K dimensions.</div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Implementation Hook</div>
+      <div class="impl-hook">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          In <code>llama.cpp</code>, RoPE is applied via the <code>ggml_rope</code> operation. It runs on Q and K right after the Q/K projections and before the attention score computation. The base frequency and scaling parameters are loaded from the model config.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Performance Hook</div>
+      <div class="perf-hook">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          RoPE is applied per-element with sin/cos — it is computationally cheap compared to the matrix multiplies for Q/K/V projection. The frequencies are precomputed once and reused. RoPE also enables extending context length at inference time via frequency scaling, which is why many long-context models use it.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Check Yourself</div>
+      <GatePanel
+        client:load
+        lessonId="L16A"
+        gateStrength="hard"
+        questions={[
+          {
+            id: 'L16A-q1',
+            type: 'single_choice',
+            prompt: 'Why can\'t attention model token order without positional information?',
+            tag: 'conceptual',
+            choices: [
+              { id: 'a', text: 'Because attention uses matrix multiplication, which requires sorted inputs', isCorrect: false },
+              { id: 'b', text: 'Because dot products are symmetric — they only measure similarity, not position, so shuffled tokens would produce the same scores', isCorrect: true },
+              { id: 'c', text: 'Because the FFN erases position information before attention runs', isCorrect: false },
+            ],
+            explanation: 'Dot products measure content similarity only. Without positional encoding, swapping two tokens would not change any attention scores, making word order invisible to the model.',
+          },
+          {
+            id: 'L16A-q2',
+            type: 'single_choice',
+            prompt: 'Which tensors receive positional treatment from RoPE?',
+            tag: 'shape',
+            choices: [
+              { id: 'a', text: 'Q, K, and V', isCorrect: false },
+              { id: 'b', text: 'Only Q and K', isCorrect: true },
+              { id: 'c', text: 'Only V', isCorrect: false },
+            ],
+            explanation: 'RoPE rotates Q and K so that their dot product encodes relative position. V carries the content to be passed along and does not need positional modification.',
+          },
+        ]}
+      />
+    </div>
+
+  </LessonPage>
+</BaseLayout>

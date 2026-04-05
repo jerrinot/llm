@@ -1,0 +1,130 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import '../../styles/global.css';
+import '../../styles/course.css';
+import LessonPage from '../../components/course/LessonPage';
+import GatePanel from '../../components/assessment/GatePanel';
+---
+
+<BaseLayout title="The MoE Router Scores Experts Per Token">
+  <LessonPage lessonId="L24" client:load>
+
+    <div class="lesson-section">
+      <div class="section-label">Question</div>
+      <div class="lesson-question">How does the router choose experts?</div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Intuition</div>
+      <p>
+        A Mixture-of-Experts (MoE) layer replaces the single FFN with several smaller FFNs called <strong>experts</strong>. Not every expert runs for every token. A small network called the <strong>router</strong> decides which experts each token should use.
+      </p>
+      <p>
+        The router is a simple linear projection: it takes the token's hidden state and produces one score (a <strong>router logit</strong>) per expert. These logits measure how relevant each expert is for this particular token.
+      </p>
+      <p>
+        The logits are then passed through softmax (or sigmoid, depending on the architecture) to get <strong>gating weights</strong> — probabilities that sum to 1 (or independent probabilities in the sigmoid case). The top-<em>k</em> experts by gating weight are selected to process the token.
+      </p>
+      <p>
+        Each token may pick a different set of experts. This is what makes MoE "sparse": the model has many parameters (all the experts), but each token only activates a small subset.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Toy Example</div>
+      <div class="toy-example">
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-bottom: var(--space-3);">
+          4 experts, top-2 selection. Router logits for one token:
+        </p>
+        <div style="font-family: var(--font-mono); font-size: var(--text-sm);">
+          <div style="margin-bottom: var(--space-2);">
+            <span style="color: var(--ink-ghost);">logits:</span> &nbsp; [2.1, &nbsp;0.3, &nbsp;3.5, &nbsp;-0.8]
+          </div>
+          <div style="margin-bottom: var(--space-2);">
+            <span style="color: var(--ink-ghost);">softmax:</span> [0.18, 0.03, <span style="color: var(--sem-router);">0.74</span>, 0.01] &nbsp; <span style="color: var(--ink-tertiary);">(sum = 1.0, approx.)</span>
+          </div>
+          <div>
+            <span style="color: var(--sem-router);">top-2:</span> Expert 2 (weight 0.74), Expert 0 (weight 0.18)
+          </div>
+        </div>
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-top: var(--space-3);">
+          Experts 1 and 3 are not activated for this token. They do zero work.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Shapes</div>
+      <div class="shape-card">
+        <div>Hidden state per token: [d_model]</div>
+        <div>Router weight matrix: [d_model, n_experts]</div>
+        <div style="color: var(--sem-router);">Router logits per token: [n_experts]</div>
+        <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">After gating: top-k indices and their normalized weights.</div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Math</div>
+      <div style="font-family: var(--font-mono); font-size: var(--text-sm); background: var(--surface-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); margin: var(--space-3) 0;">
+        <div style="color: var(--sem-router);">logits = x &middot; W_router &nbsp; <span style="color: var(--ink-tertiary);">// [d_model] &middot; [d_model, n_experts] &rarr; [n_experts]</span></div>
+        <div style="color: var(--sem-router); margin-top: var(--space-2);">gates = softmax(logits) &nbsp; <span style="color: var(--ink-tertiary);">// or sigmoid(logits)</span></div>
+        <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">selected = top_k(gates, k)</div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Implementation Hook</div>
+      <div class="impl-hook">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          In <code>llama.cpp</code>, the router is a linear layer whose output dimension equals the number of experts. The gating function (softmax or sigmoid) and top-k value are model hyperparameters. You will see this in <code>build_moe_ffn()</code>.
+        </p>
+        <div class="file-path">src/llama-graph.cpp &mdash; build_moe_ffn()</div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Performance Hook</div>
+      <div class="perf-hook">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          The router itself is cheap — a single matrix-vector multiply. The cost that matters is what happens next: only <em>k</em> of <em>n</em> experts run. If a model has 64 experts and top-2 routing, each token uses 2/64 = 3% of the expert parameters. The total parameter count is large, but the active compute per token is small.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Check Yourself</div>
+      <GatePanel
+        client:load
+        lessonId="L24"
+        gateStrength="hard"
+        questions={[
+          {
+            id: 'L24-q1',
+            type: 'single_choice',
+            prompt: 'Given router logits [1.0, 4.0, 0.5, 3.0] and top-2 selection, which experts are chosen?',
+            tag: 'math',
+            choices: [
+              { id: 'a', text: 'Expert 0 and Expert 2', isCorrect: false },
+              { id: 'b', text: 'Expert 1 and Expert 3', isCorrect: true },
+              { id: 'c', text: 'Expert 0 and Expert 1', isCorrect: false },
+            ],
+            explanation: 'The two highest logits are at index 1 (4.0) and index 3 (3.0). After softmax these remain the two largest, so top-2 selects Expert 1 and Expert 3.',
+          },
+          {
+            id: 'L24-q2',
+            type: 'single_choice',
+            prompt: 'What is the shape of the router output for a single token if the model has 16 experts?',
+            tag: 'shape',
+            choices: [
+              { id: 'a', text: '[d_model]', isCorrect: false },
+              { id: 'b', text: '[16]', isCorrect: true },
+              { id: 'c', text: '[16, d_model]', isCorrect: false },
+            ],
+            explanation: 'The router produces one logit per expert. With 16 experts, the output is a vector of 16 scores.',
+          },
+        ]}
+      />
+    </div>
+
+  </LessonPage>
+</BaseLayout>

@@ -1,0 +1,142 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import '../../styles/global.css';
+import '../../styles/course.css';
+import LessonPage from '../../components/course/LessonPage';
+import GatePanel from '../../components/assessment/GatePanel';
+---
+
+<BaseLayout title="GEMM and GEMV Feel Different on Hardware">
+  <LessonPage lessonId="L33" client:load>
+
+    <div class="lesson-section">
+      <div class="section-label">Question</div>
+      <div class="lesson-question">Why do GEMM and GEMV perform differently?</div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Intuition</div>
+      <p>
+        <strong>GEMM</strong> (General Matrix-Matrix Multiply) multiplies two matrices. <strong>GEMV</strong> (General Matrix-Vector Multiply) multiplies a matrix by a single vector. Mathematically, GEMV is just GEMM where one matrix has only one column (or row). But on real hardware, the difference is enormous.
+      </p>
+      <p>
+        In GEMM, you load a block of the weight matrix once and reuse it across many input rows. The ratio of compute to memory access is high &mdash; hardware stays busy doing arithmetic. In GEMV, you still load the entire weight matrix, but you only use it for one vector. The ratio of compute to memory access is low &mdash; hardware spends most of its time waiting for data.
+      </p>
+      <p>
+        This maps directly to inference phases. <strong>Prefill</strong> processes many tokens at once, so projections are GEMM. <strong>Decode</strong> processes one token at a time, so projections are GEMV. The same weight matrix, the same hardware, but very different utilization.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Toy Example</div>
+      <div class="toy-example">
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-bottom: var(--space-3);">
+          Same weight matrix W [4096, 4096], different input shapes:
+        </p>
+        <div style="font-family: var(--font-mono); font-size: var(--text-sm);">
+          <div style="margin-bottom: var(--space-3);">
+            <span style="color: var(--sem-attention); font-weight: 600;">GEMM (prefill, 512 tokens):</span>
+            <div style="padding-left: var(--space-4); margin-top: var(--space-1);">
+              <div>Input: [512, 4096] &times; W [4096, 4096]</div>
+              <div>FLOPs: 512 &times; 4096 &times; 4096 &times; 2 &asymp; 17.2 billion</div>
+              <div>Bytes loaded (W): 4096 &times; 4096 &times; 2 = 33.6 MB</div>
+              <div style="color: var(--sem-ffn);">Ratio: ~512 FLOPs per byte of W loaded</div>
+            </div>
+          </div>
+          <div>
+            <span style="color: var(--sem-kvcache); font-weight: 600;">GEMV (decode, 1 token):</span>
+            <div style="padding-left: var(--space-4); margin-top: var(--space-1);">
+              <div>Input: [1, 4096] &times; W [4096, 4096]</div>
+              <div>FLOPs: 1 &times; 4096 &times; 4096 &times; 2 &asymp; 33.6 million</div>
+              <div>Bytes loaded (W): 4096 &times; 4096 &times; 2 = 33.6 MB</div>
+              <div style="color: var(--sem-ffn);">Ratio: ~1 FLOP per byte of W loaded</div>
+            </div>
+          </div>
+        </div>
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-top: var(--space-3);">
+          The weight matrix is the same size both times. GEMM does 512&times; more arithmetic for the same data load.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Shapes</div>
+      <div class="shape-card">
+        <div style="color: var(--sem-attention); font-weight: 600;">GEMM: [m, k] &times; [k, n] &mdash; m &gt; 1, n &gt; 1</div>
+        <div style="color: var(--sem-kvcache); font-weight: 600;">GEMV: [1, k] &times; [k, n] &mdash; one input row</div>
+        <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">
+          The "arithmetic intensity" (FLOPs per byte of memory traffic) scales with m. GEMV has m = 1, the lowest possible.
+        </div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Math</div>
+      <div style="font-family: var(--font-mono); font-size: var(--text-sm); background: var(--surface-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); margin: var(--space-3) 0;">
+        <div style="color: var(--sem-token);">Arithmetic intensity = FLOPs / bytes_moved</div>
+        <div style="margin-top: var(--space-2);">
+          <div style="color: var(--sem-attention);">GEMM: &asymp; 2 &times; m &times; k &times; n / (sizeof(element) &times; (m&times;k + k&times;n))</div>
+          <div style="color: var(--sem-kvcache);">GEMV: &asymp; 2 &times; k &times; n / (sizeof(element) &times; (k + k&times;n)) &asymp; 2 / sizeof(element)</div>
+        </div>
+        <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">
+          For FP16: GEMV intensity &asymp; 1 FLOP/byte. Hardware can do 100+ FLOP/byte &mdash; GEMV wastes most of that capacity.
+        </div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Implementation Hook</div>
+      <div class="impl-hook">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          In <code>llama.cpp</code>, the same <code>ggml_mul_mat</code> operation is used for both GEMM and GEMV. The backend dispatch code selects different kernel implementations depending on the shapes &mdash; a GEMV-optimized path avoids the overhead of tiling strategies designed for large matrices.
+        </p>
+        <div class="file-path">ggml/src/ggml-cpu/ggml-cpu.c &mdash; ggml_mul_mat dispatch</div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Performance Hook</div>
+      <div class="perf-hook">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          GEMM improvements (better tiling, SIMD utilization) speed up prefill substantially because the hardware can be kept busy with arithmetic. GEMV is usually bottlenecked on memory bandwidth, so the same GEMM optimizations help less during decode. To speed up decode, you need to reduce bytes moved (e.g., quantization) rather than increase compute throughput.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Check Yourself</div>
+      <GatePanel
+        client:load
+        lessonId="L33"
+        gateStrength="hard"
+        questions={[
+          {
+            id: 'L33-q1',
+            type: 'single_choice',
+            prompt: 'Why does prefill benefit more from GEMM kernel improvements than decode does?',
+            tag: 'reasoning',
+            choices: [
+              { id: 'a', text: 'Prefill uses different weight matrices that are easier to optimize', isCorrect: false },
+              { id: 'b', text: 'Prefill runs GEMM (many tokens, high arithmetic intensity) so compute improvements matter; decode runs GEMV (one token, memory-bound) where compute throughput is not the bottleneck', isCorrect: true },
+              { id: 'c', text: 'Decode does not use matrix multiplication at all', isCorrect: false },
+            ],
+            explanation: 'Prefill processes many tokens at once, creating large matrix-matrix multiplies with high arithmetic intensity where compute optimizations pay off. Decode processes one token, making projections into GEMV operations that are bottlenecked on memory bandwidth, not compute.',
+          },
+          {
+            id: 'L33-q2',
+            type: 'single_choice',
+            prompt: 'What is the key difference between GEMM and GEMV in terms of hardware utilization?',
+            tag: 'conceptual',
+            choices: [
+              { id: 'a', text: 'GEMM reuses loaded weight data across many input rows, keeping ALUs busy; GEMV loads the same weights but only uses them once', isCorrect: true },
+              { id: 'b', text: 'GEMV uses special hardware units that GEMM cannot access', isCorrect: false },
+              { id: 'c', text: 'GEMM and GEMV have the same hardware utilization if the weight matrix is the same size', isCorrect: false },
+            ],
+            explanation: 'In GEMM, each weight element participates in many output computations (one per input row), so the cost of loading it from memory is amortized. In GEMV, each weight element is used for just one output, so loading dominates and compute units sit idle.',
+          },
+        ]}
+      />
+    </div>
+
+  </LessonPage>
+</BaseLayout>

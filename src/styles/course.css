@@ -1,0 +1,303 @@
+@import './tokens.css';
+
+/* ============================================
+   COURSE SHELL
+   ============================================ */
+.course-shell {
+  display: grid;
+  grid-template-columns: var(--sidebar-width) 1fr;
+  min-height: 100dvh;
+  position: relative;
+}
+
+/* ============================================
+   SIDEBAR
+   ============================================ */
+.course-sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: var(--sidebar-width);
+  height: 100dvh;
+  background: var(--surface-1);
+  border-right: var(--border-default);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  z-index: 100;
+}
+
+.sidebar-header {
+  padding: var(--space-5) var(--space-5) var(--space-4);
+  border-bottom: var(--border-subtle);
+}
+
+.sidebar-logo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  text-decoration: none;
+  color: var(--ink-primary);
+}
+
+.logo-mark {
+  font-family: var(--font-mono);
+  font-size: var(--text-lg);
+  font-weight: 600;
+  color: var(--accent);
+  line-height: 1;
+}
+
+.logo-text {
+  font-family: var(--font-display);
+  font-size: var(--text-sm);
+  line-height: var(--leading-snug);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: var(--ink-secondary);
+}
+
+.sidebar-nav {
+  flex: 1;
+  padding: var(--space-4) 0;
+  overflow-y: auto;
+}
+
+/* ============================================
+   MAIN CONTENT
+   ============================================ */
+.course-main {
+  min-height: 100dvh;
+  padding: var(--space-10) var(--space-8);
+  position: relative;
+  z-index: 1;
+}
+
+.lesson-container {
+  max-width: var(--lesson-width);
+  margin: 0 auto;
+}
+
+/* ============================================
+   LESSON SECTIONS
+   ============================================ */
+.lesson-header {
+  margin-bottom: var(--space-10);
+}
+
+.lesson-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-wider);
+  text-transform: uppercase;
+  color: var(--ink-tertiary);
+  margin-bottom: var(--space-4);
+}
+
+.lesson-breadcrumb .module-tag {
+  color: var(--accent);
+}
+
+.lesson-id-tag {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-wider);
+  color: var(--ink-ghost);
+  background: var(--surface-3);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+}
+
+.lesson-title {
+  font-family: var(--font-display);
+  font-size: var(--text-3xl);
+  line-height: var(--leading-tight);
+  margin-bottom: var(--space-3);
+}
+
+.lesson-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  font-size: var(--text-sm);
+  color: var(--ink-tertiary);
+}
+
+.lesson-meta .time-estimate {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+/* Section styling */
+.lesson-section {
+  margin-bottom: var(--space-12);
+  position: relative;
+}
+
+.section-label {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-wider);
+  text-transform: uppercase;
+  color: var(--ink-ghost);
+  margin-bottom: var(--space-4);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.section-label::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--surface-3);
+}
+
+.section-title {
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  margin-bottom: var(--space-4);
+}
+
+/* Question section — the big opening question */
+.lesson-question {
+  font-family: var(--font-display);
+  font-size: var(--text-2xl);
+  font-style: italic;
+  color: var(--ink-primary);
+  border-left: 3px solid var(--accent);
+  padding-left: var(--space-5);
+  margin-bottom: var(--space-8);
+  line-height: var(--leading-snug);
+}
+
+/* Toy example box */
+.toy-example {
+  background: var(--surface-2);
+  border: var(--border-default);
+  border-radius: var(--radius-md);
+  padding: var(--space-5) var(--space-6);
+  margin: var(--space-4) 0;
+}
+
+/* Shape card */
+.shape-card {
+  background: var(--sem-token-bg);
+  border: 1px solid var(--sem-token-dim);
+  border-radius: var(--radius-md);
+  padding: var(--space-4) var(--space-5);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  margin: var(--space-3) 0;
+}
+
+/* Implementation hook */
+.impl-hook {
+  background: var(--surface-2);
+  border: var(--border-default);
+  border-left: 3px solid var(--sem-ffn);
+  border-radius: var(--radius-md);
+  padding: var(--space-4) var(--space-5);
+  margin: var(--space-4) 0;
+}
+
+.impl-hook .file-path {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--sem-ffn);
+}
+
+/* Performance hook */
+.perf-hook {
+  background: var(--surface-2);
+  border: var(--border-default);
+  border-left: 3px solid var(--sem-attention);
+  border-radius: var(--radius-md);
+  padding: var(--space-4) var(--space-5);
+  margin: var(--space-4) 0;
+}
+
+/* Gate / check panel */
+.gate-panel {
+  background: var(--surface-2);
+  border: var(--border-strong);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  margin: var(--space-8) 0;
+}
+
+.gate-panel-title {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  letter-spacing: var(--tracking-wider);
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: var(--space-4);
+}
+
+/* Navigation footer */
+.lesson-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: var(--space-8);
+  border-top: var(--border-subtle);
+  margin-top: var(--space-12);
+}
+
+.nav-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--ink-secondary);
+  text-decoration: none;
+  padding: var(--space-2) var(--space-4);
+  border: var(--border-default);
+  border-radius: var(--radius-md);
+  transition: all var(--duration-fast) var(--ease-out);
+  background: none;
+  cursor: pointer;
+}
+
+.nav-btn:hover {
+  color: var(--ink-primary);
+  border-color: var(--accent);
+  background: var(--accent-muted);
+}
+
+.nav-btn.primary {
+  background: var(--accent);
+  color: var(--ink-inverse);
+  border-color: var(--accent);
+}
+
+.nav-btn.primary:hover {
+  background: var(--accent-hover);
+}
+
+.nav-btn:disabled,
+.nav-btn.locked {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+@media (max-width: 900px) {
+  .course-shell {
+    grid-template-columns: 1fr;
+  }
+  .course-sidebar {
+    display: none;
+  }
+  .course-main {
+    padding: var(--space-6) var(--space-4);
+  }
+}

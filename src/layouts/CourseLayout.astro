@@ -1,0 +1,42 @@
+---
+import '../styles/global.css';
+import '../styles/course.css';
+
+interface Props {
+  title: string;
+  lessonId: string;
+  module: string;
+}
+
+const { title, lessonId, module } = Astro.props;
+---
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{title} — LLM From the Ground Up</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+</head>
+<body data-lesson-id={lessonId} data-module={module}>
+  <div class="course-shell">
+    <aside class="course-sidebar" id="course-sidebar">
+      <div class="sidebar-header">
+        <a href="/" class="sidebar-logo">
+          <span class="logo-mark">&gt;_</span>
+          <span class="logo-text">LLM<br/>Ground Up</span>
+        </a>
+      </div>
+      <nav class="sidebar-nav" id="sidebar-nav">
+        <!-- Hydrated by React -->
+      </nav>
+    </aside>
+    <main class="course-main">
+      <div class="lesson-container">
+        <slot />
+      </div>
+    </main>
+  </div>
+</body>
+</html>

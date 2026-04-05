@@ -1,0 +1,147 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import '../../styles/global.css';
+import '../../styles/course.css';
+import LessonPage from '../../components/course/LessonPage';
+import GatePanel from '../../components/assessment/GatePanel';
+import TokenizerExplorer from '../../components/interactive/TokenizerExplorer';
+---
+
+<BaseLayout title="What Is a Token?">
+  <LessonPage lessonId="L02" client:load>
+
+    <div class="lesson-section">
+      <div class="section-label">Question</div>
+      <div class="lesson-question">What is a token?</div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Intuition</div>
+      <p>
+        The model does not see characters or words. It sees <strong>tokens</strong> — pieces of text that come from a fixed vocabulary.
+      </p>
+      <p>
+        A token might be a whole word, a word fragment, a punctuation mark, or even a single character.
+        The tokenizer decides how to split input text into these pieces, and different tokenizers make different choices.
+      </p>
+      <p>
+        The critical insight: <strong>token count and word count are not the same.</strong>
+        "tokenization" might be one word but two or three tokens.
+        A single space character might be its own token.
+      </p>
+      <p>
+        When people say a model has a "context length of 128K tokens," they mean 128,000 of these pieces — not 128,000 words.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Interactive — Tokenizer Explorer</div>
+      <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-bottom: var(--space-3);">
+        Type text below and see how it splits into tokens. Notice how token boundaries don't always match word boundaries.
+      </p>
+      <TokenizerExplorer client:load />
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Toy Example</div>
+      <div class="toy-example">
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-bottom: var(--space-3);">
+          The sentence "The cat sat on the mat." tokenizes as:
+        </p>
+        <div style="display: flex; flex-wrap: wrap; gap: 6px; font-family: var(--font-mono); font-size: var(--text-sm); margin-bottom: var(--space-3);">
+          <span style="background: var(--surface-3); padding: 2px 8px; border-radius: 3px; border-bottom: 2px solid var(--sem-token);">The</span>
+          <span style="background: var(--surface-3); padding: 2px 8px; border-radius: 3px; border-bottom: 2px solid var(--sem-attention);">·cat</span>
+          <span style="background: var(--surface-3); padding: 2px 8px; border-radius: 3px; border-bottom: 2px solid var(--sem-ffn);">·sat</span>
+          <span style="background: var(--surface-3); padding: 2px 8px; border-radius: 3px; border-bottom: 2px solid var(--sem-logits);">·on</span>
+          <span style="background: var(--surface-3); padding: 2px 8px; border-radius: 3px; border-bottom: 2px solid var(--sem-kvcache);">·the</span>
+          <span style="background: var(--surface-3); padding: 2px 8px; border-radius: 3px; border-bottom: 2px solid var(--sem-router);">·mat</span>
+          <span style="background: var(--surface-3); padding: 2px 8px; border-radius: 3px; border-bottom: 2px solid var(--sem-expert);">.</span>
+        </div>
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary);">
+          6 words, 7 tokens. The <code>·</code> represents a leading space — it is part of the token, not separate.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Shapes</div>
+      <div class="shape-card">
+        <div>Input text: a string of characters</div>
+        <div>After tokenization: a sequence of token pieces</div>
+        <div>Sequence length (n_tokens): the number of tokens in the sequence</div>
+        <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">n_tokens ≠ n_words (usually n_tokens > n_words)</div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Math</div>
+      <p>
+        The only math concept here is a <strong>discrete sequence</strong>.
+        A tokenized input is an ordered list of symbols from a finite set:
+      </p>
+      <div style="font-family: var(--font-mono); font-size: var(--text-sm); color: var(--sem-token); background: var(--surface-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); margin: var(--space-3) 0; display: inline-block;">
+        tokens = [t&#x2081;, t&#x2082;, ..., t&#x2099;]
+      </div>
+      <p style="font-size: var(--text-sm); color: var(--ink-tertiary);">
+        where each t&#x1D62; is a symbol from the vocabulary.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Implementation Hook</div>
+      <div class="impl-hook">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          Real tokenizers use trained rules to decide how to split text — BPE uses learned merge operations, while other methods like unigram model a different objective.
+          In <code>llama.cpp</code>, tokenization is handled before the model graph runs.
+          The model never sees raw text — only integer token IDs.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Performance Hook</div>
+      <div class="perf-hook">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          Tokenization is fast relative to model computation. But the token count determines how much work the model must do.
+          More tokens means more computation in every layer. This is why "context length" is measured in tokens — it directly controls the cost.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Check Yourself</div>
+      <GatePanel
+        client:load
+        lessonId="L02"
+        gateStrength="soft"
+        questions={[
+          {
+            id: 'L02-q1',
+            type: 'single_choice',
+            prompt: 'Why can one sentence produce more tokens than words?',
+            tag: 'conceptual',
+            choices: [
+              { id: 'a', text: 'Because the tokenizer always adds extra tokens', isCorrect: false },
+              { id: 'b', text: 'Because some words are split into multiple token pieces, and spaces/punctuation can be separate tokens', isCorrect: true },
+              { id: 'c', text: 'Because tokens include hidden control characters', isCorrect: false },
+            ],
+            explanation: 'The tokenizer splits text into pieces from its vocabulary. Long or rare words may become multiple tokens. Spaces are often part of a token piece.',
+          },
+          {
+            id: 'L02-q2',
+            type: 'single_choice',
+            prompt: 'Why is context length measured in tokens, not words?',
+            tag: 'shape',
+            choices: [
+              { id: 'a', text: 'Because words are easier to count', isCorrect: false },
+              { id: 'b', text: 'Because the model operates on tokens — they are the actual unit of input and computation', isCorrect: true },
+              { id: 'c', text: 'Because tokens are always shorter than words', isCorrect: false },
+            ],
+            explanation: 'The model sees tokens, not words. Every layer processes n_tokens positions. Context length in tokens is the true capacity budget.',
+          },
+        ]}
+      />
+    </div>
+
+  </LessonPage>
+</BaseLayout>

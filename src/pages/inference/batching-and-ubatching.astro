@@ -1,0 +1,144 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import '../../styles/global.css';
+import '../../styles/course.css';
+import LessonPage from '../../components/course/LessonPage';
+import GatePanel from '../../components/assessment/GatePanel';
+---
+
+<BaseLayout title="Batch Size and Ubatch Size Change Execution Policy">
+  <LessonPage lessonId="L30" client:load>
+
+    <div class="lesson-section">
+      <div class="section-label">Question</div>
+      <div class="lesson-question">What does batch size actually control?</div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Intuition</div>
+      <p>
+        The model's math — attention, FFN, output head — is defined for a sequence of tokens. It does not specify how many tokens you must process in one call. That is an <strong>execution policy</strong> choice, not a model behavior choice.
+      </p>
+      <p>
+        <strong>Batch size</strong> (<code>n_batch</code>) is the maximum number of tokens accepted per call to the inference engine. If your prompt has 2,000 tokens and batch size is 512, the engine splits prefill into multiple calls of up to 512 tokens each.
+      </p>
+      <p>
+        <strong>Ubatch size</strong> (<code>n_ubatch</code>, for "micro-batch") is a further subdivision. Within each batch, the engine may split work into smaller physical chunks for the GPU. This controls memory usage and kernel scheduling without changing what the model computes.
+      </p>
+      <p>
+        The critical insight: changing batch or ubatch size changes <strong>throughput and memory usage</strong>, but the mathematical output is identical. The model produces the same logits regardless of how you chunk the work.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Toy Example</div>
+      <div class="toy-example">
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-bottom: var(--space-3);">
+          Prompt: 8 tokens. Batch size: 4. Ubatch size: 2.
+        </p>
+        <div style="font-family: var(--font-mono); font-size: var(--text-sm);">
+          <div style="margin-bottom: var(--space-3); color: var(--ink-ghost);">Logical prompt: [t1, t2, t3, t4, t5, t6, t7, t8]</div>
+          <div style="padding-left: var(--space-4); border-left: 2px solid var(--sem-attention-dim); margin-bottom: var(--space-2);">
+            <span style="color: var(--sem-attention);">batch 1:</span> [t1, t2, t3, t4]
+          </div>
+          <div style="padding-left: var(--space-8); border-left: 2px solid var(--sem-ffn-dim); margin-bottom: var(--space-1);">
+            <span style="color: var(--sem-ffn);">ubatch 1a:</span> [t1, t2]
+          </div>
+          <div style="padding-left: var(--space-8); border-left: 2px solid var(--sem-ffn-dim); margin-bottom: var(--space-2);">
+            <span style="color: var(--sem-ffn);">ubatch 1b:</span> [t3, t4]
+          </div>
+          <div style="padding-left: var(--space-4); border-left: 2px solid var(--sem-attention-dim); margin-bottom: var(--space-2);">
+            <span style="color: var(--sem-attention);">batch 2:</span> [t5, t6, t7, t8]
+          </div>
+          <div style="padding-left: var(--space-8); border-left: 2px solid var(--sem-ffn-dim); margin-bottom: var(--space-1);">
+            <span style="color: var(--sem-ffn);">ubatch 2a:</span> [t5, t6]
+          </div>
+          <div style="padding-left: var(--space-8); border-left: 2px solid var(--sem-ffn-dim);">
+            <span style="color: var(--sem-ffn);">ubatch 2b:</span> [t7, t8]
+          </div>
+        </div>
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-top: var(--space-3);">
+          Same 8 tokens, same result. Different chunking changes how much GPU memory is used at once.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Shapes</div>
+      <div class="shape-card">
+        <div>Per ubatch input: [n_ubatch, d_model]</div>
+        <div>Per batch input: [n_batch, d_model]</div>
+        <div>Full prompt: [n_prompt, d_model]</div>
+        <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">n_ubatch &le; n_batch &le; n_prompt. Shapes change, math does not.</div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Math</div>
+      <p>The math is unchanged. Batching is a chunking of the same operation:</p>
+      <div style="font-family: var(--font-mono); font-size: var(--text-sm); background: var(--surface-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); margin: var(--space-3) 0;">
+        <div style="color: var(--ink-tertiary);">// Full prefill (conceptual):</div>
+        <div>H_out = layers(X_[1:n]) &nbsp; <span style="color: var(--ink-tertiary);">// all tokens at once</span></div>
+        <div style="margin-top: var(--space-3); color: var(--ink-tertiary);">// Batched prefill (actual):</div>
+        <div>H_1 = layers(X_[1:b]) &nbsp; <span style="color: var(--ink-tertiary);">// first chunk</span></div>
+        <div>H_2 = layers(X_[b+1:2b]) <span style="color: var(--ink-tertiary);">// second chunk</span></div>
+        <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">Same final result. KV cache accumulates across chunks.</div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Implementation Hook</div>
+      <div class="impl-hook">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          In <code>llama.cpp</code>, <code>n_batch</code> and <code>n_ubatch</code> are set in the context parameters. The engine automatically splits large prompts into chunks of these sizes. Lowering <code>n_ubatch</code> reduces peak memory for activations; raising it improves GPU utilization during prefill.
+        </p>
+        <div class="file-path">common/arg.cpp &mdash; --batch-size and --ubatch-size flags</div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Performance Hook</div>
+      <div class="perf-hook">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          Larger ubatch sizes give the GPU bigger matrix multiplies, improving compute utilization during prefill. But larger ubatch sizes also require more memory for intermediate activations. The sweet spot depends on your GPU's memory and compute capacity. During decode, batch size matters less because you are processing one token regardless.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Check Yourself</div>
+      <GatePanel
+        client:load
+        lessonId="L30"
+        gateStrength="hard"
+        questions={[
+          {
+            id: 'L30-q1',
+            type: 'single_choice',
+            prompt: 'What is the difference between model behavior and execution policy?',
+            tag: 'conceptual',
+            choices: [
+              { id: 'a', text: 'Different batch sizes produce different logits, so it is a model behavior change', isCorrect: false },
+              { id: 'b', text: 'Batch size changes how work is chunked (execution policy) but the computed logits are identical (model behavior is unchanged)', isCorrect: true },
+              { id: 'c', text: 'Execution policy only matters for training, not inference', isCorrect: false },
+            ],
+            explanation: 'Batch and ubatch sizes are execution policy — they change throughput and memory usage but not the mathematical result. The model produces the same logits regardless of how the prompt is chunked.',
+          },
+          {
+            id: 'L30-q2',
+            type: 'single_choice',
+            prompt: 'If n_ubatch is set to 256 and the prompt has 1024 tokens, how many ubatch evaluations occur during prefill?',
+            tag: 'math',
+            choices: [
+              { id: 'a', text: '1 — the engine processes everything at once', isCorrect: false },
+              { id: 'b', text: '4 — the prompt is split into 1024/256 chunks', isCorrect: true },
+              { id: 'c', text: '256 — one evaluation per ubatch-sized group', isCorrect: false },
+            ],
+            explanation: '1024 tokens / 256 tokens per ubatch = 4 ubatch evaluations. Each processes a chunk of 256 tokens through the full model.',
+          },
+        ]}
+      />
+    </div>
+
+  </LessonPage>
+</BaseLayout>

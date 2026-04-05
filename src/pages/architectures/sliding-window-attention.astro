@@ -1,0 +1,125 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import '../../styles/global.css';
+import '../../styles/course.css';
+import LessonPage from '../../components/course/LessonPage';
+import GatePanel from '../../components/assessment/GatePanel';
+---
+
+<BaseLayout title="Sliding-Window Attention Limits What a Layer Can See">
+  <LessonPage lessonId="L22" client:load>
+
+    <div class="lesson-section">
+      <div class="section-label">Question</div>
+      <div class="lesson-question">What does a sliding window limit?</div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Intuition</div>
+      <p>
+        Standard causal attention lets every token attend to all previous tokens. This means the attention matrix grows with the square of the sequence length. For very long contexts, this cost becomes prohibitive.
+      </p>
+      <p>
+        <strong>Sliding-window attention (SWA)</strong> restricts each token to attending only to the most recent <em>w</em> tokens, where <em>w</em> is the window size. Tokens beyond the window are masked out, as if they do not exist for that layer.
+      </p>
+      <p>
+        A single SWA layer cannot see beyond its window. But when you stack multiple SWA layers, the effective receptive field grows: layer 1 sees <em>w</em> tokens back, layer 2 sees another <em>w</em> back through layer 1's outputs, and so on. After <em>L</em> layers the model can reach <em>L &times; w</em> tokens back.
+      </p>
+      <p>
+        Modern architectures often <strong>interleave</strong> local SWA layers with occasional full-attention layers. The local layers handle nearby context cheaply, while the full-attention layers maintain long-range connections.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Toy Example</div>
+      <div class="toy-example">
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-bottom: var(--space-3);">
+          Sequence of 8 tokens, window size w = 3. Token at position 6 can attend to:
+        </p>
+        <div style="font-family: var(--font-mono); font-size: var(--text-sm);">
+          <div style="margin-bottom: var(--space-2);">
+            <span style="color: var(--ink-ghost);">full causal:</span> positions [0, 1, 2, 3, 4, 5, 6] &nbsp; <span style="color: var(--ink-tertiary);">7 tokens</span>
+          </div>
+          <div>
+            <span style="color: var(--sem-attention);">SWA (w=3):</span> &nbsp; positions [4, 5, 6] &nbsp; <span style="color: var(--ink-tertiary);">3 tokens</span>
+          </div>
+        </div>
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-top: var(--space-3);">
+          Positions 0-3 are invisible to this layer. The cost of attention at this position drops from 7 dot products to 3.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Shapes</div>
+      <div class="shape-card">
+        <div>Full attention scores: [n_tokens, n_tokens] &nbsp; <span style="color: var(--ink-tertiary);">quadratic</span></div>
+        <div style="color: var(--sem-attention);">SWA attention scores: [n_tokens, w] &nbsp; <span style="color: var(--ink-tertiary);">linear in sequence length</span></div>
+        <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">KV cache per SWA layer also shrinks: only the last w entries are needed.</div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Math</div>
+      <div style="font-family: var(--font-mono); font-size: var(--text-sm); background: var(--surface-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); margin: var(--space-3) 0;">
+        <div style="color: var(--sem-attention);">score(i, j) = Q&#x1D62; &middot; K&#x2C7C; &nbsp; <span style="color: var(--ink-tertiary);">only if</span> &nbsp; i - w &lt; j &le; i</div>
+        <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">All other positions get -&infin; before softmax (masked out).</div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Implementation Hook</div>
+      <div class="impl-hook">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          In <code>llama.cpp</code>, models that use SWA set a per-layer attention window size. The KV cache management respects this window, evicting entries that fall outside it. Gemma 4 uses a repeating pattern of SWA and full-attention layers.
+        </p>
+        <div class="file-path">src/llama-graph.cpp &mdash; build_attn()</div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Performance Hook</div>
+      <div class="perf-hook">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          SWA layers save both compute and memory. Compute: fewer dot products per token. Memory: the KV cache for an SWA layer holds at most <em>w</em> entries regardless of sequence length. For a 128K context with w = 4096, an SWA layer uses 32x less KV cache than a full-attention layer.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Check Yourself</div>
+      <GatePanel
+        client:load
+        lessonId="L22"
+        gateStrength="hard"
+        questions={[
+          {
+            id: 'L22-q1',
+            type: 'single_choice',
+            prompt: 'What information does a single SWA layer lose compared to full causal attention?',
+            tag: 'conceptual',
+            choices: [
+              { id: 'a', text: 'It cannot see tokens beyond the window boundary', isCorrect: true },
+              { id: 'b', text: 'It cannot see the current token', isCorrect: false },
+              { id: 'c', text: 'It loses all positional information', isCorrect: false },
+            ],
+            explanation: 'A sliding-window layer masks out all tokens beyond w positions back. That information is invisible to this layer. Stacking layers can recover long-range reach indirectly.',
+          },
+          {
+            id: 'L22-q2',
+            type: 'single_choice',
+            prompt: 'Why does SWA reduce the KV cache size for a layer?',
+            tag: 'conceptual',
+            choices: [
+              { id: 'a', text: 'It uses fewer KV heads', isCorrect: false },
+              { id: 'b', text: 'It only needs to store the last w key/value entries, not the full sequence', isCorrect: true },
+              { id: 'c', text: 'It compresses the K and V vectors to a smaller dimension', isCorrect: false },
+            ],
+            explanation: 'Since the layer never attends beyond w tokens back, entries older than w can be evicted from the KV cache. The cache is bounded by w instead of growing with sequence length.',
+          },
+        ]}
+      />
+    </div>
+
+  </LessonPage>
+</BaseLayout>

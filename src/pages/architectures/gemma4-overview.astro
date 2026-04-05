@@ -1,0 +1,144 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import '../../styles/global.css';
+import '../../styles/course.css';
+import LessonPage from '../../components/course/LessonPage';
+import GatePanel from '../../components/assessment/GatePanel';
+---
+
+<BaseLayout title="Gemma 4 Combines Several Variants at Once">
+  <LessonPage lessonId="L26" client:load>
+
+    <div class="lesson-section">
+      <div class="section-label">Question</div>
+      <div class="lesson-question">What makes Gemma 4 different?</div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Intuition</div>
+      <p>
+        A plain dense decoder repeats the same block — attention then FFN — for every layer. Gemma 4 breaks this uniformity by mixing several of the variants you have already learned:
+      </p>
+      <ul style="list-style: none; padding: 0; margin: var(--space-3) 0;">
+        <li style="display: flex; gap: var(--space-3); padding: var(--space-2) 0; font-size: var(--text-sm);">
+          <span style="color: var(--sem-attention); font-weight: 600; min-width: 120px;">SWA pattern</span>
+          <span style="color: var(--ink-secondary);">Some layers use sliding-window attention with a fixed window size. Others use full causal attention. The pattern alternates on a schedule defined in the model config.</span>
+        </li>
+        <li style="display: flex; gap: var(--space-3); padding: var(--space-2) 0; font-size: var(--text-sm);">
+          <span style="color: var(--sem-kvcache); font-weight: 600; min-width: 120px;">Shared-KV</span>
+          <span style="color: var(--ink-secondary);">Certain layers reuse K/V from an earlier layer instead of computing their own. This cuts KV cache size and removes K/V projection cost from those layers.</span>
+        </li>
+        <li style="display: flex; gap: var(--space-3); padding: var(--space-2) 0; font-size: var(--text-sm);">
+          <span style="color: var(--sem-router); font-weight: 600; min-width: 120px;">MoE layers</span>
+          <span style="color: var(--ink-secondary);">Some layers replace the dense FFN with a Mixture-of-Experts layer. Each token routes to a small subset of experts, keeping per-token compute manageable while the total parameter count is large.</span>
+        </li>
+        <li style="display: flex; gap: var(--space-3); padding: var(--space-2) 0; font-size: var(--text-sm);">
+          <span style="color: var(--sem-ffn); font-weight: 600; min-width: 120px;">Per-layer config</span>
+          <span style="color: var(--ink-secondary);">Each layer can have its own combination: SWA or full attention, shared or fresh K/V, dense FFN or MoE. The model is no longer a uniform stack.</span>
+        </li>
+      </ul>
+      <p>
+        This heterogeneity makes Gemma 4 more complex to implement and reason about, but it allows the architecture to spend resources where they matter most: full attention and fresh K/V for layers that need long-range or diverse representations, local attention and shared K/V where redundancy would be wasted.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Toy Example</div>
+      <div class="toy-example">
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-bottom: var(--space-3);">
+          Simplified 6-layer Gemma 4-style config:
+        </p>
+        <div style="font-family: var(--font-mono); font-size: var(--text-sm);">
+          <div style="margin-bottom: var(--space-1);"><span style="color: var(--sem-attention);">Layer 0:</span> full attn, fresh KV, dense FFN</div>
+          <div style="margin-bottom: var(--space-1);"><span style="color: var(--sem-kvcache);">Layer 1:</span> SWA, shared KV (from 0), dense FFN</div>
+          <div style="margin-bottom: var(--space-1);"><span style="color: var(--sem-router);">Layer 2:</span> full attn, fresh KV, <strong>MoE FFN</strong></div>
+          <div style="margin-bottom: var(--space-1);"><span style="color: var(--sem-kvcache);">Layer 3:</span> SWA, shared KV (from 2), dense FFN</div>
+          <div style="margin-bottom: var(--space-1);"><span style="color: var(--sem-attention);">Layer 4:</span> full attn, fresh KV, dense FFN</div>
+          <div><span style="color: var(--sem-router);">Layer 5:</span> SWA, shared KV (from 4), <strong>MoE FFN</strong></div>
+        </div>
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-top: var(--space-3);">
+          No two layers are necessarily configured the same way. The build loop must check each layer's config.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Shapes</div>
+      <div class="shape-card">
+        <div>Input and output per layer: [n_tokens, d_model] &nbsp; <span style="color: var(--ink-tertiary);">unchanged</span></div>
+        <div style="margin-top: var(--space-2);">What varies per layer:</div>
+        <div style="padding-left: var(--space-4); color: var(--ink-secondary);">
+          <div>Attention window: full (n_tokens) or sliding (w)</div>
+          <div>KV source: own projection or borrowed from another layer</div>
+          <div>FFN type: dense [d_model &rarr; d_ff &rarr; d_model] or MoE [routed across n_experts]</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Math</div>
+      <p>No new formula. Gemma 4 composes the pieces you already know:</p>
+      <div style="font-family: var(--font-mono); font-size: var(--text-sm); background: var(--surface-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); margin: var(--space-3) 0;">
+        <div style="color: var(--ink-tertiary);">for each layer &#x2113;:</div>
+        <div style="padding-left: var(--space-4); color: var(--sem-attention);">attn_type&#x2113; &#x2208; &#x7b;full, SWA&#x7d;</div>
+        <div style="padding-left: var(--space-4); color: var(--sem-kvcache);">kv_source&#x2113; &#x2208; &#x7b;fresh, shared(&#x2113;')&#x7d;</div>
+        <div style="padding-left: var(--space-4); color: var(--sem-router);">ffn_type&#x2113; &#x2208; &#x7b;dense, MoE&#x7d;</div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Implementation Hook</div>
+      <div class="impl-hook">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          In <code>llama.cpp</code>, Gemma 4's model builder loops over layers and checks per-layer config to decide the attention type, KV sharing, and FFN type. This is the most complex model builder in the codebase because no layer is assumed to be like any other.
+        </p>
+        <div class="file-path">src/models/gemma4-iswa.cpp</div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Performance Hook</div>
+      <div class="perf-hook">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          Heterogeneous layers make performance analysis harder. Some layers are cheap (SWA + shared KV + dense FFN). Some are expensive (full attention + fresh KV + MoE). Profiling a Gemma 4 model shows uneven per-layer timing. You cannot assume every layer costs the same — a mistake common when reasoning about plain dense decoders.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Check Yourself</div>
+      <GatePanel
+        client:load
+        lessonId="L26"
+        gateStrength="hard"
+        questions={[
+          {
+            id: 'L26-q1',
+            type: 'single_choice',
+            prompt: 'What makes Gemma 4 more complex than a plain dense decoder?',
+            tag: 'conceptual',
+            choices: [
+              { id: 'a', text: 'It uses a larger vocabulary', isCorrect: false },
+              { id: 'b', text: 'Each layer can have a different combination of attention type, KV source, and FFN type', isCorrect: true },
+              { id: 'c', text: 'It uses a different activation function', isCorrect: false },
+            ],
+            explanation: 'A plain dense decoder repeats the same block structure for every layer. Gemma 4 mixes SWA vs full attention, shared vs fresh KV, and dense vs MoE FFN on a per-layer basis, making the architecture heterogeneous.',
+          },
+          {
+            id: 'L26-q2',
+            type: 'single_choice',
+            prompt: 'Why can you not assume every layer in Gemma 4 has the same inference cost?',
+            tag: 'conceptual',
+            choices: [
+              { id: 'a', text: 'Because different layers have different d_model sizes', isCorrect: false },
+              { id: 'b', text: 'Because layers vary in attention scope, KV computation, and whether the FFN is dense or MoE', isCorrect: true },
+              { id: 'c', text: 'Because the optimizer treats each layer differently', isCorrect: false },
+            ],
+            explanation: 'An SWA layer with shared KV and dense FFN is much cheaper than a full-attention layer with fresh KV and MoE. The per-layer cost varies based on the config of each layer.',
+          },
+        ]}
+      />
+    </div>
+
+  </LessonPage>
+</BaseLayout>

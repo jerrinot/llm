@@ -1,0 +1,207 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import '../../styles/global.css';
+---
+
+<BaseLayout title="Glossary">
+  <div class="glossary-page">
+    <header class="glossary-header">
+      <a href="/" class="back-link">&larr; Back to course</a>
+      <h1>Glossary</h1>
+      <p class="glossary-subtitle">Quick reference for all terms introduced in the guided path.</p>
+    </header>
+
+    <div class="glossary-search-wrap">
+      <input type="text" class="glossary-search" placeholder="Filter terms..." id="glossary-filter" />
+    </div>
+
+    <div class="glossary-grid" id="glossary-grid">
+
+      <div class="glossary-section" data-module="M0">
+        <h2 class="glossary-section-title">Orientation</h2>
+        <dl class="glossary-list">
+          <div class="glossary-entry"><dt>LLM</dt><dd>Large Language Model. A neural network trained to predict the next token in a sequence.</dd></div>
+          <div class="glossary-entry"><dt>Inference</dt><dd>Running a trained model to produce predictions. Distinct from training.</dd></div>
+          <div class="glossary-entry"><dt>Autoregressive generation</dt><dd>Producing output by predicting one token at a time, appending it, and repeating.</dd></div>
+        </dl>
+      </div>
+
+      <div class="glossary-section" data-module="M1">
+        <h2 class="glossary-section-title">Discrete Input</h2>
+        <dl class="glossary-list">
+          <div class="glossary-entry"><dt>Token</dt><dd>A piece of text from the model's vocabulary. Can be a word, subword, character, or punctuation.</dd></div>
+          <div class="glossary-entry"><dt>Token ID</dt><dd>The integer index of a token in the vocabulary table.</dd></div>
+          <div class="glossary-entry"><dt>Vocabulary (V)</dt><dd>The finite set of all tokens the model knows. Size often written |V|.</dd></div>
+          <div class="glossary-entry"><dt>Tokenizer</dt><dd>The algorithm that splits raw text into token pieces and maps them to IDs.</dd></div>
+          <div class="glossary-entry"><dt>Context length</dt><dd>Maximum number of tokens the model can process in one pass. Prompt + output share this budget.</dd></div>
+        </dl>
+      </div>
+
+      <div class="glossary-section" data-module="M2">
+        <h2 class="glossary-section-title">Linear Algebra</h2>
+        <dl class="glossary-list">
+          <div class="glossary-entry"><dt>Scalar</dt><dd>A single number.</dd></div>
+          <div class="glossary-entry"><dt>Vector</dt><dd>An ordered list of numbers. Dimension = how many numbers.</dd></div>
+          <div class="glossary-entry"><dt>Embedding</dt><dd>A dense vector representation of a token, obtained by looking up the token ID in a learned table.</dd></div>
+          <div class="glossary-entry"><dt>Hidden state</dt><dd>The current vector representation of a token at any point in the model. Changes layer by layer.</dd></div>
+          <div class="glossary-entry"><dt>d_model</dt><dd>The dimension of hidden states in the model. A core hyperparameter.</dd></div>
+          <div class="glossary-entry"><dt>Dot product</dt><dd>Multiply corresponding elements, sum the results. Measures similarity between two vectors.</dd></div>
+          <div class="glossary-entry"><dt>Matrix multiplication</dt><dd>[m, k] &times; [k, n] &rarr; [m, n]. Many dot products organized into a grid.</dd></div>
+          <div class="glossary-entry"><dt>Linear projection</dt><dd>A matrix multiply with a learned weight matrix that changes vector dimension.</dd></div>
+          <div class="glossary-entry"><dt>Tensor shape</dt><dd>The list of dimensions of a multi-dimensional array. E.g. [n_tokens, d_model].</dd></div>
+        </dl>
+      </div>
+
+      <div class="glossary-section" data-module="M3">
+        <h2 class="glossary-section-title">Probability</h2>
+        <dl class="glossary-list">
+          <div class="glossary-entry"><dt>Logits</dt><dd>Raw, unbounded scores output by the model — one per vocabulary entry.</dd></div>
+          <div class="glossary-entry"><dt>Output head</dt><dd>The final projection layer that maps the last hidden state to logits over the vocabulary.</dd></div>
+          <div class="glossary-entry"><dt>Softmax</dt><dd>Converts logits to a probability distribution: all positive, sums to 1. Formula: p_i = exp(z_i) / &sum; exp(z_j).</dd></div>
+          <div class="glossary-entry"><dt>Argmax</dt><dd>Deterministic decoding: always pick the highest-probability token.</dd></div>
+          <div class="glossary-entry"><dt>Sampling</dt><dd>Stochastic decoding: randomly pick a token according to the probability distribution.</dd></div>
+          <div class="glossary-entry"><dt>Temperature</dt><dd>A scaling factor applied to logits before softmax. Lower = sharper, higher = more uniform.</dd></div>
+        </dl>
+      </div>
+
+      <div class="glossary-section" data-module="M4">
+        <h2 class="glossary-section-title">Transformer Block</h2>
+        <dl class="glossary-list">
+          <div class="glossary-entry"><dt>Transformer layer</dt><dd>One complete block: norm &rarr; attention &rarr; residual &rarr; norm &rarr; FFN &rarr; residual.</dd></div>
+          <div class="glossary-entry"><dt>Residual connection</dt><dd>Adding the input of a sublayer back to its output. Preserves information.</dd></div>
+          <div class="glossary-entry"><dt>RMSNorm</dt><dd>Root Mean Square normalization. Stabilizes hidden state magnitudes between sublayers.</dd></div>
+          <div class="glossary-entry"><dt>Q (Query)</dt><dd>A learned projection of hidden states that represents "what am I looking for?"</dd></div>
+          <div class="glossary-entry"><dt>K (Key)</dt><dd>A learned projection of hidden states that represents "what do I contain?"</dd></div>
+          <div class="glossary-entry"><dt>V (Value)</dt><dd>A learned projection of hidden states that represents "what information do I carry?"</dd></div>
+          <div class="glossary-entry"><dt>Attention score</dt><dd>The dot product of Q and K vectors. Measures how much one token should attend to another.</dd></div>
+          <div class="glossary-entry"><dt>Causal mask</dt><dd>Prevents tokens from attending to future tokens. Enforces left-to-right generation.</dd></div>
+          <div class="glossary-entry"><dt>Multi-head attention</dt><dd>Splitting Q/K/V into multiple heads, each attending in a smaller subspace, then merging results.</dd></div>
+          <div class="glossary-entry"><dt>FFN (Feed-Forward Network)</dt><dd>Per-token transformation: project up, activate, project down. Does not mix tokens.</dd></div>
+          <div class="glossary-entry"><dt>RoPE</dt><dd>Rotary Position Embedding. Injects positional information into Q and K vectors.</dd></div>
+        </dl>
+      </div>
+
+      <div class="glossary-section" data-module="M5-M8">
+        <h2 class="glossary-section-title">Advanced</h2>
+        <dl class="glossary-list">
+          <div class="glossary-entry"><dt>GQA</dt><dd>Grouped-Query Attention. Fewer K/V heads than Q heads, saving memory and bandwidth.</dd></div>
+          <div class="glossary-entry"><dt>MQA</dt><dd>Multi-Query Attention. A single K/V head shared across all Q heads.</dd></div>
+          <div class="glossary-entry"><dt>SWA</dt><dd>Sliding-Window Attention. Each layer attends only to a local window of tokens.</dd></div>
+          <div class="glossary-entry"><dt>MoE</dt><dd>Mixture of Experts. Replaces the FFN with multiple expert FFNs, only a few activated per token.</dd></div>
+          <div class="glossary-entry"><dt>Router</dt><dd>In MoE, the network that scores which experts to activate for each token.</dd></div>
+          <div class="glossary-entry"><dt>KV cache</dt><dd>Stored K/V tensors from previous tokens, reused during decode to avoid recomputation.</dd></div>
+          <div class="glossary-entry"><dt>Prefill</dt><dd>Processing the full prompt through the model. Involves large matrix multiplies.</dd></div>
+          <div class="glossary-entry"><dt>Decode</dt><dd>Generating tokens one at a time, reusing cached K/V from previous steps.</dd></div>
+          <div class="glossary-entry"><dt>Ubatch</dt><dd>Microbatch / physical batch. Operational setting that affects execution without changing math.</dd></div>
+          <div class="glossary-entry"><dt>Perplexity</dt><dd>A metric of how surprised the model is by the data. Lower = model predicts better.</dd></div>
+          <div class="glossary-entry"><dt>Quantization</dt><dd>Reducing numerical precision of weights (e.g. FP16 &rarr; Q8_0) to save memory and speed up inference.</dd></div>
+          <div class="glossary-entry"><dt>Repack</dt><dd>Rearranging weight memory layout for faster kernel access patterns.</dd></div>
+        </dl>
+      </div>
+
+    </div>
+  </div>
+</BaseLayout>
+
+<style>
+  .glossary-page {
+    max-width: 52rem;
+    margin: 0 auto;
+    padding: var(--space-10) var(--space-6);
+    position: relative;
+    z-index: 1;
+  }
+  .glossary-header {
+    margin-bottom: var(--space-10);
+  }
+  .back-link {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    color: var(--ink-tertiary);
+    text-decoration: none;
+    display: inline-block;
+    margin-bottom: var(--space-4);
+  }
+  .back-link:hover { color: var(--accent); }
+  .glossary-header h1 {
+    font-family: var(--font-display);
+    font-size: var(--text-4xl);
+  }
+  .glossary-subtitle {
+    color: var(--ink-secondary);
+    margin-top: var(--space-2);
+  }
+  .glossary-search-wrap {
+    margin-bottom: var(--space-8);
+  }
+  .glossary-search {
+    width: 100%;
+    max-width: 24rem;
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    padding: var(--space-2) var(--space-4);
+    background: var(--surface-2);
+    border: var(--border-default);
+    border-radius: var(--radius-md);
+    color: var(--ink-primary);
+    outline: none;
+  }
+  .glossary-search:focus { border-color: var(--accent); }
+  .glossary-search::placeholder { color: var(--ink-ghost); }
+  .glossary-section {
+    margin-bottom: var(--space-10);
+  }
+  .glossary-section-title {
+    font-family: var(--font-display);
+    font-size: var(--text-xl);
+    color: var(--ink-primary);
+    margin-bottom: var(--space-4);
+    padding-bottom: var(--space-2);
+    border-bottom: var(--border-subtle);
+  }
+  .glossary-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+  .glossary-entry {
+    display: grid;
+    grid-template-columns: 12rem 1fr;
+    gap: var(--space-4);
+    padding: var(--space-3) var(--space-4);
+    border-radius: var(--radius-md);
+    transition: background var(--duration-fast);
+  }
+  .glossary-entry:hover {
+    background: rgba(255,255,255,0.02);
+  }
+  .glossary-entry dt {
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    font-weight: 500;
+    color: var(--accent);
+  }
+  .glossary-entry dd {
+    font-size: var(--text-sm);
+    color: var(--ink-secondary);
+    line-height: var(--leading-normal);
+  }
+  @media (max-width: 640px) {
+    .glossary-entry {
+      grid-template-columns: 1fr;
+      gap: var(--space-1);
+    }
+  }
+</style>
+
+<script>
+  const filter = document.getElementById('glossary-filter') as HTMLInputElement;
+  const entries = document.querySelectorAll('.glossary-entry');
+  filter?.addEventListener('input', () => {
+    const q = filter.value.toLowerCase();
+    entries.forEach(entry => {
+      const text = entry.textContent?.toLowerCase() || '';
+      (entry as HTMLElement).style.display = text.includes(q) ? '' : 'none';
+    });
+  });
+</script>

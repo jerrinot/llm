@@ -1,0 +1,121 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import '../../styles/global.css';
+import '../../styles/course.css';
+import LessonPage from '../../components/course/LessonPage';
+import GatePanel from '../../components/assessment/GatePanel';
+import SoftmaxInspector from '../../components/interactive/SoftmaxInspector';
+---
+
+<BaseLayout title="The Output Head Produces One Logit Per Vocabulary Entry">
+  <LessonPage lessonId="L11" client:load>
+
+    <div class="lesson-section">
+      <div class="section-label">Question</div>
+      <div class="lesson-question">What is a logit?</div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Intuition</div>
+      <p>
+        After all transformer layers have run, the model has a final hidden state for the last token position.
+        This hidden state needs to become a prediction: which token comes next?
+      </p>
+      <p>
+        The <strong>output head</strong> is one final linear projection. It takes the hidden state (dimension <code>d_model</code>) and projects it to a vector of size <code>|V|</code> — one score per vocabulary entry.
+      </p>
+      <p>
+        These raw scores are called <strong>logits</strong>. They can be any real number: positive, negative, or zero. A larger logit means the model considers that token more likely — but logits are not yet probabilities.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Interactive — Softmax Inspector</div>
+      <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-bottom: var(--space-3);">
+        Adjust the logit values and see how they relate to the bar chart. In the next lesson you will learn softmax — for now, focus on the left side (logits).
+      </p>
+      <SoftmaxInspector client:load />
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Toy Example</div>
+      <div class="toy-example">
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-bottom: var(--space-3);">
+          After processing "The cat sat", the output head produces logits like:
+        </p>
+        <div style="font-family: var(--font-mono); font-size: var(--text-sm);">
+          <div style="display: grid; grid-template-columns: auto 1fr; gap: 8px 16px;">
+            <span style="color: var(--ink-tertiary);">"on"</span><span style="color: var(--sem-logits);">5.4</span>
+            <span style="color: var(--ink-tertiary);">"the"</span><span>2.1</span>
+            <span style="color: var(--ink-tertiary);">"a"</span><span>0.8</span>
+            <span style="color: var(--ink-tertiary);">"dog"</span><span>1.2</span>
+            <span style="color: var(--ink-tertiary);">"."</span><span>-0.3</span>
+            <span style="color: var(--ink-ghost);">... (|V| total scores)</span><span></span>
+          </div>
+        </div>
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-top: var(--space-3);">
+          "on" has the highest logit (5.4), so it is the most preferred next token. But 5.4 is not a probability — it is a raw score.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Shapes</div>
+      <div class="shape-card">
+        <div>Final hidden state: [d_model]</div>
+        <div>Output head weight: [d_model, |V|]</div>
+        <div style="color: var(--sem-logits); margin-top: var(--space-2);">Logits: [|V|] &nbsp; <span style="color: var(--ink-tertiary);">one score per vocabulary entry</span></div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Math</div>
+      <div style="font-family: var(--font-mono); font-size: var(--text-sm); background: var(--surface-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); margin: var(--space-3) 0;">
+        <div style="color: var(--sem-logits);">z = h &middot; W_out</div>
+        <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">z &isin; &reals;^|V| &nbsp; (logits are unbounded real numbers)</div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Implementation Hook</div>
+      <div class="impl-hook">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          The output head is a single matrix multiply. In many models, the output weight matrix is the same as the embedding table (weight tying). In <code>llama.cpp</code>, this projection is the last operation in the computation graph.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Performance Hook</div>
+      <div class="perf-hook">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          The output projection is [d_model, |V|] — a large matrix multiply. With |V| = 128,000 and d_model = 4096, this is a significant fraction of per-token compute. Larger vocabularies make this step more expensive.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Check Yourself</div>
+      <GatePanel
+        client:load
+        lessonId="L11"
+        gateStrength="soft"
+        questions={[
+          {
+            id: 'L11-q1',
+            type: 'single_choice',
+            prompt: 'Given logits [3.2, 1.0, 5.1, -0.5], which token index is most preferred?',
+            tag: 'conceptual',
+            choices: [
+              { id: 'a', text: 'Index 0 (logit 3.2)', isCorrect: false },
+              { id: 'b', text: 'Index 2 (logit 5.1)', isCorrect: true },
+              { id: 'c', text: 'Index 3 (logit -0.5)', isCorrect: false },
+            ],
+            explanation: 'The highest logit (5.1 at index 2) indicates the most preferred token. Larger logit = more preferred.',
+          },
+        ]}
+      />
+    </div>
+
+  </LessonPage>
+</BaseLayout>

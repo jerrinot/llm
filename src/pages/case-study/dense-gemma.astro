@@ -1,0 +1,174 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import '../../styles/global.css';
+import '../../styles/course.css';
+import LessonPage from '../../components/course/LessonPage';
+import GatePanel from '../../components/assessment/GatePanel';
+---
+
+<BaseLayout title="Case Study: Reading a Dense Gemma Block">
+  <LessonPage lessonId="L39" client:load>
+
+    <div class="lesson-section">
+      <div class="section-label">Question</div>
+      <div class="lesson-question">What does a dense Gemma block look like in real code?</div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Intuition</div>
+      <p>
+        You have learned every concept individually: RMSNorm, attention, residual connections, FFN. Now it is time to see them assembled in one place. The Gemma model builder in <code>llama.cpp</code> constructs a single transformer block in a straightforward sequence, and every line maps to a concept you already know.
+      </p>
+      <p>
+        A dense Gemma block follows the pre-norm transformer pattern exactly:
+      </p>
+      <ol style="list-style: decimal; padding-left: var(--space-5); margin: var(--space-3) 0;">
+        <li style="padding: var(--space-1) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          <strong style="color: var(--ink-primary);">RMSNorm</strong> the hidden states (attention pre-norm)
+        </li>
+        <li style="padding: var(--space-1) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          <strong style="color: var(--sem-attention);">Self-attention</strong> &mdash; Q, K, V projections, scaled dot-product, output projection
+        </li>
+        <li style="padding: var(--space-1) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          <strong style="color: var(--ink-primary);">Residual add</strong> &mdash; add attention output back to the input
+        </li>
+        <li style="padding: var(--space-1) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          <strong style="color: var(--ink-primary);">RMSNorm</strong> the result (FFN pre-norm)
+        </li>
+        <li style="padding: var(--space-1) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          <strong style="color: var(--sem-ffn);">Feed-forward network</strong> &mdash; gate projection, up projection, activation, down projection
+        </li>
+        <li style="padding: var(--space-1) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          <strong style="color: var(--ink-primary);">Residual add</strong> &mdash; add FFN output back to the post-attention residual
+        </li>
+      </ol>
+      <p>
+        That is the entire block. No surprises, no hidden steps. The builder code reads almost like pseudocode because each call corresponds directly to the mathematical operation it implements.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Toy Example</div>
+      <div class="toy-example">
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-bottom: var(--space-3);">
+          Tracing one token's hidden state through a single dense Gemma block:
+        </p>
+        <div style="font-family: var(--font-mono); font-size: var(--text-sm);">
+          <div style="margin-bottom: var(--space-2);">
+            <span style="color: var(--ink-ghost);">input:</span> x = [0.5, &minus;1.2, 0.8, 2.1]
+          </div>
+          <div style="padding-left: var(--space-4); border-left: 2px solid var(--sem-attention-dim); margin-bottom: var(--space-2);">
+            <span style="color: var(--ink-ghost);">phase 1:</span> x_norm = RMSNorm(x)
+          </div>
+          <div style="padding-left: var(--space-4); border-left: 2px solid var(--sem-attention-dim); margin-bottom: var(--space-2);">
+            <span style="color: var(--sem-attention);">phase 2:</span> attn_out = self_attention(x_norm)
+          </div>
+          <div style="margin-bottom: var(--space-2);">
+            <span style="color: var(--ink-ghost);">phase 3:</span> r1 = x + attn_out &nbsp; <span style="color: var(--ink-tertiary);">(residual)</span>
+          </div>
+          <div style="padding-left: var(--space-4); border-left: 2px solid var(--sem-ffn-dim); margin-bottom: var(--space-2);">
+            <span style="color: var(--ink-ghost);">phase 4:</span> r1_norm = RMSNorm(r1)
+          </div>
+          <div style="padding-left: var(--space-4); border-left: 2px solid var(--sem-ffn-dim); margin-bottom: var(--space-2);">
+            <span style="color: var(--sem-ffn);">phase 5:</span> ffn_out = FFN(r1_norm)
+          </div>
+          <div>
+            <span style="color: var(--ink-ghost);">phase 6:</span> output = r1 + ffn_out &nbsp; <span style="color: var(--ink-tertiary);">(residual)</span>
+          </div>
+        </div>
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-top: var(--space-3);">
+          Two sub-blocks (attention, FFN), each wrapped in norm-then-residual. This is all a dense block does.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Shapes</div>
+      <div class="shape-card">
+        <div>Input: [n_tokens, d_model]</div>
+        <div>After attention pre-norm: [n_tokens, d_model]</div>
+        <div>After attention + residual: [n_tokens, d_model]</div>
+        <div>After FFN pre-norm: [n_tokens, d_model]</div>
+        <div>After FFN + residual: [n_tokens, d_model]</div>
+        <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">Shape is preserved at every stage. Only the values change.</div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Math</div>
+      <p>The complete dense block in one formula chain:</p>
+      <div style="font-family: var(--font-mono); font-size: var(--text-sm); background: var(--surface-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); margin: var(--space-3) 0;">
+        <div style="color: var(--sem-attention);">h' = x + attention(RMSNorm(x))</div>
+        <div style="color: var(--sem-ffn);">h'' = h' + FFN(RMSNorm(h'))</div>
+        <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">Two residual sub-blocks. Norm before each transform. That is the entire layer.</div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Implementation Hook</div>
+      <div class="impl-hook">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          In the Gemma builder, the layer loop calls <code>build_norm()</code>, then <code>build_attn()</code>, then adds the residual. It repeats this pattern with <code>build_norm()</code> followed by <code>build_ffn()</code> and another residual add. Each function maps directly to one phase of the block. Reading this code is reading the architecture.
+        </p>
+        <div class="file-path">src/models/gemma.cpp</div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Performance Hook</div>
+      <div class="perf-hook">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          In a dense block, all tokens pass through every parameter. The attention phase cost scales with sequence length (token-to-token interactions), while the FFN phase cost is fixed per token regardless of sequence length. During prefill with long contexts, attention dominates. During single-token decode, FFN dominates because there is only one query token.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Check Yourself</div>
+      <GatePanel
+        client:load
+        lessonId="L39"
+        gateStrength="hard"
+        questions={[
+          {
+            id: 'L39-q1',
+            type: 'single_choice',
+            prompt: 'What are the six phases of a dense Gemma block, in order?',
+            tag: 'conceptual',
+            choices: [
+              { id: 'a', text: 'Attention, norm, residual, FFN, norm, residual', isCorrect: false },
+              { id: 'b', text: 'Norm, attention, residual, norm, FFN, residual', isCorrect: true },
+              { id: 'c', text: 'Norm, FFN, residual, norm, attention, residual', isCorrect: false },
+            ],
+            explanation: 'A pre-norm dense block follows: RMSNorm → attention → residual add → RMSNorm → FFN → residual add. The norm always comes before the transform, and each sub-block ends with a residual connection.',
+          },
+          {
+            id: 'L39-q2',
+            type: 'single_choice',
+            prompt: 'Why does the builder call build_norm() twice per layer?',
+            tag: 'conceptual',
+            choices: [
+              { id: 'a', text: 'One normalizes the attention weights, the other normalizes the FFN weights', isCorrect: false },
+              { id: 'b', text: 'One is the attention pre-norm, the other is the FFN pre-norm — each sub-block gets its own normalization', isCorrect: true },
+              { id: 'c', text: 'The second call is a post-norm applied after the entire block', isCorrect: false },
+            ],
+            explanation: 'In a pre-norm transformer, each sub-block (attention and FFN) has its own RMSNorm applied before the transform. This means build_norm() is called once before build_attn() and once before build_ffn().',
+          },
+          {
+            id: 'L39-q3',
+            type: 'single_choice',
+            prompt: 'What is the residual connection doing in each sub-block?',
+            tag: 'conceptual',
+            choices: [
+              { id: 'a', text: 'Replacing the input with the transformed output', isCorrect: false },
+              { id: 'b', text: 'Concatenating the input and output to double the dimension', isCorrect: false },
+              { id: 'c', text: 'Adding the sub-block output back to its input, so the layer only needs to learn the change', isCorrect: true },
+            ],
+            explanation: 'The residual connection adds the transform output to its original input. The sub-block learns a delta — what to add — rather than a complete new representation. This preserves information and stabilizes training.',
+          },
+        ]}
+      />
+    </div>
+
+  </LessonPage>
+</BaseLayout>

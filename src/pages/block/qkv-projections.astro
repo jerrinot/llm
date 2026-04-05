@@ -1,0 +1,141 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import '../../styles/global.css';
+import '../../styles/course.css';
+import LessonPage from '../../components/course/LessonPage';
+import GatePanel from '../../components/assessment/GatePanel';
+---
+
+<BaseLayout title="Q, K, and V Are Just Learned Projections">
+  <LessonPage lessonId="L16" client:load>
+
+    <div class="lesson-section">
+      <div class="section-label">Question</div>
+      <div class="lesson-question">What are Q, K, and V?</div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Intuition</div>
+      <p>
+        Before attention can run, the model needs three versions of the hidden states: <strong>queries</strong> (Q), <strong>keys</strong> (K), and <strong>values</strong> (V). These are not three different inputs — they all come from the same hidden states, projected through three different learned weight matrices.
+      </p>
+      <p>
+        Think of it this way: Q asks "what am I looking for?", K says "what do I contain?", and V says "what information should I pass along if selected?" The Q-K interaction determines <em>where</em> to attend. V determines <em>what</em> gets passed along.
+      </p>
+      <p>
+        The projections are simple linear transforms — matrix multiplies with learned weights and no bias (in most modern models). The three weight matrices are the core learned parameters of attention.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Toy Example</div>
+      <div class="toy-example">
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-bottom: var(--space-3);">
+          Hidden states for 3 tokens with d_model=4, projecting to d_head=3:
+        </p>
+        <div style="font-family: var(--font-mono); font-size: var(--text-sm);">
+          <div style="margin-bottom: var(--space-2);">
+            <span style="color: var(--ink-ghost);">h</span> = [3 tokens, 4 dims] &nbsp; <span style="color: var(--ink-tertiary);">(hidden states)</span>
+          </div>
+          <div style="margin-bottom: var(--space-2);">
+            <span style="color: var(--sem-attention);">W_Q</span> = [4, 3] &nbsp; <span style="color: var(--ink-tertiary);">(query weights)</span>
+          </div>
+          <div style="margin-bottom: var(--space-2);">
+            <span style="color: var(--sem-attention);">W_K</span> = [4, 3] &nbsp; <span style="color: var(--ink-tertiary);">(key weights)</span>
+          </div>
+          <div style="margin-bottom: var(--space-3);">
+            <span style="color: var(--sem-attention);">W_V</span> = [4, 3] &nbsp; <span style="color: var(--ink-tertiary);">(value weights)</span>
+          </div>
+          <div style="color: var(--sem-attention);">
+            Q = h &times; W_Q &rarr; [3, 3]
+          </div>
+          <div style="color: var(--sem-attention);">
+            K = h &times; W_K &rarr; [3, 3]
+          </div>
+          <div style="color: var(--sem-attention);">
+            V = h &times; W_V &rarr; [3, 3]
+          </div>
+        </div>
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-top: var(--space-3);">
+          Same input, three different projections. Same output shape, but different learned transformations.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Shapes</div>
+      <div class="shape-card">
+        <div>Hidden states: [n_tokens, d_model]</div>
+        <div style="margin-top: var(--space-2);">W_Q: [d_model, d_q] &nbsp;&nbsp; Q = h &times; W_Q &rarr; [n_tokens, d_q]</div>
+        <div>W_K: [d_model, d_k] &nbsp;&nbsp; K = h &times; W_K &rarr; [n_tokens, d_k]</div>
+        <div>W_V: [d_model, d_v] &nbsp;&nbsp; V = h &times; W_V &rarr; [n_tokens, d_v]</div>
+        <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">Typically d_q = d_k (required for dot-product attention). d_v can differ but usually matches.</div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Math</div>
+      <p>Each projection is a matrix multiply:</p>
+      <div style="font-family: var(--font-mono); font-size: var(--text-sm); background: var(--surface-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); margin: var(--space-3) 0;">
+        <div style="color: var(--sem-attention);">Q = h &sdot; W_Q</div>
+        <div style="color: var(--sem-attention);">K = h &sdot; W_K</div>
+        <div style="color: var(--sem-attention);">V = h &sdot; W_V</div>
+        <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">Three independent linear transforms of the same input.</div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Implementation Hook</div>
+      <div class="impl-hook">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          In <code>llama.cpp</code>, Q/K/V projections are matrix multiplies in the attention block. Some models fuse Q, K, and V into a single large weight matrix and split the result, while others keep them as separate weight tensors. You will see both patterns in model implementations.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Performance Hook</div>
+      <div class="perf-hook">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          Q/K/V projections are three matrix multiplies per layer. For a model with d_model = 4096, each projection involves a [n_tokens, 4096] &times; [4096, d_head &times; n_heads] multiply. Fusing Q, K, V into one large multiply can improve GPU utilization by increasing the matrix size.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Check Yourself</div>
+      <GatePanel
+        client:load
+        lessonId="L16"
+        gateStrength="hard"
+        questions={[
+          {
+            id: 'L16-q1',
+            type: 'single_choice',
+            prompt: 'Where do Q, K, and V come from?',
+            tag: 'conceptual',
+            choices: [
+              { id: 'a', text: 'Three separate input streams', isCorrect: false },
+              { id: 'b', text: 'The same hidden states, projected through three different learned weight matrices', isCorrect: true },
+              { id: 'c', text: 'The embedding table, looked up three times', isCorrect: false },
+            ],
+            explanation: 'Q, K, and V are all derived from the same hidden states by multiplying with different learned weight matrices. Same input, three different linear projections.',
+          },
+          {
+            id: 'L16-q2',
+            type: 'single_choice',
+            prompt: 'If hidden states have shape [5, 512] and W_Q has shape [512, 64], what is the shape of Q?',
+            tag: 'shape',
+            choices: [
+              { id: 'a', text: '[5, 512]', isCorrect: false },
+              { id: 'b', text: '[512, 64]', isCorrect: false },
+              { id: 'c', text: '[5, 64]', isCorrect: true },
+            ],
+            explanation: '[5, 512] × [512, 64] → [5, 64]. Five tokens, each projected from 512 dims down to 64 dims.',
+          },
+        ]}
+      />
+    </div>
+
+  </LessonPage>
+</BaseLayout>

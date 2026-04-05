@@ -1,0 +1,128 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import '../../styles/global.css';
+import '../../styles/course.css';
+import LessonPage from '../../components/course/LessonPage';
+import GatePanel from '../../components/assessment/GatePanel';
+---
+
+<BaseLayout title="Shared-KV Layers Reuse Memory Instead of Rebuilding It">
+  <LessonPage lessonId="L23" client:load>
+
+    <div class="lesson-section">
+      <div class="section-label">Question</div>
+      <div class="lesson-question">Why share K/V across layers?</div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Intuition</div>
+      <p>
+        In a standard transformer, every layer computes its own K and V from scratch by projecting the input through separate weight matrices. This means each layer has its own KV cache, and the total cache grows linearly with the number of layers.
+      </p>
+      <p>
+        <strong>Shared-KV layers</strong> break this pattern. Some layers compute fresh K and V (these are the "primary" layers), while other layers <strong>reuse</strong> the K and V from a previous layer but compute their own fresh Q.
+      </p>
+      <p>
+        The reusing layer still does full attention — it has its own query vectors, so it asks different questions. But it looks up answers in the same key-value store that an earlier layer built. This avoids the cost of computing and storing new K/V projections.
+      </p>
+      <p>
+        The trade-off is representational: every layer that reuses K/V cannot learn a different "knowledge index" for that layer. In practice, this works surprisingly well, especially when mixed with layers that do compute fresh K/V.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Toy Example</div>
+      <div class="toy-example">
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-bottom: var(--space-3);">
+          A model with 6 layers. Layers 0, 2, 4 compute fresh K/V. Layers 1, 3, 5 reuse the K/V from the previous layer:
+        </p>
+        <div style="font-family: var(--font-mono); font-size: var(--text-sm);">
+          <div style="margin-bottom: var(--space-1);"><span style="color: var(--sem-attention);">Layer 0:</span> fresh Q, fresh K, fresh V &nbsp; <span style="color: var(--ink-ghost);">&larr; primary</span></div>
+          <div style="margin-bottom: var(--space-1);"><span style="color: var(--sem-kvcache);">Layer 1:</span> fresh Q, reuse K&#x2080;, reuse V&#x2080; &nbsp; <span style="color: var(--ink-ghost);">&larr; shared</span></div>
+          <div style="margin-bottom: var(--space-1);"><span style="color: var(--sem-attention);">Layer 2:</span> fresh Q, fresh K, fresh V &nbsp; <span style="color: var(--ink-ghost);">&larr; primary</span></div>
+          <div style="margin-bottom: var(--space-1);"><span style="color: var(--sem-kvcache);">Layer 3:</span> fresh Q, reuse K&#x2082;, reuse V&#x2082; &nbsp; <span style="color: var(--ink-ghost);">&larr; shared</span></div>
+          <div style="margin-bottom: var(--space-1);"><span style="color: var(--sem-attention);">Layer 4:</span> fresh Q, fresh K, fresh V &nbsp; <span style="color: var(--ink-ghost);">&larr; primary</span></div>
+          <div><span style="color: var(--sem-kvcache);">Layer 5:</span> fresh Q, reuse K&#x2084;, reuse V&#x2084; &nbsp; <span style="color: var(--ink-ghost);">&larr; shared</span></div>
+        </div>
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-top: var(--space-3);">
+          KV cache needed: 3 layers worth instead of 6. The W_K and W_V weight matrices are also absent from shared layers, reducing parameter count.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Shapes</div>
+      <div class="shape-card">
+        <div>Primary layer: Q, K, V each projected from input &rarr; full KV cache slot</div>
+        <div>Shared layer: Q projected from input; K, V read from earlier cache slot</div>
+        <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">Attention output shape is unchanged: [n_tokens, d_model].</div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Math</div>
+      <div style="font-family: var(--font-mono); font-size: var(--text-sm); background: var(--surface-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); margin: var(--space-3) 0;">
+        <div style="color: var(--sem-attention);">Primary layer &#x2113;: &nbsp; Q&#x2113; = xW_Q&#x2113;, &nbsp; K&#x2113; = xW_K&#x2113;, &nbsp; V&#x2113; = xW_V&#x2113;</div>
+        <div style="color: var(--sem-kvcache); margin-top: var(--space-2);">Shared layer &#x2113;': &nbsp; Q&#x2113;' = xW_Q&#x2113;', &nbsp; K&#x2113;' = K&#x2113;, &nbsp; V&#x2113;' = V&#x2113;</div>
+      </div>
+      <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+        The shared layer has no W_K or W_V of its own. It borrows K and V from the designated primary layer.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Implementation Hook</div>
+      <div class="impl-hook">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          In <code>llama.cpp</code>, shared-KV layers reference an earlier layer's KV cache entry rather than allocating their own. The model config specifies which layers share and which are primary. This is visible in models like Gemma 4.
+        </p>
+        <div class="file-path">src/llama-graph.cpp &mdash; build_attn()</div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Performance Hook</div>
+      <div class="perf-hook">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          Shared-KV layers save in three ways: (1) no K/V projection compute in the shared layer, (2) no additional KV cache memory, (3) fewer weight parameters to load from memory. In a memory-bandwidth-bound decode step, skipping K/V projection and cache writes is a direct speedup.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Check Yourself</div>
+      <GatePanel
+        client:load
+        lessonId="L23"
+        gateStrength="hard"
+        questions={[
+          {
+            id: 'L23-q1',
+            type: 'single_choice',
+            prompt: 'How does a shared-KV layer change the runtime cost of attention at that layer?',
+            tag: 'conceptual',
+            choices: [
+              { id: 'a', text: 'It skips the K and V projections and reuses cached K/V from another layer, reducing compute and memory writes', isCorrect: true },
+              { id: 'b', text: 'It skips attention entirely and only runs the FFN', isCorrect: false },
+              { id: 'c', text: 'It halves the Q projection size', isCorrect: false },
+            ],
+            explanation: 'A shared-KV layer still runs full attention with its own Q, but it reads K and V from an earlier layer\'s cache. This avoids the W_K and W_V matmuls and the cache write, saving both compute and memory bandwidth.',
+          },
+          {
+            id: 'L23-q2',
+            type: 'single_choice',
+            prompt: 'If a model has 32 layers and half of them are shared-KV layers, how many layers worth of KV cache are needed?',
+            tag: 'math',
+            choices: [
+              { id: 'a', text: '32', isCorrect: false },
+              { id: 'b', text: '16', isCorrect: true },
+              { id: 'c', text: '8', isCorrect: false },
+            ],
+            explanation: 'Only the 16 primary layers allocate KV cache slots. The other 16 shared layers reuse those slots, cutting KV cache in half.',
+          },
+        ]}
+      />
+    </div>
+
+  </LessonPage>
+</BaseLayout>

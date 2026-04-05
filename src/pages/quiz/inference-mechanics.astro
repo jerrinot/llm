@@ -1,0 +1,94 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import '../../styles/global.css';
+import '../../styles/course.css';
+import LessonPage from '../../components/course/LessonPage';
+import GatePanel from '../../components/assessment/GatePanel';
+---
+
+<BaseLayout title="Quiz: Inference Mechanics">
+  <LessonPage lessonId="Q-M6" client:load>
+
+    <div class="lesson-section">
+      <div class="section-label">Module 6 Quiz</div>
+      <p>
+        This quiz covers the inference pipeline: prefill, decode, the KV cache, batching, continuous batching, and context scaling. All questions must be answered correctly to pass.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Check Yourself</div>
+      <GatePanel
+        client:load
+        lessonId="Q-M6"
+        gateStrength="hard"
+        questions={[
+          {
+            id: 'QM6-q1',
+            type: 'single_choice',
+            prompt: 'What does "prefill" refer to in the inference pipeline?',
+            tag: 'conceptual',
+            choices: [
+              { id: 'a', text: 'Generating output tokens one at a time', isCorrect: false },
+              { id: 'b', text: 'Processing all prompt tokens through the model in bulk before generation begins', isCorrect: true },
+              { id: 'c', text: 'Loading the model weights into GPU memory', isCorrect: false },
+              { id: 'd', text: 'Pre-allocating the KV cache for the maximum context length', isCorrect: false },
+            ],
+            explanation: 'Prefill is the phase where all prompt tokens are processed through the model at once, producing hidden states and populating the KV cache. It happens before any output tokens are generated.',
+          },
+          {
+            id: 'QM6-q2',
+            type: 'single_choice',
+            prompt: 'What does the KV cache store?',
+            tag: 'conceptual',
+            choices: [
+              { id: 'a', text: 'The query vectors from all previous tokens', isCorrect: false },
+              { id: 'b', text: 'The full hidden states from every layer', isCorrect: false },
+              { id: 'c', text: 'The key and value projections from all previously processed tokens, per layer and per head', isCorrect: true },
+              { id: 'd', text: 'The logits from all previous decode steps', isCorrect: false },
+            ],
+            explanation: 'The KV cache stores K (key) and V (value) projections from attention. These are stored per layer and per head for all tokens processed so far. Q is recomputed each step and is not cached.',
+          },
+          {
+            id: 'QM6-q3',
+            type: 'single_choice',
+            prompt: 'A server is using continuous batching with 4 slots. Request R2 finishes while R1, R3, and R4 are still decoding. What happens next?',
+            tag: 'conceptual',
+            choices: [
+              { id: 'a', text: 'The server waits for all requests to finish before accepting new ones', isCorrect: false },
+              { id: 'b', text: 'R2\'s slot is immediately available for a new incoming request', isCorrect: true },
+              { id: 'c', text: 'The server restarts all requests from scratch', isCorrect: false },
+            ],
+            explanation: 'Continuous batching fills empty slots immediately. When R2 completes, its slot and KV cache space are freed, and a new request can begin prefill in that slot without waiting for R1, R3, or R4 to finish.',
+          },
+          {
+            id: 'QM6-q4',
+            type: 'single_choice',
+            prompt: 'During decode, the attention score vector for the new token has shape [1, n_past]. If 500 tokens have been processed so far, what is n_past?',
+            tag: 'shape',
+            choices: [
+              { id: 'a', text: '1', isCorrect: false },
+              { id: 'b', text: '500', isCorrect: true },
+              { id: 'c', text: 'd_model', isCorrect: false },
+            ],
+            explanation: 'n_past is the number of tokens already in the KV cache. With 500 tokens processed, the new token\'s query attends to all 500 cached keys, producing a score vector of length 500.',
+          },
+          {
+            id: 'QM6-q5',
+            type: 'single_choice',
+            prompt: 'Why does doubling the context length more than double the total prefill time?',
+            tag: 'conceptual',
+            choices: [
+              { id: 'a', text: 'Because the model weights are loaded twice', isCorrect: false },
+              { id: 'b', text: 'Because FFN cost quadruples when tokens double', isCorrect: false },
+              { id: 'c', text: 'Because attention cost scales quadratically with sequence length, so doubling tokens roughly quadruples the attention work', isCorrect: true },
+              { id: 'd', text: 'Because the tokenizer is slower on longer inputs', isCorrect: false },
+            ],
+            explanation: 'During prefill, the attention score matrix has shape [n, n], so its cost scales as n squared. Doubling n quadruples attention work. FFN cost only doubles (linear in n). The combined effect is more than 2x total work.',
+          },
+        ]}
+      />
+    </div>
+
+  </LessonPage>
+</BaseLayout>

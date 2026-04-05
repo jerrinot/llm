@@ -1,0 +1,132 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import '../../styles/global.css';
+import '../../styles/course.css';
+import LessonPage from '../../components/course/LessonPage';
+import GatePanel from '../../components/assessment/GatePanel';
+---
+
+<BaseLayout title="Prefill Processes the Prompt">
+  <LessonPage lessonId="L27" client:load>
+
+    <div class="lesson-section">
+      <div class="section-label">Question</div>
+      <div class="lesson-question">What happens during prefill?</div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Intuition</div>
+      <p>
+        When you send a prompt to the model, all prompt tokens are known up front. The model does not need to generate them one at a time — it already has the full sequence. This lets the model process the entire prompt in one forward pass.
+      </p>
+      <p>
+        This phase is called <strong>prefill</strong>. Every prompt token flows through every layer: attention computes relationships between all prompt positions, and the FFN transforms each position. Because all tokens are available simultaneously, the computation is organized as large matrix multiplies — many rows processed at once.
+      </p>
+      <p>
+        Prefill is <strong>compute-bound</strong>. The GPU has big matrices to chew through, and the arithmetic units stay busy. The result of prefill is a complete set of hidden states and — critically — a populated <span style="color: var(--sem-kvcache);">KV cache</span> that decode will reuse.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Toy Example</div>
+      <div class="toy-example">
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-bottom: var(--space-3);">
+          Prompt: "The cat sat on" (4 tokens). Prefill processes all 4 at once:
+        </p>
+        <div style="font-family: var(--font-mono); font-size: var(--text-sm);">
+          <div style="margin-bottom: var(--space-2);">
+            <span style="color: var(--ink-ghost);">input:</span> [The, cat, sat, on] &mdash; 4 tokens, all at once
+          </div>
+          <div style="padding-left: var(--space-4); border-left: 2px solid var(--sem-attention-dim); margin-bottom: var(--space-2);">
+            <span style="color: var(--sem-attention);">attention</span> &mdash; Q&#xb7;K&#x1d40; is [4, 4], all pairs computed
+          </div>
+          <div style="padding-left: var(--space-4); border-left: 2px solid var(--sem-ffn-dim); margin-bottom: var(--space-2);">
+            <span style="color: var(--sem-ffn);">FFN</span> &mdash; 4 rows multiplied together as one batch
+          </div>
+          <div style="margin-top: var(--space-2);">
+            <span style="color: var(--ink-ghost);">output:</span> hidden states for all 4 positions + <span style="color: var(--sem-kvcache);">KV cache filled</span>
+          </div>
+        </div>
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-top: var(--space-3);">
+          One big forward pass. The larger the prompt, the larger the matrix multiplies.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Shapes</div>
+      <div class="shape-card">
+        <div>Input to each layer during prefill: [n_prompt, d_model]</div>
+        <div>Attention Q&#xb7;K&#x1d40; per head: [n_prompt, n_prompt]</div>
+        <div>FFN input: [n_prompt, d_model]</div>
+        <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">All dimensions scale with n_prompt — this is why prefill uses large matrix multiplies.</div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Math</div>
+      <p>The key insight is that prefill computes attention for all prompt positions at once:</p>
+      <div style="font-family: var(--font-mono); font-size: var(--text-sm); background: var(--surface-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); margin: var(--space-3) 0;">
+        <div style="color: var(--sem-attention);">Q = X &middot; W_Q &nbsp; <span style="color: var(--ink-tertiary);">// [n_prompt, d_head]</span></div>
+        <div style="color: var(--sem-attention);">K = X &middot; W_K &nbsp; <span style="color: var(--ink-tertiary);">// [n_prompt, d_head]</span></div>
+        <div style="color: var(--sem-attention);">scores = Q &middot; K&#x1d40; <span style="color: var(--ink-tertiary);">// [n_prompt, n_prompt]</span></div>
+        <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">n_prompt rows in Q &times; n_prompt columns in K&#x1d40; = large GEMM</div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Implementation Hook</div>
+      <div class="impl-hook">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          In <code>llama.cpp</code>, prefill and decode share the same computation graph but with different input sizes. During prefill, the batch contains all prompt tokens, producing large matrix multiplies that saturate GPU compute. The entire prompt is evaluated in a single call to <code>llama_decode()</code>.
+        </p>
+        <div class="file-path">src/llama-context.cpp &mdash; llama_decode() with full prompt batch</div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Performance Hook</div>
+      <div class="perf-hook">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          Prefill is usually compute-bound: the GPU spends most of its time on arithmetic, not waiting for memory. This means prefill benefits from faster compute (higher FLOPS) more than from faster memory bandwidth. A 2,000-token prompt creates matrix multiplies large enough to keep GPU cores busy — a 200-token prompt may not.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Check Yourself</div>
+      <GatePanel
+        client:load
+        lessonId="L27"
+        gateStrength="hard"
+        questions={[
+          {
+            id: 'L27-q1',
+            type: 'single_choice',
+            prompt: 'Why does prefill tend to use large matrix multiplies?',
+            tag: 'conceptual',
+            choices: [
+              { id: 'a', text: 'Because the model weights are large matrices', isCorrect: false },
+              { id: 'b', text: 'Because all prompt tokens are processed at once, so Q, K, V, and FFN inputs have many rows', isCorrect: true },
+              { id: 'c', text: 'Because prefill uses a special high-performance kernel', isCorrect: false },
+            ],
+            explanation: 'Prefill processes all n_prompt tokens simultaneously. This means matrices like Q and K have n_prompt rows, making the resulting multiplies (e.g., Q·Kᵀ = [n_prompt, n_prompt]) large. The size comes from the number of tokens, not from special kernels.',
+          },
+          {
+            id: 'L27-q2',
+            type: 'single_choice',
+            prompt: 'What is the primary bottleneck during prefill for a long prompt?',
+            tag: 'conceptual',
+            choices: [
+              { id: 'a', text: 'Memory bandwidth — reading the KV cache', isCorrect: false },
+              { id: 'b', text: 'Compute — arithmetic on large matrices', isCorrect: true },
+              { id: 'c', text: 'Network latency — waiting for tokens to arrive', isCorrect: false },
+            ],
+            explanation: 'Prefill is compute-bound. The large matrix multiplies from processing many tokens at once keep the arithmetic units busy. Memory bandwidth becomes the bottleneck during decode, not prefill.',
+          },
+        ]}
+      />
+    </div>
+
+  </LessonPage>
+</BaseLayout>

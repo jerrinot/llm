@@ -1,0 +1,140 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import '../../styles/global.css';
+import '../../styles/course.css';
+import LessonPage from '../../components/course/LessonPage';
+import GatePanel from '../../components/assessment/GatePanel';
+import TokenizerExplorer from '../../components/interactive/TokenizerExplorer';
+---
+
+<BaseLayout title="Vocabulary and Token IDs">
+  <LessonPage lessonId="L03" client:load>
+
+    <div class="lesson-section">
+      <div class="section-label">Question</div>
+      <div class="lesson-question">What is a vocabulary ID?</div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Intuition</div>
+      <p>
+        The model's vocabulary is a finite table. Every possible token piece has a unique integer ID.
+      </p>
+      <p>
+        When text is tokenized, each piece is looked up in this table to find its ID. The model's actual input is a sequence of these integers — not strings.
+      </p>
+      <p>
+        The vocabulary size (often written <code>|V|</code>) is fixed when the model is trained. A typical vocabulary has 32,000 to 256,000 entries.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Interactive — Tokenizer Explorer</div>
+      <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-bottom: var(--space-3);">
+        Look at the Token IDs section below. Each token piece maps to a specific integer.
+      </p>
+      <TokenizerExplorer client:load />
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Toy Example</div>
+      <div class="toy-example">
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-bottom: var(--space-3);">
+          Vocabulary lookup for "The cat sat":
+        </p>
+        <table style="font-family: var(--font-mono); font-size: var(--text-sm); border-collapse: collapse; width: 100%;">
+          <thead>
+            <tr style="border-bottom: var(--border-default);">
+              <th style="text-align: left; padding: var(--space-2); color: var(--ink-ghost); font-weight: 400; font-size: var(--text-xs); letter-spacing: 0.08em; text-transform: uppercase;">Token piece</th>
+              <th style="text-align: left; padding: var(--space-2); color: var(--ink-ghost); font-weight: 400; font-size: var(--text-xs); letter-spacing: 0.08em; text-transform: uppercase;">Token ID</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td style="padding: var(--space-2); color: var(--sem-token);">"The"</td><td style="padding: var(--space-2);">791</td></tr>
+            <tr><td style="padding: var(--space-2); color: var(--sem-token);">" cat"</td><td style="padding: var(--space-2);">2368</td></tr>
+            <tr><td style="padding: var(--space-2); color: var(--sem-token);">" sat"</td><td style="padding: var(--space-2);">3290</td></tr>
+          </tbody>
+        </table>
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-top: var(--space-3);">
+          The model receives <code>[791, 2368, 3290]</code> — three integers, nothing else.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Shapes</div>
+      <div class="shape-card">
+        <div>Vocabulary: a table of |V| entries</div>
+        <div>Token IDs: [n_tokens] &nbsp; <span style="color: var(--ink-tertiary);">(a 1D sequence of integers)</span></div>
+        <div>Each ID &#x2208; &#x7b;0, 1, ..., |V|-1&#x7d;</div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Math</div>
+      <p>The new concept is <strong>indexing into a finite table</strong>:</p>
+      <div style="font-family: var(--font-mono); font-size: var(--text-sm); color: var(--sem-token); background: var(--surface-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); margin: var(--space-3) 0; display: inline-block;">
+        vocab[id] → token_piece
+      </div>
+      <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+        The vocabulary is just a lookup table. Given an ID, you get the corresponding text piece. Given a text piece, you get the ID.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Implementation Hook</div>
+      <div class="impl-hook">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          In <code>llama.cpp</code>, the vocabulary is loaded from the model file. The tokenizer uses it to convert text to IDs and IDs back to text.
+          The model weights include an embedding table that maps each ID to a learned vector.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Performance Hook</div>
+      <div class="perf-hook">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          Vocabulary size |V| determines the size of the output layer (one score per entry). Larger vocabularies mean more work at the output head.
+          This is why vocabulary size is a design decision, not just a data detail.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Check Yourself</div>
+      <GatePanel
+        client:load
+        lessonId="L03"
+        gateStrength="soft"
+        questions={[
+          {
+            id: 'L03-q1',
+            type: 'single_choice',
+            prompt: 'What does the model see as input?',
+            tag: 'conceptual',
+            choices: [
+              { id: 'a', text: 'Unicode strings', isCorrect: false },
+              { id: 'b', text: 'Integer token IDs', isCorrect: true },
+              { id: 'c', text: 'Probability distributions', isCorrect: false },
+            ],
+            explanation: 'The model receives a sequence of integer IDs. All text processing happens before the model runs.',
+          },
+          {
+            id: 'L03-q2',
+            type: 'single_choice',
+            prompt: 'If the vocabulary has 32,000 entries, what is the range of valid token IDs?',
+            tag: 'math',
+            choices: [
+              { id: 'a', text: '1 to 32,000', isCorrect: false },
+              { id: 'b', text: '0 to 31,999', isCorrect: true },
+              { id: 'c', text: '0 to 32,000', isCorrect: false },
+            ],
+            explanation: 'With |V| = 32,000 entries, IDs range from 0 to 31,999 (zero-indexed).',
+          },
+        ]}
+      />
+    </div>
+
+  </LessonPage>
+</BaseLayout>

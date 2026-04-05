@@ -1,0 +1,136 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import '../../styles/global.css';
+import '../../styles/course.css';
+import LessonPage from '../../components/course/LessonPage';
+import GatePanel from '../../components/assessment/GatePanel';
+---
+
+<BaseLayout title="Repack and Layout Matter as Much as ISA Tricks">
+  <LessonPage lessonId="L36" client:load>
+
+    <div class="lesson-section">
+      <div class="section-label">Question</div>
+      <div class="lesson-question">Why does memory layout matter?</div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Intuition</div>
+      <p>
+        When a CPU or GPU loads data from memory, it does not fetch one number at a time. It loads <em>cache lines</em> &mdash; contiguous blocks of 64 or 128 bytes. If the data your kernel needs is laid out contiguously in memory, one cache-line fetch gives you many useful values. If the data is scattered, each fetch brings mostly useless bytes, and you waste bandwidth.
+      </p>
+      <p>
+        Weight matrices in a model file are stored in whatever order the training framework produced. This layout may not match the access pattern of the fastest inference kernel. <strong>Repacking</strong> means rearranging the same weight values into a different memory order that matches the kernel's access pattern &mdash; typically tiled or interleaved so that SIMD instructions can load full vectors of useful data in each memory access.
+      </p>
+      <p>
+        The model's numerical values do not change at all. The same weights, the same model, the same answers &mdash; just faster, because the kernel wastes fewer memory accesses.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Toy Example</div>
+      <div class="toy-example">
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-bottom: var(--space-3);">
+          A 4&times;4 weight matrix, two layouts:
+        </p>
+        <div style="font-family: var(--font-mono); font-size: var(--text-sm);">
+          <div style="margin-bottom: var(--space-3);">
+            <div style="color: var(--ink-ghost); margin-bottom: var(--space-1);">Row-major (as stored in file):</div>
+            <div style="padding-left: var(--space-4); color: var(--sem-token);">
+              [a00 a01 a02 a03] [a10 a11 a12 a13] [a20 a21 a22 a23] [a30 a31 a32 a33]
+            </div>
+          </div>
+          <div style="margin-bottom: var(--space-3);">
+            <div style="color: var(--ink-ghost); margin-bottom: var(--space-1);">Repacked in 2&times;2 tiles (for a kernel that processes 2 rows at a time):</div>
+            <div style="padding-left: var(--space-4); color: var(--sem-attention);">
+              [a00 a01 a10 a11] [a02 a03 a12 a13] [a20 a21 a30 a31] [a22 a23 a32 a33]
+            </div>
+          </div>
+          <div>
+            <div style="color: var(--ink-ghost); margin-bottom: var(--space-1);">Effect:</div>
+            <div style="padding-left: var(--space-4); color: var(--ink-tertiary);">
+              One cache-line load now gives the kernel exactly the values it needs for a 2-row tile, instead of loading two separate rows from different memory locations.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Shapes</div>
+      <div class="shape-card">
+        <div>Logical shape is unchanged: [d_in, d_out]</div>
+        <div>Physical layout changes: row-major &rarr; tiled, interleaved, or block-transposed</div>
+        <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">
+          The repack is a one-time cost at model load. After that, every inference step benefits from better memory access patterns.
+        </div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Math</div>
+      <p>There is no new formula. The same matrix multiply math applies:</p>
+      <div style="font-family: var(--font-mono); font-size: var(--text-sm); background: var(--surface-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); margin: var(--space-3) 0;">
+        <div style="color: var(--sem-token);">C[i,j] = &sum;&#x2096; A[i,k] &times; B[k,j]</div>
+        <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">
+          The kernel computes the same result. The difference is how B[k,j] values are arranged in physical memory &mdash; tiled layouts align with SIMD register widths so each load fills the register with useful values.
+        </div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Implementation Hook</div>
+      <div class="impl-hook">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          In <code>llama.cpp</code>, the CPU backend repacks weight tensors at model load time. The repack logic transforms weights into layouts optimized for specific SIMD instruction sets (e.g., ARM NEON, x86 AVX). The kernel then reads the repacked weights in sequential memory order, maximizing cache line utilization.
+        </p>
+        <div class="file-path">ggml/src/ggml-cpu/repack.cpp</div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Performance Hook</div>
+      <div class="perf-hook">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          Repacking can deliver double-digit percentage speedups on memory-bound operations without changing any model values. The repack happens once during model loading (adding a few seconds of startup time), then every subsequent inference call benefits. It is one of the highest-leverage optimizations because it costs nothing at inference time and requires no approximation.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Check Yourself</div>
+      <GatePanel
+        client:load
+        lessonId="L36"
+        gateStrength="hard"
+        questions={[
+          {
+            id: 'L36-q1',
+            type: 'single_choice',
+            prompt: 'Why can a layout change speed up inference without changing the model file?',
+            tag: 'reasoning',
+            choices: [
+              { id: 'a', text: 'The repack changes weight values to be smaller', isCorrect: false },
+              { id: 'b', text: 'The repack rearranges the same values in memory so the kernel can load them more efficiently, reducing wasted memory bandwidth', isCorrect: true },
+              { id: 'c', text: 'The repack skips certain weight rows that are close to zero', isCorrect: false },
+            ],
+            explanation: 'Repacking rearranges weight values (without changing them) so that each cache-line load delivers exactly the data the kernel needs. This eliminates wasted memory accesses and lets the same computation complete faster.',
+          },
+          {
+            id: 'L36-q2',
+            type: 'single_choice',
+            prompt: 'When does the repack cost get paid?',
+            tag: 'conceptual',
+            choices: [
+              { id: 'a', text: 'Once during each decode step', isCorrect: false },
+              { id: 'b', text: 'Once at model load time, before inference begins', isCorrect: true },
+              { id: 'c', text: 'It is free — there is no repack cost', isCorrect: false },
+            ],
+            explanation: 'Repacking is a one-time operation during model loading. It adds a few seconds of startup time, but every subsequent inference call runs on the optimized layout without any additional cost.',
+          },
+        ]}
+      />
+    </div>
+
+  </LessonPage>
+</BaseLayout>

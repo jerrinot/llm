@@ -1,0 +1,115 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import '../../styles/global.css';
+import '../../styles/course.css';
+import LessonPage from '../../components/course/LessonPage';
+import GatePanel from '../../components/assessment/GatePanel';
+---
+
+<BaseLayout title="Linear Projections Change Representation Size">
+  <LessonPage lessonId="L09" client:load>
+
+    <div class="lesson-section">
+      <div class="section-label">Question</div>
+      <div class="lesson-question">What is a linear projection?</div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Intuition</div>
+      <p>
+        A linear projection is a matrix multiply that changes the width of your vectors.
+        If your hidden state has dimension 2048 and you need a query vector of dimension 256,
+        you multiply by a learned weight matrix that maps [2048] to [256].
+      </p>
+      <p>
+        The weight matrix is learned during training. It decides which combinations of input features matter for the output. You do not need to understand the learning — just that the projection is a matrix multiply with a specific shape contract.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Toy Example</div>
+      <div class="toy-example">
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-bottom: var(--space-3);">
+          Projecting from d_model=4 to d_q=2:
+        </p>
+        <div style="font-family: var(--font-mono); font-size: var(--text-sm);">
+          <span style="color: var(--ink-secondary);">hidden [1, 4]</span> &times;
+          <span style="color: var(--sem-attention);">W_q [4, 2]</span> =
+          <span style="color: var(--sem-token);">query [1, 2]</span>
+        </div>
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-top: var(--space-2);">
+          The vector shrinks from 4 dimensions to 2. This is a down-projection.
+        </p>
+        <div style="border-top: var(--border-subtle); margin-top: var(--space-3); padding-top: var(--space-3); font-family: var(--font-mono); font-size: var(--text-sm);">
+          <span style="color: var(--ink-secondary);">hidden [1, 4]</span> &times;
+          <span style="color: var(--sem-ffn);">W_up [4, 8]</span> =
+          <span style="color: var(--sem-token);">expanded [1, 8]</span>
+        </div>
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-top: var(--space-2);">
+          The vector grows from 4 to 8. This is an up-projection (used in FFN layers).
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Shapes</div>
+      <div class="shape-card">
+        <div>Projection: X [n_tokens, d_in] &times; W [d_in, d_out] = Y [n_tokens, d_out]</div>
+        <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">Common uses in LLMs:</div>
+        <div style="color: var(--sem-attention);">Q projection: [n, d_model] &times; [d_model, d_q] &rarr; [n, d_q]</div>
+        <div style="color: var(--sem-ffn);">FFN up-projection: [n, d_model] &times; [d_model, d_ff] &rarr; [n, d_ff]</div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Math</div>
+      <div style="font-family: var(--font-mono); font-size: var(--text-sm); background: var(--surface-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); margin: var(--space-3) 0;">
+        <div style="color: var(--sem-token);">Y = X W</div>
+        <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">where W is a learned weight matrix of shape [d_in, d_out]</div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Implementation Hook</div>
+      <div class="impl-hook">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          Every Q, K, V, output, and FFN layer in a transformer uses projections.
+          In <code>llama.cpp</code>, each projection is a <code>ggml_mul_mat</code> call with a stored weight tensor.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Performance Hook</div>
+      <div class="perf-hook">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          Projection cost is n_tokens &times; d_in &times; d_out multiply-adds. For large models, d_ff can be 4&times; d_model or more, making FFN projections the most expensive operations per layer.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Check Yourself</div>
+      <GatePanel
+        client:load
+        lessonId="L09"
+        gateStrength="soft"
+        questions={[
+          {
+            id: 'L09-q1',
+            type: 'single_choice',
+            prompt: 'If hidden states have shape [10, 512] and W_q has shape [512, 64], what is the Q shape?',
+            tag: 'shape',
+            choices: [
+              { id: 'a', text: '[10, 64]', isCorrect: true },
+              { id: 'b', text: '[512, 64]', isCorrect: false },
+              { id: 'c', text: '[10, 512]', isCorrect: false },
+            ],
+            explanation: '[10, 512] × [512, 64] → [10, 64]. Each of the 10 tokens gets a 64-dimensional query vector.',
+          },
+        ]}
+      />
+    </div>
+
+  </LessonPage>
+</BaseLayout>

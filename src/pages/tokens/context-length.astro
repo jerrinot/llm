@@ -1,0 +1,118 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import '../../styles/global.css';
+import '../../styles/course.css';
+import LessonPage from '../../components/course/LessonPage';
+import GatePanel from '../../components/assessment/GatePanel';
+---
+
+<BaseLayout title="Context Length Means Token Capacity">
+  <LessonPage lessonId="L04" client:load>
+
+    <div class="lesson-section">
+      <div class="section-label">Question</div>
+      <div class="lesson-question">What does context length measure?</div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Intuition</div>
+      <p>
+        The model has a maximum number of tokens it can process at once. This is the <strong>context length</strong> (or context window).
+      </p>
+      <p>
+        Both the prompt and the generated output share this budget. If the context length is 8,192 tokens and your prompt uses 6,000, there are only 2,192 tokens left for generation.
+      </p>
+      <p>
+        Context length is not measured in characters or words. It is measured in tokens, because that is the unit the model operates on.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Toy Example</div>
+      <div class="toy-example">
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-bottom: var(--space-4);">
+          A model with context length = 10 tokens:
+        </p>
+        <div style="display: flex; gap: 3px; margin-bottom: var(--space-3);">
+          <div style="width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; font-family: var(--font-mono); font-size: 10px; background: var(--sem-token-bg); border: 1px solid var(--sem-token-dim); border-radius: 3px; color: var(--sem-token);">The</div>
+          <div style="width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; font-family: var(--font-mono); font-size: 10px; background: var(--sem-token-bg); border: 1px solid var(--sem-token-dim); border-radius: 3px; color: var(--sem-token);">·cat</div>
+          <div style="width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; font-family: var(--font-mono); font-size: 10px; background: var(--sem-token-bg); border: 1px solid var(--sem-token-dim); border-radius: 3px; color: var(--sem-token);">·sat</div>
+          <div style="width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; font-family: var(--font-mono); font-size: 10px; background: var(--sem-token-bg); border: 1px solid var(--sem-token-dim); border-radius: 3px; color: var(--sem-token);">·on</div>
+          <div style="width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; font-family: var(--font-mono); font-size: 10px; background: var(--sem-token-bg); border: 1px solid var(--sem-token-dim); border-radius: 3px; color: var(--sem-token);">·the</div>
+          <div style="width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; font-family: var(--font-mono); font-size: 10px; background: var(--sem-token-bg); border: 1px solid var(--sem-token-dim); border-radius: 3px; color: var(--sem-token);">·mat</div>
+          <div style="width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; font-family: var(--font-mono); font-size: 10px; background: var(--sem-logits-bg); border: 1px solid var(--sem-logits-dim); border-radius: 3px; color: var(--sem-logits);">.</div>
+          <div style="width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; font-family: var(--font-mono); font-size: 10px; border: 1px dashed var(--ink-ghost); border-radius: 3px; color: var(--ink-ghost);"></div>
+          <div style="width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; font-family: var(--font-mono); font-size: 10px; border: 1px dashed var(--ink-ghost); border-radius: 3px; color: var(--ink-ghost);"></div>
+          <div style="width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; font-family: var(--font-mono); font-size: 10px; border: 1px dashed var(--ink-ghost); border-radius: 3px; color: var(--ink-ghost);"></div>
+        </div>
+        <div style="display: flex; gap: var(--space-4); font-size: var(--text-xs); font-family: var(--font-mono);">
+          <span style="color: var(--sem-token);">&#x25A0; prompt: 7 tokens</span>
+          <span style="color: var(--ink-ghost);">&#x25A1; available: 3 tokens</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Shapes</div>
+      <div class="shape-card">
+        <div>context_length: maximum number of tokens the model can process</div>
+        <div>n_prompt + n_generated &#x2264; context_length</div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Math</div>
+      <p>The only new math concept is a capacity constraint:</p>
+      <div style="font-family: var(--font-mono); font-size: var(--text-sm); color: var(--sem-token); background: var(--surface-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); margin: var(--space-3) 0; display: inline-block;">
+        n_prompt + n_generated &#x2264; L
+      </div>
+      <p style="font-size: var(--text-sm); color: var(--ink-tertiary);">
+        where L is the context length. Both the input and the output compete for the same budget.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Implementation Hook</div>
+      <div class="impl-hook">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          Context length is set in the model's metadata and enforced at runtime.
+          In <code>llama.cpp</code>, exceeding the context length results in an error or truncation, not a graceful degradation.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Performance Hook</div>
+      <div class="perf-hook">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          Longer context means more tokens for the model to process — more computation, more memory for storing intermediate results.
+          Later, you will learn that attention cost grows with sequence length, and that the KV cache grows linearly with context used.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Check Yourself</div>
+      <GatePanel
+        client:load
+        lessonId="L04"
+        gateStrength="soft"
+        questions={[
+          {
+            id: 'L04-q1',
+            type: 'single_choice',
+            prompt: 'A model has context length 4096. Your prompt tokenizes to 3500 tokens. How many tokens can the model generate?',
+            tag: 'math',
+            choices: [
+              { id: 'a', text: '4096', isCorrect: false },
+              { id: 'b', text: '596', isCorrect: true },
+              { id: 'c', text: '3500', isCorrect: false },
+            ],
+            explanation: '4096 - 3500 = 596 tokens remaining for generation. Prompt and output share the same budget.',
+          },
+        ]}
+      />
+    </div>
+
+  </LessonPage>
+</BaseLayout>
