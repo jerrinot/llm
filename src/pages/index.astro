@@ -1,7 +1,11 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import '../styles/landing.css';
-import { modules } from '../data/curriculum';
+import { modules, lessons } from '../data/curriculum';
+
+function countLessons(mod: typeof modules[0]): number {
+  return mod.lessonIds.filter(id => lessons[id]?.kind === 'lesson').length;
+}
 ---
 
 <BaseLayout title="LLM From the Ground Up">
@@ -110,7 +114,7 @@ import { modules } from '../data/curriculum';
                 <span class="module-id">{mod.id}</span>
                 <div class="module-name">{mod.title}</div>
                 <div class="module-desc">{mod.description}</div>
-                <div class="module-lessons-count">{mod.lessonIds.length} lessons</div>
+                <div class="module-lessons-count">{countLessons(mod)} lessons</div>
               </div>
             </div>
           ))}
