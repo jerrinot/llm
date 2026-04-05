@@ -246,10 +246,9 @@ Unlocks:
 ### L02
 
 - `lesson_id`: `L02`
-- `slug`: `/tokens/what-is-a-token`
-- `title`: `What Is a Token?`
-- `prerequisites`: `L01A`
 - `estimated_minutes`: 10
+- `gate_strength`: `soft`
+- `running_example_focus`: `tokenization_of_the_cat_sat`
 
 Must teach:
 
@@ -281,10 +280,9 @@ Unlocks:
 ### L03
 
 - `lesson_id`: `L03`
-- `slug`: `/tokens/vocabulary-and-ids`
-- `title`: `Vocabulary and Token IDs`
-- `prerequisites`: `L02`
 - `estimated_minutes`: 10
+- `gate_strength`: `soft`
+- `running_example_focus`: `token_ids_791_2368_3290`
 
 Must teach:
 
@@ -312,10 +310,9 @@ Unlocks:
 ### L04
 
 - `lesson_id`: `L04`
-- `slug`: `/tokens/context-length`
-- `title`: `Context Length Means Token Capacity`
-- `prerequisites`: `L03`
 - `estimated_minutes`: 8
+- `gate_strength`: `soft`
+- `running_example_focus`: `token_count_vs_context_budget`
 
 Must teach:
 
@@ -344,10 +341,9 @@ Unlocks:
 ### L05
 
 - `lesson_id`: `L05`
-- `slug`: `/math/scalars-vectors`
-- `title`: `Scalars and Vectors`
-- `prerequisites`: `L04`
 - `estimated_minutes`: 12
+- `gate_strength`: `soft`
+- `running_example_focus`: `none_yet`
 
 Must teach:
 
@@ -378,10 +374,9 @@ Unlocks:
 ### L06
 
 - `lesson_id`: `L06`
-- `slug`: `/math/embeddings-as-vectors`
-- `title`: `Embeddings Turn Token IDs into Vectors`
-- `prerequisites`: `L05`
 - `estimated_minutes`: 12
+- `gate_strength`: `soft`
+- `running_example_focus`: `embedding_lookup_for_3_tokens`
 
 Must teach:
 
@@ -409,10 +404,9 @@ Unlocks:
 ### L07
 
 - `lesson_id`: `L07`
-- `slug`: `/math/dot-product`
-- `title`: `Dot Product as Weighted Comparison`
-- `prerequisites`: `L06`
 - `estimated_minutes`: 15
+- `gate_strength`: `soft`
+- `running_example_focus`: `dot_product_in_attention_preview`
 
 Must teach:
 
@@ -440,10 +434,9 @@ Unlocks:
 ### L08
 
 - `lesson_id`: `L08`
-- `slug`: `/math/matrix-multiply`
-- `title`: `Matrix Multiplication Without Fear`
-- `prerequisites`: `L07`
 - `estimated_minutes`: 18
+- `gate_strength`: `soft`
+- `running_example_focus`: `matrix_multiply_shape_preview`
 
 Must teach:
 
@@ -471,10 +464,9 @@ Unlocks:
 ### L09
 
 - `lesson_id`: `L09`
-- `slug`: `/math/linear-projections`
-- `title`: `Linear Projections Change Representation Size`
-- `prerequisites`: `L08`
 - `estimated_minutes`: 12
+- `gate_strength`: `soft`
+- `running_example_focus`: `projection_to_qkv_preview`
 
 Must teach:
 
@@ -502,10 +494,9 @@ Unlocks:
 ### L10
 
 - `lesson_id`: `L10`
-- `slug`: `/math/tensor-shapes`
-- `title`: `Tensor Shapes Are the Language of Model Code`
-- `prerequisites`: `L09`
 - `estimated_minutes`: 12
+- `gate_strength`: `soft`
+- `running_example_focus`: `shape_notation_for_running_example`
 
 Must teach:
 
@@ -535,10 +526,9 @@ Unlocks:
 ### L11
 
 - `lesson_id`: `L11`
-- `slug`: `/probability/logits`
-- `title`: `The Output Head Produces One Logit Per Vocabulary Entry`
-- `prerequisites`: `L10`
 - `estimated_minutes`: 10
+- `gate_strength`: `soft`
+- `running_example_focus`: `logits_for_next_token_after_sat`
 
 Must teach:
 
@@ -562,10 +552,9 @@ Unlocks:
 ### L12
 
 - `lesson_id`: `L12`
-- `slug`: `/probability/softmax`
-- `title`: `Softmax Turns Scores into a Distribution`
-- `prerequisites`: `L11`
 - `estimated_minutes`: 15
+- `gate_strength`: `soft`
+- `running_example_focus`: `softmax_of_logits`
 
 Must teach:
 
@@ -595,10 +584,9 @@ Unlocks:
 ### L13
 
 - `lesson_id`: `L13`
-- `slug`: `/probability/argmax-and-sampling`
-- `title`: `Argmax, Sampling, and Next-Token Choice`
-- `prerequisites`: `L12`
 - `estimated_minutes`: 10
+- `gate_strength`: `soft`
+- `running_example_focus`: `argmax_selects_on`
 
 Must teach:
 
@@ -619,10 +607,9 @@ Unlocks:
 ### L14
 
 - `lesson_id`: `L14`
-- `slug`: `/block/what-a-layer-does`
-- `title`: `What a Transformer Layer Does`
-- `prerequisites`: `L13`
 - `estimated_minutes`: 8
+- `gate_strength`: `hard`
+- `running_example_focus`: `one_layer_transforms_3_hidden_states`
 
 Must teach:
 
@@ -641,10 +628,9 @@ Unlocks:
 ### L15
 
 - `lesson_id`: `L15`
-- `slug`: `/block/residuals-and-rmsnorm`
-- `title`: `Residual Connections and RMSNorm`
-- `prerequisites`: `L14`
 - `estimated_minutes`: 14
+- `gate_strength`: `hard`
+- `running_example_focus`: `residual_around_attention_and_ffn`
 
 Must teach:
 
@@ -668,10 +654,9 @@ Unlocks:
 ### L16
 
 - `lesson_id`: `L16`
-- `slug`: `/block/qkv-projections`
-- `title`: `Q, K, and V Are Just Learned Projections`
-- `prerequisites`: `L15`
 - `estimated_minutes`: 15
+- `gate_strength`: `hard`
+- `running_example_focus`: `qkv_projections_for_3_tokens`
 
 Must teach:
 
@@ -693,10 +678,9 @@ Unlocks:
 ### L16A
 
 - `lesson_id`: `L16A`
-- `slug`: `/block/position-and-rope`
-- `title`: `Attention Needs Positional Information`
-- `prerequisites`: `L16`
 - `estimated_minutes`: 16
+- `gate_strength`: `hard`
+- `running_example_focus`: `positional_encoding_for_3_positions`
 
 Must teach:
 
@@ -725,10 +709,9 @@ Unlocks:
 ### L17
 
 - `lesson_id`: `L17`
-- `slug`: `/block/causal-attention`
-- `title`: `Causal Attention Lets Tokens Read the Past`
-- `prerequisites`: `L16A`
 - `estimated_minutes`: 18
+- `gate_strength`: `hard`
+- `running_example_focus`: `attention_scores_for_the_running_request`
 
 Must teach:
 
@@ -757,10 +740,9 @@ Unlocks:
 ### L18
 
 - `lesson_id`: `L18`
-- `slug`: `/block/attention-output`
-- `title`: `Attention Output Is a Token-Mixing Operation`
-- `prerequisites`: `L17`
 - `estimated_minutes`: 12
+- `gate_strength`: `hard`
+- `running_example_focus`: `weighted_value_sum_for_token_3`
 
 Must teach:
 
@@ -782,10 +764,9 @@ Unlocks:
 ### L18A
 
 - `lesson_id`: `L18A`
-- `slug`: `/block/multi-head-attention`
-- `title`: `Multi-Head Attention Runs Several Smaller Attentions in Parallel`
-- `prerequisites`: `L18`
 - `estimated_minutes`: 16
+- `gate_strength`: `hard`
+- `running_example_focus`: `multi_head_split_of_3_token_attention`
 
 Must teach:
 
@@ -815,10 +796,9 @@ Unlocks:
 ### L19
 
 - `lesson_id`: `L19`
-- `slug`: `/block/feed-forward-network`
-- `title`: `The FFN Transforms Each Token Independently`
-- `prerequisites`: `L18A`
 - `estimated_minutes`: 15
+- `gate_strength`: `hard`
+- `running_example_focus`: `ffn_expand_contract_for_each_token`
 
 Must teach:
 
@@ -842,10 +822,9 @@ Unlocks:
 ### L20
 
 - `lesson_id`: `L20`
-- `slug`: `/block/full-decoder-block`
-- `title`: `Putting the Whole Decoder Block Together`
-- `prerequisites`: `L19`
 - `estimated_minutes`: 12
+- `gate_strength`: `hard`
+- `running_example_focus`: `full_block_for_the_cat_sat`
 
 Must teach:
 
@@ -868,10 +847,9 @@ Unlocks:
 ### Q-M4
 
 - `lesson_id`: `Q-M4`
-- `slug`: `/quiz/dense-transformer`
-- `title`: `Quiz: Dense Transformer Block`
-- `prerequisites`: `L20`
 - `estimated_minutes`: 10
+- `gate_strength`: `hard`
+- `running_example_focus`: `none`
 
 Unlock condition:
 
@@ -886,10 +864,9 @@ Unlocks:
 ### L21
 
 - `lesson_id`: `L21`
-- `slug`: `/architectures/gqa-and-mqa`
-- `title`: `Grouped-Query and Multi-Query Attention`
-- `prerequisites`: `Q-M4`
 - `estimated_minutes`: 14
+- `gate_strength`: `hard`
+- `running_example_focus`: `gqa_shape_change_for_3_tokens`
 
 Must teach:
 
@@ -907,10 +884,9 @@ Unlocks:
 ### L22
 
 - `lesson_id`: `L22`
-- `slug`: `/architectures/sliding-window-attention`
-- `title`: `Sliding-Window Attention Limits What a Layer Can See`
-- `prerequisites`: `L21`
 - `estimated_minutes`: 14
+- `gate_strength`: `hard`
+- `running_example_focus`: `swa_window_on_running_example`
 
 Must teach:
 
@@ -929,10 +905,9 @@ Unlocks:
 ### L23
 
 - `lesson_id`: `L23`
-- `slug`: `/architectures/shared-kv-layers`
-- `title`: `Shared-KV Layers Reuse Memory Instead of Rebuilding It`
-- `prerequisites`: `L22`
 - `estimated_minutes`: 14
+- `gate_strength`: `hard`
+- `running_example_focus`: `shared_kv_reuse`
 
 Must teach:
 
@@ -950,10 +925,9 @@ Unlocks:
 ### L24
 
 - `lesson_id`: `L24`
-- `slug`: `/architectures/moe-router`
-- `title`: `The MoE Router Scores Experts Per Token`
-- `prerequisites`: `L23`
 - `estimated_minutes`: 16
+- `gate_strength`: `hard`
+- `running_example_focus`: `router_scores_for_tokens`
 
 Must teach:
 
@@ -972,10 +946,9 @@ Unlocks:
 ### L25
 
 - `lesson_id`: `L25`
-- `slug`: `/architectures/moe-aggregation`
-- `title`: `MoE Runs Selected Experts and Weights Their Outputs`
-- `prerequisites`: `L24`
 - `estimated_minutes`: 18
+- `gate_strength`: `hard`
+- `running_example_focus`: `expert_weighted_sum`
 
 Must teach:
 
@@ -998,10 +971,9 @@ Unlocks:
 ### L26
 
 - `lesson_id`: `L26`
-- `slug`: `/architectures/gemma4-overview`
-- `title`: `Gemma 4 Combines Several Variants at Once`
-- `prerequisites`: `L25`
 - `estimated_minutes`: 16
+- `gate_strength`: `hard`
+- `running_example_focus`: `gemma4_heterogeneous_layers`
 
 Must teach:
 
@@ -1025,10 +997,9 @@ Unlocks:
 ### Q-M5
 
 - `lesson_id`: `Q-M5`
-- `slug`: `/quiz/architecture-variants`
-- `title`: `Quiz: Architecture Variants`
-- `prerequisites`: `L26`
 - `estimated_minutes`: 12
+- `gate_strength`: `hard`
+- `running_example_focus`: `none`
 
 Unlock condition:
 
@@ -1043,10 +1014,9 @@ Unlocks:
 ### L27
 
 - `lesson_id`: `L27`
-- `slug`: `/inference/prefill`
-- `title`: `Prefill Processes the Prompt`
-- `prerequisites`: `Q-M5`
 - `estimated_minutes`: 14
+- `gate_strength`: `hard`
+- `running_example_focus`: `prefill_of_the_cat_sat`
 
 Must teach:
 
@@ -1064,10 +1034,9 @@ Unlocks:
 ### L28
 
 - `lesson_id`: `L28`
-- `slug`: `/inference/decode`
-- `title`: `Decode Adds One Token at a Time`
-- `prerequisites`: `L27`
 - `estimated_minutes`: 14
+- `gate_strength`: `hard`
+- `running_example_focus`: `decode_step_producing_on`
 
 Must teach:
 
@@ -1085,10 +1054,9 @@ Unlocks:
 ### L29
 
 - `lesson_id`: `L29`
-- `slug`: `/inference/kv-cache`
-- `title`: `The KV Cache Stores Past Attention State`
-- `prerequisites`: `L28`
 - `estimated_minutes`: 16
+- `gate_strength`: `hard`
+- `running_example_focus`: `kv_cache_after_3_token_prefill`
 
 Must teach:
 
@@ -1107,10 +1075,9 @@ Unlocks:
 ### L30
 
 - `lesson_id`: `L30`
-- `slug`: `/inference/batching-and-ubatching`
-- `title`: `Batch Size and Ubatch Size Change Execution Policy`
-- `prerequisites`: `L29`
 - `estimated_minutes`: 16
+- `gate_strength`: `hard`
+- `running_example_focus`: `ubatch_chunking_of_prompt`
 
 Must teach:
 
@@ -1129,10 +1096,9 @@ Unlocks:
 ### L30A
 
 - `lesson_id`: `L30A`
-- `slug`: `/inference/continuous-batching`
-- `title`: `Serving Adds Scheduling, Not Just Math`
-- `prerequisites`: `L30`
 - `estimated_minutes`: 16
+- `gate_strength`: `hard`
+- `running_example_focus`: `serving_vs_benchmark_for_one_request`
 
 Must teach:
 
@@ -1158,10 +1124,9 @@ Unlocks:
 ### L31
 
 - `lesson_id`: `L31`
-- `slug`: `/inference/context-scaling`
-- `title`: `Long Context Changes Which Costs Grow`
-- `prerequisites`: `L30A`
 - `estimated_minutes`: 15
+- `gate_strength`: `hard`
+- `running_example_focus`: `cost_growth_with_longer_prompt`
 
 Must teach:
 
@@ -1180,10 +1145,9 @@ Unlocks:
 ### Q-M6
 
 - `lesson_id`: `Q-M6`
-- `slug`: `/quiz/inference-mechanics`
-- `title`: `Quiz: Inference Mechanics`
-- `prerequisites`: `L31`
 - `estimated_minutes`: 12
+- `gate_strength`: `hard`
+- `running_example_focus`: `none`
 
 Unlock condition:
 
@@ -1198,10 +1162,9 @@ Unlocks:
 ### L32
 
 - `lesson_id`: `L32`
-- `slug`: `/performance/where-time-goes`
-- `title`: `Where Time Goes in an LLM`
-- `prerequisites`: `Q-M6`
 - `estimated_minutes`: 14
+- `gate_strength`: `hard`
+- `running_example_focus`: `operator_time_for_one_layer`
 
 Must teach:
 
@@ -1220,10 +1183,9 @@ Unlocks:
 ### L33
 
 - `lesson_id`: `L33`
-- `slug`: `/performance/gemm-vs-gemv`
-- `title`: `GEMM and GEMV Feel Different on Hardware`
-- `prerequisites`: `L32`
 - `estimated_minutes`: 15
+- `gate_strength`: `hard`
+- `running_example_focus`: `gemm_vs_gemv_in_prefill_vs_decode`
 
 Must teach:
 
@@ -1242,10 +1204,9 @@ Unlocks:
 ### L34
 
 - `lesson_id`: `L34`
-- `slug`: `/performance/compute-vs-memory`
-- `title`: `Compute-Bound and Memory-Bound`
-- `prerequisites`: `L33`
 - `estimated_minutes`: 18
+- `gate_strength`: `hard`
+- `running_example_focus`: `compute_vs_memory_for_ffn`
 
 Must teach:
 
@@ -1264,10 +1225,9 @@ Unlocks:
 ### L35
 
 - `lesson_id`: `L35`
-- `slug`: `/performance/quantization`
-- `title`: `Quantization Changes Both Math and Data Movement`
-- `prerequisites`: `L34`
 - `estimated_minutes`: 16
+- `gate_strength`: `hard`
+- `running_example_focus`: `quantized_weights_for_running_model`
 
 Must teach:
 
@@ -1286,10 +1246,9 @@ Unlocks:
 ### L36
 
 - `lesson_id`: `L36`
-- `slug`: `/performance/repack-and-layout`
-- `title`: `Repack and Layout Matter as Much as ISA Tricks`
-- `prerequisites`: `L35`
 - `estimated_minutes`: 16
+- `gate_strength`: `hard`
+- `running_example_focus`: `repack_layout_for_weight_matrix`
 
 Must teach:
 
@@ -1308,10 +1267,9 @@ Unlocks:
 ### L37
 
 - `lesson_id`: `L37`
-- `slug`: `/performance/threads-and-affinity`
-- `title`: `Threads, Affinity, and Scheduling`
-- `prerequisites`: `L36`
 - `estimated_minutes`: 16
+- `gate_strength`: `hard`
+- `running_example_focus`: `thread_count_for_prefill_vs_decode`
 
 Must teach:
 
@@ -1330,10 +1288,9 @@ Unlocks:
 ### L38
 
 - `lesson_id`: `L38`
-- `slug`: `/performance/validate-speedups`
-- `title`: `A Speedup Is Not Valid Until You Validate Outputs`
-- `prerequisites`: `L37`
 - `estimated_minutes`: 18
+- `gate_strength`: `hard`
+- `running_example_focus`: `perplexity_validation_of_speedup`
 
 Must teach:
 
@@ -1354,10 +1311,9 @@ Unlocks:
 ### Q-M7
 
 - `lesson_id`: `Q-M7`
-- `slug`: `/quiz/performance-reasoning`
-- `title`: `Quiz: Performance Reasoning`
-- `prerequisites`: `L38`
 - `estimated_minutes`: 15
+- `gate_strength`: `hard`
+- `running_example_focus`: `none`
 
 Unlock condition:
 
@@ -1372,10 +1328,9 @@ Unlocks:
 ### L39
 
 - `lesson_id`: `L39`
-- `slug`: `/case-study/dense-gemma`
-- `title`: `Case Study: Reading a Dense Gemma Block`
-- `prerequisites`: `Q-M7`
 - `estimated_minutes`: 18
+- `gate_strength`: `hard`
+- `running_example_focus`: `dense_gemma_block_walkthrough`
 
 Implementation hook:
 
@@ -1392,10 +1347,9 @@ Unlocks:
 ### L40
 
 - `lesson_id`: `L40`
-- `slug`: `/case-study/gemma4-attention`
-- `title`: `Case Study: Gemma 4 Attention Path`
-- `prerequisites`: `L39`
 - `estimated_minutes`: 20
+- `gate_strength`: `hard`
+- `running_example_focus`: `gemma4_attention_path`
 
 Implementation hook:
 
@@ -1412,10 +1366,9 @@ Unlocks:
 ### L41
 
 - `lesson_id`: `L41`
-- `slug`: `/case-study/gemma4-moe`
-- `title`: `Case Study: Gemma 4 MoE Layer`
-- `prerequisites`: `L40`
 - `estimated_minutes`: 22
+- `gate_strength`: `hard`
+- `running_example_focus`: `gemma4_moe_routing`
 
 Implementation hooks:
 
@@ -1435,10 +1388,9 @@ Unlocks:
 ### L42
 
 - `lesson_id`: `L42`
-- `slug`: `/case-study/profile-interpretation`
-- `title`: `Case Study: Interpreting a Prefill vs Decode Profile`
-- `prerequisites`: `L41`
 - `estimated_minutes`: 20
+- `gate_strength`: `hard`
+- `running_example_focus`: `profile_for_the_cat_sat_inference`
 
 Must teach:
 
@@ -1456,10 +1408,9 @@ Unlocks:
 ### L43
 
 - `lesson_id`: `L43`
-- `slug`: `/case-study/optimization-and-regression`
-- `title`: `Case Study: A Speed Win That Failed Equivalence`
-- `prerequisites`: `L42`
 - `estimated_minutes`: 20
+- `gate_strength`: `hard`
+- `running_example_focus`: `optimization_regression_case`
 
 Must teach:
 
@@ -1480,10 +1431,9 @@ Unlocks:
 ### CAPSTONE
 
 - `lesson_id`: `CAPSTONE`
-- `slug`: `/capstone/zero-to-hero`
-- `title`: `Capstone: From Concept to Performance Diagnosis`
-- `prerequisites`: `L43`
 - `estimated_minutes`: 30
+- `gate_strength`: `hard`
+- `running_example_focus`: `full_synthesis`
 
 The capstone must require the user to do all of the following:
 
