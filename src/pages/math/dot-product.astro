@@ -26,8 +26,7 @@ import GatePanel from '../../components/assessment/GatePanel';
         If they point in opposite directions, it is negative.
       </p>
       <p>
-        In LLMs, the dot product is everywhere. Attention scores are dot products between query and key vectors.
-        Projections are collections of dot products. Understanding this operation is essential.
+        In later modules, you will see that the dot product is central to how the model compares tokens and transforms representations. Understanding this operation is essential.
       </p>
     </div>
 
@@ -82,7 +81,7 @@ import GatePanel from '../../components/assessment/GatePanel';
       <div class="section-label">Implementation Hook</div>
       <div class="impl-hook">
         <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
-          The dot product is the primitive behind matrix multiplication. In <code>llama.cpp</code>, attention scores are computed as dot products between query and key vectors. The <code>ggml_mul_mat</code> operation performs many dot products at once.
+          The dot product is the primitive behind matrix multiplication. In <code>llama.cpp</code>, many core model operations are built from dot products. The <code>ggml_mul_mat</code> operation performs many dot products at once.
         </p>
       </div>
     </div>

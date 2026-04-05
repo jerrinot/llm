@@ -72,11 +72,11 @@ import GatePanel from '../../components/assessment/GatePanel';
       <div class="section-label">Math</div>
       <p>Standard FFN:</p>
       <div style="font-family: var(--font-mono); font-size: var(--text-sm); background: var(--surface-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); margin: var(--space-3) 0;">
-        <div style="color: var(--sem-ffn);">FFN(x) = W_down &sdot; activation(W_up &sdot; x)</div>
+        <div style="color: var(--sem-ffn);">FFN(x) = activation(x &sdot; W_up) &sdot; W_down</div>
       </div>
       <p>Gated variant (SwiGLU):</p>
       <div style="font-family: var(--font-mono); font-size: var(--text-sm); background: var(--surface-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); margin: var(--space-3) 0;">
-        <div style="color: var(--sem-ffn);">FFN(x) = W_down &sdot; (SiLU(W_gate &sdot; x) &odot; (W_up &sdot; x))</div>
+        <div style="color: var(--sem-ffn);">FFN(x) = (SiLU(x &sdot; W_gate) &odot; (x &sdot; W_up)) &sdot; W_down</div>
         <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">&odot; = elementwise multiply (the gating mechanism)</div>
       </div>
     </div>

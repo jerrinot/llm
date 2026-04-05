@@ -97,7 +97,7 @@ import GatePanel from '../../components/assessment/GatePanel';
       <div class="section-label">Performance Hook</div>
       <div class="perf-hook">
         <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
-          Multi-head attention does not increase total compute compared to a single large head — the same number of multiply-adds happens either way. But it does increase parallelism: all heads run independently, which maps well to GPU architectures. The per-head score matrix is [n_tokens, n_tokens] with smaller d_head, which uses less memory per head.
+          Multi-head attention does not increase total compute compared to a single large head — the same number of multiply-adds happens either way. But it does increase parallelism: all heads run independently, which maps well to GPU architectures. The smaller d_head reduces the size of per-head Q, K, and V tensors and the cost of each dot-product computation, but the score matrix itself is always [n_tokens, n_tokens] per head regardless of d_head.
         </p>
       </div>
     </div>

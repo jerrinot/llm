@@ -64,14 +64,14 @@ import GatePanel from '../../components/assessment/GatePanel';
           {
             id: 'QM6-q4',
             type: 'single_choice',
-            prompt: 'During decode, the attention score vector for the new token has shape [1, n_past]. If 500 tokens have been processed so far, what is n_past?',
+            prompt: 'During decode, the attention score vector for the new token has shape [1, n_past + 1] (where n_past is the number of previously cached tokens). If 500 tokens were cached before this step, what is the length of the score vector?',
             tag: 'shape',
             choices: [
               { id: 'a', text: '1', isCorrect: false },
-              { id: 'b', text: '500', isCorrect: true },
+              { id: 'b', text: '501', isCorrect: true },
               { id: 'c', text: 'd_model', isCorrect: false },
             ],
-            explanation: 'n_past is the number of tokens already in the KV cache. With 500 tokens processed, the new token\'s query attends to all 500 cached keys, producing a score vector of length 500.',
+            explanation: 'n_past = 500 (tokens already in the cache). The new token\'s K/V are appended before the dot product, so the score vector has length n_past + 1 = 501 — one entry per cached token including the current one.',
           },
           {
             id: 'QM6-q5',

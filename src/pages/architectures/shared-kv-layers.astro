@@ -74,7 +74,7 @@ import GatePanel from '../../components/assessment/GatePanel';
       <div class="section-label">Implementation Hook</div>
       <div class="impl-hook">
         <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
-          In <code>llama.cpp</code>, shared-KV layers reference an earlier layer's KV cache entry rather than allocating their own. The model config specifies which layers share and which are primary. This is visible in models like Gemma 4.
+          In <code>llama.cpp</code>, shared-KV layers reference an earlier layer's KV cache entry rather than allocating their own. The model config specifies which layers share and which are primary. Some architectures use shared-KV layers.
         </p>
         <div class="file-path">src/llama-graph.cpp &mdash; build_attn()</div>
       </div>

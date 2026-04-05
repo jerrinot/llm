@@ -66,7 +66,7 @@ import GatePanel from '../../components/assessment/GatePanel';
       <div class="section-label">Math</div>
       <div style="font-family: var(--font-mono); font-size: var(--text-sm); background: var(--surface-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); margin: var(--space-3) 0;">
         <div style="color: var(--sem-logits);">argmax: next = arg max&#x1D62; p&#x1D62;</div>
-        <div style="color: var(--sem-logits); margin-top: var(--space-2);">sampling: next ~ Categorical(p)</div>
+        <div style="color: var(--sem-logits); margin-top: var(--space-2);">sampling: pick randomly according to probabilities p</div>
       </div>
     </div>
 
@@ -75,7 +75,7 @@ import GatePanel from '../../components/assessment/GatePanel';
       <div class="impl-hook">
         <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
           In <code>llama.cpp</code>, decoding happens outside the model graph. The graph produces logits.
-          Sampling logic — including top-k, top-p, temperature scaling, and repetition penalty — is applied separately. These knobs change generation behavior without changing the model.
+          Various sampling strategies exist. These knobs change generation behavior without changing the model.
         </p>
       </div>
     </div>
@@ -99,7 +99,7 @@ import GatePanel from '../../components/assessment/GatePanel';
           {
             id: 'L13-q1',
             type: 'single_choice',
-            prompt: 'If you switch from argmax to sampling, does the model compute different logits?',
+            prompt: 'For a single inference step with the same input, if you switch from argmax to sampling, does the model compute different logits?',
             tag: 'conceptual',
             choices: [
               { id: 'a', text: 'Yes, the model adjusts its computation', isCorrect: false },

@@ -17,13 +17,13 @@ import GatePanel from '../../components/assessment/GatePanel';
     <div class="lesson-section">
       <div class="section-label">Intuition</div>
       <p>
-        When you send a prompt to the model, all prompt tokens are known up front. The model does not need to generate them one at a time — it already has the full sequence. This lets the model process the entire prompt in one forward pass.
+        When you send a prompt to the model, all prompt tokens are known up front. The model does not need to generate them one at a time — it already has the full sequence. This lets the model process the entire prompt as one logical phase (which may be split into chunks, as you will learn in L30).
       </p>
       <p>
         This phase is called <strong>prefill</strong>. Every prompt token flows through every layer: attention computes relationships between all prompt positions, and the FFN transforms each position. Because all tokens are available simultaneously, the computation is organized as large matrix multiplies — many rows processed at once.
       </p>
       <p>
-        Prefill is <strong>compute-bound</strong>. The GPU has big matrices to chew through, and the arithmetic units stay busy. The result of prefill is a complete set of hidden states and — critically — a populated <span style="color: var(--sem-kvcache);">KV cache</span> that decode will reuse.
+        Prefill is <strong>compute-bound</strong>. The GPU has big matrices to chew through, and the arithmetic units stay busy. Prefill produces key and value vectors (the KV cache, explained in L29) that will be reused during token-by-token generation (decode, explained in L28).
       </p>
     </div>
 

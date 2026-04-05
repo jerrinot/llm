@@ -27,27 +27,19 @@ import GatePanel from '../../components/assessment/GatePanel';
     <div class="lesson-section">
       <div class="section-label">Toy Example</div>
       <div class="toy-example">
-        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-bottom: var(--space-3);">Common LLM tensor shapes:</p>
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-bottom: var(--space-3);">Tensor shapes introduced so far:</p>
         <div style="font-family: var(--font-mono); font-size: var(--text-sm); display: flex; flex-direction: column; gap: var(--space-3);">
           <div style="display: flex; gap: var(--space-3);">
             <span style="min-width: 200px; color: var(--sem-token);">[n_tokens, d_model]</span>
             <span style="color: var(--ink-secondary);">Hidden states — one vector per token</span>
           </div>
           <div style="display: flex; gap: var(--space-3);">
-            <span style="min-width: 200px; color: var(--sem-attention);">[n_tokens, n_heads, d_head]</span>
-            <span style="color: var(--ink-secondary);">Per-head Q/K/V — split across heads</span>
+            <span style="min-width: 200px; color: var(--sem-token);">[|V|, d_model]</span>
+            <span style="color: var(--ink-secondary);">Embedding table — one vector per vocabulary entry</span>
           </div>
           <div style="display: flex; gap: var(--space-3);">
-            <span style="min-width: 200px; color: var(--sem-attention);">[n_tokens, n_tokens]</span>
-            <span style="color: var(--ink-secondary);">Attention scores — token-to-token</span>
-          </div>
-          <div style="display: flex; gap: var(--space-3);">
-            <span style="min-width: 200px; color: var(--sem-ffn);">[n_tokens, d_ff]</span>
-            <span style="color: var(--ink-secondary);">FFN intermediate — expanded width</span>
-          </div>
-          <div style="display: flex; gap: var(--space-3);">
-            <span style="min-width: 200px; color: var(--sem-logits);">[n_tokens, |V|]</span>
-            <span style="color: var(--ink-secondary);">Logits — one score per vocab entry</span>
+            <span style="min-width: 200px; color: var(--sem-token);">[d_model, d_out]</span>
+            <span style="color: var(--ink-secondary);">A weight matrix — used in projections</span>
           </div>
         </div>
       </div>
@@ -103,7 +95,7 @@ import GatePanel from '../../components/assessment/GatePanel';
           {
             id: 'L10-q1',
             type: 'single_choice',
-            prompt: 'In the tensor shape [32, 2048], which axis represents tokens and which represents features?',
+            prompt: 'For a sequence of hidden states shaped [32, 2048], which axis represents the token positions?',
             tag: 'shape',
             choices: [
               { id: 'a', text: 'Axis 0 (32) = tokens, Axis 1 (2048) = features', isCorrect: true },

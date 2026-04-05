@@ -17,7 +17,7 @@ import GatePanel from '../../components/assessment/GatePanel';
     <div class="lesson-section">
       <div class="section-label">Intuition</div>
       <p>
-        Attention computes dot products between queries and keys. Dot products are symmetric — they only care about <em>what</em> the vectors contain, not <em>where</em> they came from. If you shuffled the tokens, the attention scores would be exactly the same.
+        Attention computes dot products between queries and keys. Dot products are symmetric — they only care about <em>what</em> the vectors contain, not <em>where</em> they came from. If you reordered the tokens, the computation would just permute accordingly — the model has no way to distinguish different orderings or encode token order.
       </p>
       <p>
         But token order matters enormously for language. "The dog bit the man" and "The man bit the dog" have the same tokens but very different meanings. Attention needs to know <em>position</em>.
@@ -113,10 +113,10 @@ import GatePanel from '../../components/assessment/GatePanel';
             tag: 'conceptual',
             choices: [
               { id: 'a', text: 'Because attention uses matrix multiplication, which requires sorted inputs', isCorrect: false },
-              { id: 'b', text: 'Because dot products are symmetric — they only measure similarity, not position, so shuffled tokens would produce the same scores', isCorrect: true },
+              { id: 'b', text: 'Because dot products are symmetric — they only measure similarity, not position, so the model cannot distinguish different token orderings', isCorrect: true },
               { id: 'c', text: 'Because the FFN erases position information before attention runs', isCorrect: false },
             ],
-            explanation: 'Dot products measure content similarity only. Without positional encoding, swapping two tokens would not change any attention scores, making word order invisible to the model.',
+            explanation: 'Dot products measure content similarity only. Without positional encoding, reordering tokens merely permutes the computation — the model cannot distinguish different orderings, making word order invisible.',
           },
           {
             id: 'L16A-q2',

@@ -73,7 +73,7 @@ import GatePanel from '../../components/assessment/GatePanel';
       <div class="shape-card">
         <div style="color: var(--sem-ffn);">FFN work per layer: O(n &times; d_model &times; d_ff)</div>
         <div style="color: var(--sem-attention);">Attention work per layer (prefill): O(n&sup2; &times; d_head)</div>
-        <div style="color: var(--sem-kvcache);">KV cache memory: O(n &times; n_layers &times; n_heads &times; d_head)</div>
+        <div style="color: var(--sem-kvcache);">KV cache memory: O(n &times; n_layers &times; n_kv_heads &times; d_head)</div>
         <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">n&sup2; for attention vs n for everything else. This divergence drives long-context behavior.</div>
       </div>
     </div>
@@ -130,7 +130,7 @@ import GatePanel from '../../components/assessment/GatePanel';
           {
             id: 'L31-q2',
             type: 'single_choice',
-            prompt: 'If you double the sequence length, how does KV cache memory change?',
+            prompt: 'If you double the sequence length, how does KV cache memory change (in terms of used cache entries)?',
             tag: 'shape',
             choices: [
               { id: 'a', text: 'It quadruples (4x)', isCorrect: false },

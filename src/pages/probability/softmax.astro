@@ -75,7 +75,7 @@ import SoftmaxInspector from '../../components/interactive/SoftmaxInspector';
       <div class="section-label">Implementation Hook</div>
       <div class="impl-hook">
         <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
-          Softmax appears in two places in a transformer: (1) after the output head to get next-token probabilities, and (2) inside every attention layer to normalize attention scores. In <code>llama.cpp</code>, the <code>ggml_soft_max</code> operation handles both.
+          Softmax converts logits to probabilities. You have seen it here at the output head. Later, you will see it used again inside the model's layers. In <code>llama.cpp</code>, the <code>ggml_soft_max</code> operation handles this.
         </p>
       </div>
     </div>

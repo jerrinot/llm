@@ -56,7 +56,7 @@ import PipelineStepper from '../../components/interactive/PipelineStepper';
           </div>
           <div style="display: flex; gap: var(--space-3); align-items: flex-start;">
             <span style="color: var(--sem-token); min-width: 90px;">Embedded</span>
-            <span>3 vectors of dimension d_model</span>
+            <span>3 vectors, each with many numbers (the model's internal width)</span>
           </div>
           <div style="display: flex; gap: var(--space-3); align-items: flex-start;">
             <span style="color: var(--sem-attention); min-width: 90px;">Layers</span>
@@ -68,7 +68,7 @@ import PipelineStepper from '../../components/interactive/PipelineStepper';
           </div>
           <div style="display: flex; gap: var(--space-3); align-items: flex-start;">
             <span style="color: var(--sem-logits); min-width: 90px;">Next token</span>
-            <span>" on" (highest score after softmax)</span>
+            <span>" on" (highest-scoring token)</span>
           </div>
         </div>
       </div>
@@ -116,7 +116,7 @@ import PipelineStepper from '../../components/interactive/PipelineStepper';
       <div class="section-label">Performance Hook</div>
       <div class="perf-hook">
         <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
-          This pipeline runs end-to-end for every token generated. The cost of each stage — tokenization, embedding, layer computation, output projection — varies dramatically.
+          During generation, the model computation (embedding, layers, output projection) runs for every new token. Tokenization happens only once on the input text. The cost of the model stages varies dramatically.
           Understanding where time goes is the goal of the performance modules later in the course.
         </p>
       </div>

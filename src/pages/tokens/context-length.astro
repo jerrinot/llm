@@ -85,8 +85,7 @@ import GatePanel from '../../components/assessment/GatePanel';
       <div class="section-label">Performance Hook</div>
       <div class="perf-hook">
         <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
-          Longer context means more tokens for the model to process — more computation, more memory for storing intermediate results.
-          Later, you will learn that attention cost grows with sequence length, and that the KV cache grows linearly with context used.
+          Longer context means more tokens for the model to process — more computation in every layer. The cost grows with the number of tokens. You will learn exactly how later.
         </p>
       </div>
     </div>

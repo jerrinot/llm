@@ -130,14 +130,14 @@ import TokenizerExplorer from '../../components/interactive/TokenizerExplorer';
           {
             id: 'L02-q2',
             type: 'single_choice',
-            prompt: 'Why is context length measured in tokens, not words?',
-            tag: 'shape',
+            prompt: 'What does the model receive as input — raw text characters or token IDs?',
+            tag: 'conceptual',
             choices: [
-              { id: 'a', text: 'Because words are easier to count', isCorrect: false },
-              { id: 'b', text: 'Because the model operates on tokens — they are the actual unit of input and computation', isCorrect: true },
-              { id: 'c', text: 'Because tokens are always shorter than words', isCorrect: false },
+              { id: 'a', text: 'Raw text characters — the model reads text directly', isCorrect: false },
+              { id: 'b', text: 'Token IDs — the tokenizer converts text to integers before the model runs', isCorrect: true },
+              { id: 'c', text: 'Both — the model can handle either format', isCorrect: false },
             ],
-            explanation: 'The model sees tokens, not words. Every layer processes n_tokens positions. Context length in tokens is the true capacity budget.',
+            explanation: 'The tokenizer converts text to integer token IDs before the model sees anything. The model never operates on raw text characters.',
           },
         ]}
       />

@@ -22,7 +22,7 @@ import PipelineStepper from '../../components/interactive/PipelineStepper';
     <div class="lesson-section">
       <div class="section-label">Intuition</div>
       <p>
-        A large language model takes text as input and predicts the next piece of text. Everything else — the architecture, the math, the engineering — is machinery for doing that prediction well.
+        A large language model receives token IDs derived from text and predicts the next token. Everything else — the architecture, the math, the engineering — is machinery for doing that prediction well.
       </p>
       <p>
         This course teaches you the machinery. Not as abstract theory, but as something you can trace through real code.
@@ -56,7 +56,7 @@ import PipelineStepper from '../../components/interactive/PipelineStepper';
           <span style="color: var(--sem-logits);">"on"</span>
         </div>
         <p style="margin-top: var(--space-3); font-size: var(--text-sm); color: var(--ink-tertiary);">
-          The model received three token IDs and predicted that the next token should be "on". That is one inference step. Generation repeats this process.
+          The model received three token IDs and produced scores over the vocabulary. The highest-scoring token is "on". That is one inference step. Generation repeats this process.
         </p>
       </div>
     </div>

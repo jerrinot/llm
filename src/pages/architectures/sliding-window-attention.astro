@@ -71,7 +71,7 @@ import GatePanel from '../../components/assessment/GatePanel';
       <div class="section-label">Implementation Hook</div>
       <div class="impl-hook">
         <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
-          In <code>llama.cpp</code>, models that use SWA set a per-layer attention window size. The KV cache management respects this window, evicting entries that fall outside it. Gemma 4 uses a repeating pattern of SWA and full-attention layers.
+          In <code>llama.cpp</code>, models that use SWA set a per-layer attention window size. The KV cache management respects this window, evicting entries that fall outside it. Some models interleave SWA layers with full-attention layers.
         </p>
         <div class="file-path">src/llama-graph.cpp &mdash; build_attn()</div>
       </div>
