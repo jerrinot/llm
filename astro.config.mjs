@@ -11,7 +11,7 @@ import mdx from '@astrojs/mdx';
 //   SITE_URL=https://yourdomain.com BASE_PATH=/llmsite astro build
 
 export default defineConfig({
-  site: process.env.SITE_URL || undefined,
+  site: process.env.SITE_URL || 'https://llm.jerrinot.info',
   base: process.env.BASE_PATH || '/',
   integrations: [react(), mdx()],
   output: 'static',
