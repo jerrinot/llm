@@ -95,6 +95,16 @@ import SoftmaxInspector from '../../components/interactive/SoftmaxInspector';
     </div>
 
     <div class="lesson-section">
+      <div class="section-label">What Logits Cannot Do Yet</div>
+      <p>
+        Logits are raw scores. They can be any real number — positive, negative, very large, very small. You cannot interpret them as probabilities: a logit of 5.1 does not mean "51% chance." You cannot compare logits across different positions or different models meaningfully without further processing.
+      </p>
+      <p>
+        The next lesson introduces the operation that fixes this: <strong>softmax</strong> converts raw logits into a proper probability distribution that sums to 1.
+      </p>
+    </div>
+
+    <div class="lesson-section">
       <div class="section-label">Check Yourself</div>
       <GatePanel
         client:load
