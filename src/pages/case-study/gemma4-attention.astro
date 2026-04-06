@@ -33,10 +33,10 @@ import GatePanel from '../../components/assessment/GatePanel';
         SWA layers are much cheaper because the attention matrix is sparse &mdash; each row only has entries for tokens within the window. The occasional full-attention layer ensures the model can still capture long-range dependencies.
       </p>
       <p>
-        On top of this, Gemma 4 uses <strong>shared-KV caching</strong>. The SWA layers share a single KV cache across all SWA layers rather than each layer maintaining its own. This dramatically reduces memory usage because SWA layers are the majority of layers in the model. Full-attention layers each keep their own KV cache as usual.
+        On top of this, Gemma 4 uses <strong>shared-KV layers</strong>. Only a subset of layers (controlled by a config parameter) compute their own K/V projections. The remaining layers skip K/V projection entirely and reuse the KV cache from the nearest earlier layer that has its own K/V. This dramatically reduces memory usage and compute — shared layers need no K/V weight matrices and write nothing to the cache.
       </p>
       <p>
-        The builder code handles this by checking the layer type. If the layer is an SWA layer, it reuses the shared KV cache. If it is a full-attention layer, it uses the layer's own dedicated cache. The attention computation itself is the same &mdash; only the cache source and the window mask differ.
+        The builder code handles this by checking <code>has_kv(il)</code> for each layer. If true, the layer projects fresh K and V. If false, it passes <code>nullptr</code> for K/V, telling <code>build_attn()</code> to read from an earlier layer's cache entry. The attention computation itself is the same &mdash; only the cache source and the window mask differ.
       </p>
     </div>
 
@@ -57,11 +57,11 @@ import GatePanel from '../../components/assessment/GatePanel';
             <span style="color: var(--sem-attention);">Full layer:</span> token H attends to [A, B, C, D, E, F, G, H]
           </div>
           <div style="margin-top: var(--space-3); color: var(--ink-tertiary);">
-            KV caches: SWA layers 0,1,3,4 share one cache. Full layers 2,5 each have their own.
+            If layers 0 and 2 have fresh KV (has_kv=true), layers 1,3,4,5 reuse earlier caches. Only 2 KV entries stored instead of 6.
           </div>
         </div>
         <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-top: var(--space-3);">
-          4 SWA layers share 1 KV cache instead of 4 separate ones &mdash; 75% memory reduction for those layers.
+          Shared-KV layers avoid K/V projection compute and cache storage &mdash; significant savings when most layers are shared.
         </p>
       </div>
     </div>
@@ -171,14 +171,14 @@ import GatePanel from '../../components/assessment/GatePanel';
           {
             id: 'L40-q2',
             type: 'single_choice',
-            prompt: 'How does shared-KV caching work in the Gemma 4 builder?',
+            prompt: 'In the Gemma 4 builder, what does has_kv(il) returning false mean for that layer?',
             tag: 'conceptual',
             choices: [
-              { id: 'a', text: 'All layers share a single KV cache regardless of attention type', isCorrect: false },
-              { id: 'b', text: 'SWA layers share one KV cache among themselves, while each full-attention layer keeps its own dedicated cache', isCorrect: true },
-              { id: 'c', text: 'Full-attention layers share a cache, SWA layers each have their own', isCorrect: false },
+              { id: 'a', text: 'The layer uses a different attention algorithm', isCorrect: false },
+              { id: 'b', text: 'The layer skips K/V projection and reuses an earlier layer\'s KV cache entry instead of computing its own', isCorrect: true },
+              { id: 'c', text: 'The layer has no attention at all — it only runs FFN', isCorrect: false },
             ],
-            explanation: 'SWA layers share a single KV cache because they only need a window of recent keys and values. Full-attention layers need the complete sequence history, so each keeps its own cache. This sharing dramatically reduces memory for the majority of layers.',
+            explanation: 'When has_kv is false, the layer passes nullptr for K and V to build_attn. The attention function then reads K/V from the nearest earlier layer that computed fresh K/V. This saves both the projection compute and the cache storage for that layer.',
           },
           {
             id: 'L40-q3',

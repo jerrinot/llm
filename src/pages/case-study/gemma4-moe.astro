@@ -27,7 +27,7 @@ import GatePanel from '../../components/assessment/GatePanel';
           <strong style="color: var(--ink-primary);">Router scoring</strong> &mdash; The router is a small linear layer that takes each token's hidden state and produces a score for every expert. These scores are passed through softmax to become probabilities.
         </li>
         <li style="padding: var(--space-1) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
-          <strong style="color: var(--sem-attention);">Top-k selection</strong> &mdash; Only the top-k experts (typically k=2) with the highest scores are selected for each token. All other experts are skipped for that token.
+          <strong style="color: var(--sem-attention);">Top-k selection</strong> &mdash; Only the top-k experts with the highest scores are selected for each token (k varies by model — e.g., k=2 in Mixtral, k=8 in Gemma 4 27B). All other experts are skipped for that token.
         </li>
         <li style="padding: var(--space-1) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
           <strong style="color: var(--sem-ffn);">Weighted aggregation</strong> &mdash; Each selected expert processes the token independently, producing its own output. The final output is a weighted sum of the expert outputs, where the weights are the router probabilities (renormalized over just the selected experts).

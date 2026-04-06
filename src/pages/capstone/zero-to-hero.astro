@@ -105,7 +105,7 @@ import GatePanel from '../../components/assessment/GatePanel';
               { id: 'c', text: 'RoPE adds position numbers directly to the token embeddings before they enter the model', isCorrect: false },
               { id: 'd', text: 'RoPE replaces the softmax with a position-aware activation function', isCorrect: false },
             ],
-            explanation: 'Without positional encoding, attention has no way to distinguish token order — the same set of tokens in any arrangement produces the same scores. RoPE applies position-dependent rotations to Q and K so that their dot product depends on relative position, encoding order without explicit position embeddings.',
+            explanation: 'Without positional encoding, attention is permutation-equivariant — reordering tokens merely permutes the scores and outputs, so the model cannot represent that order matters. RoPE applies position-dependent rotations to Q and K so that their dot product depends on relative position, encoding order without explicit position embeddings.',
           },
           {
             id: 'CAPSTONE-q4',
