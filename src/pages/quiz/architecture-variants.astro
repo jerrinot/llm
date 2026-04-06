@@ -51,14 +51,14 @@ import GatePanel from '../../components/assessment/GatePanel';
           {
             id: 'QM5-q3',
             type: 'single_choice',
-            prompt: 'A model uses SWA with window size w = 512 and has 24 SWA layers stacked. What is the maximum theoretical receptive field?',
+            prompt: 'A model uses SWA with window size w = 512 and has 24 SWA layers stacked. Approximately how many tokens back can information theoretically reach?',
             tag: 'math',
             choices: [
-              { id: 'a', text: '512 tokens', isCorrect: false },
-              { id: 'b', text: '12,288 tokens', isCorrect: true },
-              { id: 'c', text: 'Unlimited — SWA has no upper bound', isCorrect: false },
+              { id: 'a', text: '512 tokens — each layer sees only its own window', isCorrect: false },
+              { id: 'b', text: 'About 12,000 tokens — each layer extends the reach by w-1 through the residual stream', isCorrect: true },
+              { id: 'c', text: 'Unlimited — stacking enough layers removes the window constraint entirely', isCorrect: false },
             ],
-            explanation: 'Each SWA layer extends the receptive field by w tokens. With 24 layers and w = 512, the maximum reach is 24 * 512 = 12,288 tokens.',
+            explanation: 'Each SWA layer extends the indirect receptive field by w-1 positions through the residual stream. With 24 layers: 1 + 24 × 511 = 12,265 tokens. But this is indirect access — the signal degrades with distance compared to full attention.',
           },
           {
             id: 'QM5-q4',
@@ -75,14 +75,14 @@ import GatePanel from '../../components/assessment/GatePanel';
           {
             id: 'QM5-q5',
             type: 'single_choice',
-            prompt: 'A GQA model has 32 Q heads and 4 KV heads, with d_head = 128. What is the K shape per token per layer?',
-            tag: 'shape',
+            prompt: 'A MoE model has 64 experts with top-2 routing. During decode, how does this affect memory bandwidth compared to a dense model with the same per-token compute?',
+            tag: 'reasoning',
             choices: [
-              { id: 'a', text: '[32, 128]', isCorrect: false },
-              { id: 'b', text: '[4, 128]', isCorrect: true },
-              { id: 'c', text: '[1, 128]', isCorrect: false },
+              { id: 'a', text: 'Same bandwidth — only 2 experts run, so the same amount of weight data is loaded', isCorrect: false },
+              { id: 'b', text: 'Higher bandwidth — all 64 experts\' weights must be in memory even though only 2 run per token, and different tokens may select different experts', isCorrect: true },
+              { id: 'c', text: 'Lower bandwidth — MoE models are smaller than dense models', isCorrect: false },
             ],
-            explanation: 'K has one vector per KV head. With 4 KV heads and d_head = 128, the shape is [4, 128]. Each KV head is shared by a group of 32/4 = 8 Q heads.',
+            explanation: 'Although only 2 experts compute per token, the full 64-expert weight set must reside in memory. During batched decode, different tokens may route to different experts, requiring loading more distinct weight blocks than a dense model would. This makes MoE especially memory-bandwidth-sensitive during decode.',
           },
         ]}
       />
