@@ -161,8 +161,8 @@ import WorkedSolution from '../../components/course/WorkedSolution.astro';
       </p>
       <p>
         Second, once generation starts, each new token is produced while carrying the accumulated context forward.
-        That means later generated tokens are not independent of prompt length.
-        A long active context can slow generation even if the per-token decode path is cheaper than prefill.
+        That means later generated tokens are not independent of prompt length — the model must reference all prior tokens when computing attention, and the memory needed to store that history grows with each new token.
+        A long active context can slow generation even if the per-token decode path is cheaper than prefill. You will learn the exact mechanisms (attention scaling and KV cache growth) in later modules.
       </p>
       <p>
         This is the systems reason long prompts can feel bad twice: slow time-to-first-token and slower per-token generation afterward.

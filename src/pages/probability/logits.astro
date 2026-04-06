@@ -22,7 +22,7 @@ import SoftmaxInspector from '../../components/interactive/SoftmaxInspector';
         This hidden state needs to become a prediction: which token comes next?
       </p>
       <p>
-        The <strong>output head</strong> is one final linear projection. It takes the hidden state (dimension <code>d_model</code>) and projects it to a vector of size <code>|V|</code> — one score per vocabulary entry.
+        The <strong>output head</strong> is one final linear projection. It takes the hidden state (dimension <code>d_model</code>) and projects it to a vector of size <code>|V|</code> — one score per vocabulary entry. Why a linear projection? Because it is the simplest operation that can transform a d_model-dimensional representation into |V| scores. The transformer layers have already done the hard work of building a rich representation; the output head just needs to map that representation into vocabulary space. A matrix multiply is sufficient, and keeping it simple avoids adding parameters that would be expensive to store and compute for the large |V| dimension.
       </p>
       <p>
         These raw scores are called <strong>logits</strong>. They can be any real number: positive, negative, or zero. A larger logit means the model considers that token more likely — but logits are not yet probabilities.
