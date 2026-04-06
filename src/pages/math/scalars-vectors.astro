@@ -40,6 +40,43 @@ import GatePanel from '../../components/assessment/GatePanel';
     </div>
 
     <div class="lesson-section">
+      <div class="section-label">Vectors Are Arrays (With Math)</div>
+      <p>
+        If you are a software engineer, you already know what a vector is — it is a <strong>fixed-size array of
+        floating-point numbers</strong>. A <code>float[4]</code> in C or a <code>List[float]</code> in Python.
+        The linear algebra term "vector" adds one thing: the assumption that mathematical operations (addition,
+        scaling, dot products) are meaningful on these arrays, not just indexing and iteration.
+      </p>
+      <p>
+        When we say "a vector of dimension 4096," we mean an array of 4096 floats where every operation in the
+        model treats these as coordinates in a 4096-dimensional space. The operations are simple: add two vectors
+        (element-by-element), multiply by a scalar (scale every element), or compute a dot product (multiply
+        corresponding elements and sum). You already know how to do all of these on arrays. The linear algebra
+        just gives them geometric names and guarantees.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">From Vectors to Matrices</div>
+      <p>
+        When the model processes n tokens at once, it has n vectors — one per token. Stacking these vectors into
+        rows gives a <strong>matrix</strong>: a 2D array with n rows and d_model columns. This is the fundamental
+        data structure of inference.
+      </p>
+      <p>
+        In code terms: if each token's hidden state is <code>float[d_model]</code>, then a sequence of n tokens
+        is <code>float[n][d_model]</code> — or in tensor notation, shape [n, d_model]. Every operation in the model
+        works on these matrices: projections multiply them by weight matrices, attention computes pairwise scores
+        across rows, and the FFN transforms each row independently.
+      </p>
+      <p>
+        You do not need to think of matrices as abstract mathematical objects. Think of them as <strong>tables</strong>
+        where each row is one token and each column is one feature. This table-reading skill is what tensor shape
+        narration (L10) will formalize.
+      </p>
+    </div>
+
+    <div class="lesson-section">
       <div class="section-label">Toy Example</div>
       <div class="toy-example">
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-6);">
