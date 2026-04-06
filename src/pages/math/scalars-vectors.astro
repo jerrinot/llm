@@ -28,6 +28,15 @@ import GatePanel from '../../components/assessment/GatePanel';
       <p>
         The important jump is this: a token is no longer "the word cat." Inside the model, it becomes a vector with hundreds or thousands of coordinates. Each coordinate is just a number, but together they form the representation the rest of the network can transform.
       </p>
+      <p>
+        That last sentence is easy to read too quickly, so pause on it. The model does not store one clean, human-readable field like
+        "animalness = 0.82" or "past tense = 0.17" in a single coordinate. The representation is usually <strong>distributed</strong>:
+        many coordinates jointly participate in whatever the model later needs to detect or compute.
+      </p>
+      <p>
+        This is the first big mental shift of the course. A vector is not just "a bunch of numbers." It is the basic container the model uses
+        for everything it knows about a token at a given stage of computation.
+      </p>
     </div>
 
     <div class="lesson-section">
@@ -81,6 +90,25 @@ import GatePanel from '../../components/assessment/GatePanel';
     </div>
 
     <div class="lesson-section">
+      <div class="section-label">Why Vectors Matter in ML</div>
+      <p>
+        In ordinary software, data structures usually have named fields. A request object might have <code>user_id</code>, <code>timestamp</code>,
+        and <code>payload</code>. In neural networks, internal state is usually not stored that way. Instead, the model carries vectors and matrices
+        whose coordinates are meaningful mainly because of how later computations use them.
+      </p>
+      <p>
+        That can feel alien at first. A senior engineer naturally wants to ask: what does coordinate 713 mean? Often there is no satisfying
+        human-scale answer. The right question is usually not "what does this one coordinate mean?" but rather "what operations are applied to
+        this whole vector next?" Once you adopt that lens, model code becomes much easier to follow.
+      </p>
+      <p>
+        This also explains why order inside a vector matters so much. Coordinate 0, coordinate 1, and coordinate 2 are not interchangeable.
+        The learned weight matrices later in the model assume that each position in the vector means something different, even if that meaning is
+        only implicit in the learned computation.
+      </p>
+    </div>
+
+    <div class="lesson-section">
       <div class="section-label">Math</div>
       <p>New notation:</p>
       <div style="font-family: var(--font-mono); font-size: var(--text-sm); background: var(--surface-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); margin: var(--space-3) 0;">
@@ -97,6 +125,19 @@ import GatePanel from '../../components/assessment/GatePanel';
     </div>
 
     <div class="lesson-section">
+      <div class="section-label">A Running Example to Keep</div>
+      <p>
+        For the next few lessons, keep a tiny mental picture in mind: a prompt with three token IDs becomes three vectors, and those three vectors
+        are stacked into a matrix. That small example is enough to understand most of the math that follows.
+      </p>
+      <p>
+        On this page, the only part you need is the atomic unit: one token representation is one vector of length <code>d_model</code>.
+        The next page turns token IDs into those vectors. After that, we will compare vectors, batch them into matrix multiplies, and project
+        them into new spaces.
+      </p>
+    </div>
+
+    <div class="lesson-section">
       <div class="section-label">Implementation Hook</div>
       <div class="impl-hook">
         <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
@@ -106,6 +147,10 @@ import GatePanel from '../../components/assessment/GatePanel';
         </p>
         <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-top: var(--space-3);">
           When you later see a tensor shaped <code>[n_tokens, d_model]</code>, read it as "one vector per token." That single reading habit will unlock a large fraction of model code.
+        </p>
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-top: var(--space-3);">
+          This is also why shape narration matters so much. If you can say "this object is a batch of token vectors" instead of merely reciting
+          the raw dimensions, you are already reading the code semantically rather than syntactically.
         </p>
       </div>
     </div>
@@ -120,6 +165,10 @@ import GatePanel from '../../components/assessment/GatePanel';
         </p>
         <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-top: var(--space-3);">
           Bigger vectors do not just mean "more capacity." They also mean wider projections, larger KV caches, and more bytes moved through every layer.
+        </p>
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-top: var(--space-3);">
+          So even this humble lesson has a direct systems consequence: choosing a larger <code>d_model</code> changes almost every major runtime cost
+          in the network. Wider vectors ripple into attention, FFN width, memory traffic, cache footprint, and total parameter count.
         </p>
       </div>
     </div>

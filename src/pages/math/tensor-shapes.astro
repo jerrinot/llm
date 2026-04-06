@@ -25,6 +25,11 @@ import GatePanel from '../../components/assessment/GatePanel';
       <p>
         The practical trick is to narrate every axis in plain language. Do not just memorize <code>[32, 2048]</code>. Say: "32 tokens, each with 2048 features." That verbal translation is what makes code readable.
       </p>
+      <p>
+        This is the lesson where the earlier pages are supposed to lock together.
+        Scalars, vectors, dot products, matrices, and projections all become manageable once you can look at a tensor shape and say what each axis means.
+        Without that skill, model code feels like a blur of operators. With it, the code starts to read like a dataflow graph.
+      </p>
     </div>
 
     <div class="lesson-section">
@@ -69,6 +74,23 @@ import GatePanel from '../../components/assessment/GatePanel';
     </div>
 
     <div class="lesson-section">
+      <div class="section-label">A Shape-Reading Workflow</div>
+      <p>
+        When you hit a tensor in model code, use the same four-step workflow every time:
+      </p>
+      <ol style="padding-left: var(--space-5); font-size: var(--text-sm); color: var(--ink-secondary); display: grid; gap: var(--space-2);">
+        <li>State the raw shape.</li>
+        <li>Name each axis in plain English.</li>
+        <li>Ask what operation produced it.</li>
+        <li>Ask what operation will consume it next.</li>
+      </ol>
+      <p>
+        That simple routine prevents most early confusion. You stop seeing tensors as anonymous arrays and start seeing them as typed pieces of
+        the computation: hidden states, projections, scores, probabilities, caches.
+      </p>
+    </div>
+
+    <div class="lesson-section">
       <div class="section-label">Math</div>
       <p>No new formulas. The skill here is reading shapes:</p>
       <ul style="list-style: disc; padding-left: var(--space-5); font-size: var(--text-sm); color: var(--ink-secondary);">
@@ -86,6 +108,64 @@ import GatePanel from '../../components/assessment/GatePanel';
     </div>
 
     <div class="lesson-section">
+      <div class="section-label">Three Progressive Shape Traces</div>
+      <div class="toy-example">
+        <div style="display: grid; gap: var(--space-4);">
+          <div>
+            <p style="font-family: var(--font-mono); font-size: var(--text-xs); color: var(--ink-ghost); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: var(--space-2);">Trace 1: embedding</p>
+            <div style="font-family: var(--font-mono); font-size: var(--text-sm); display: grid; gap: 4px;">
+              <div>token_ids: [3]</div>
+              <div>embedding_table: [|V|, 4]</div>
+              <div>hidden: [3, 4]</div>
+            </div>
+            <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-top: var(--space-2);">
+              Read it as: three token positions, each now represented by a 4-dimensional vector.
+            </p>
+          </div>
+          <div>
+            <p style="font-family: var(--font-mono); font-size: var(--text-xs); color: var(--ink-ghost); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: var(--space-2);">Trace 2: projection</p>
+            <div style="font-family: var(--font-mono); font-size: var(--text-sm); display: grid; gap: 4px;">
+              <div>hidden: [3, 4]</div>
+              <div>W_q: [4, 2]</div>
+              <div>Q: [3, 2]</div>
+            </div>
+            <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-top: var(--space-2);">
+              Read it as: the same three token positions, now each expressed in a 2-dimensional query space.
+            </p>
+          </div>
+          <div>
+            <p style="font-family: var(--font-mono); font-size: var(--text-xs); color: var(--ink-ghost); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: var(--space-2);">Trace 3: attention scores</p>
+            <div style="font-family: var(--font-mono); font-size: var(--text-sm); display: grid; gap: 4px;">
+              <div>Q: [3, 2]</div>
+              <div>K: [3, 2]</div>
+              <div>scores: [3, 3]</div>
+            </div>
+            <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-top: var(--space-2);">
+              Read it as: every token position compared against every token position.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Common Shape Mistakes</div>
+      <p>
+        The most common beginner error is to track numbers but not meanings. A learner memorizes that
+        <code>[32, 64] × [64, 32] → [32, 32]</code> and still does not understand what happened.
+        The cure is always the same: narrate the axes.
+      </p>
+      <p>
+        Another mistake is to let the same symbol drift semantically. For example, <code>64</code> might mean a feature width on one line and a
+        token count on the next. Shapes only help if you keep the meaning of each axis attached to the number.
+      </p>
+      <p>
+        The final common mistake is to ignore reshapes and transposes. In real implementations, a tensor may carry the same numeric contents while
+        changing layout or axis meaning. When a reshape happens, stop and restate the axes before continuing.
+      </p>
+    </div>
+
+    <div class="lesson-section">
       <div class="section-label">Implementation Hook</div>
       <div class="impl-hook">
         <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
@@ -95,6 +175,10 @@ import GatePanel from '../../components/assessment/GatePanel';
         </p>
         <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-top: var(--space-3);">
           The useful habit is: when a tensor is created, renamed, or reshaped, stop and restate what each axis now means. That is the fastest way to stop code from becoming a blur of operators.
+        </p>
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-top: var(--space-3);">
+          This is especially valuable in systems work. Performance discussions often sound abstract until you connect them back to shapes:
+          how many token rows, how many feature columns, how much reuse, how many pairwise comparisons, what changes between prefill and decode.
         </p>
       </div>
     </div>
@@ -107,6 +191,10 @@ import GatePanel from '../../components/assessment/GatePanel';
         </p>
         <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-top: var(--space-3);">
           Shapes also explain why attention is special: projections scale linearly with token count, but score matrices scale with token-count squared because they compare token positions against one another.
+        </p>
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-top: var(--space-3);">
+          In other words, shape reasoning is already performance reasoning in disguise. Before you open a profiler, the shapes often tell you which
+          operations are likely to dominate.
         </p>
       </div>
     </div>

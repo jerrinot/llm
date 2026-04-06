@@ -28,6 +28,11 @@ import GatePanel from '../../components/assessment/GatePanel';
       <p>
         The token ID itself does not carry useful geometry. ID <code>791</code> is not "bigger" or "closer" to ID <code>792</code> in any meaningful way. The embedding table gives each token a learned position in a high-dimensional space the model can actually use.
       </p>
+      <p>
+        That is the heart of the lesson: embeddings are the model's first meaningful numerical representation of discrete symbols.
+        Before the lookup, the input is just a sequence of labels. After the lookup, the model has something it can compare, project,
+        normalize, and transform with linear algebra.
+      </p>
     </div>
 
     <div class="lesson-section">
@@ -71,6 +76,25 @@ import GatePanel from '../../components/assessment/GatePanel';
     </div>
 
     <div class="lesson-section">
+      <div class="section-label">Why Learned Geometry Helps</div>
+      <p>
+        Imagine trying to do model computation directly on token IDs. The numbers themselves would be misleading. Token ID <code>100</code> is not
+        "twice as meaningful" as token ID <code>50</code>, and ID <code>791</code> is not inherently similar to ID <code>792</code>.
+        The integers are labels, not coordinates in a useful space.
+      </p>
+      <p>
+        The embedding table fixes that by assigning each vocabulary item a learned vector. Now the model can place frequently co-occurring or
+        functionally similar pieces into regions of representation space that later layers can exploit.
+        You do not need to imagine the full geometry precisely. The key point is simpler: the model replaces arbitrary IDs with a representation
+        that supports meaningful algebra.
+      </p>
+      <p>
+        This is also why embeddings are learned rather than hand-written. Nobody manually specifies what each coordinate should mean.
+        Training discovers an arrangement of vectors that makes later prediction easier.
+      </p>
+    </div>
+
+    <div class="lesson-section">
       <div class="section-label">Math</div>
       <p>Embedding is a table lookup, not a computation:</p>
       <div style="font-family: var(--font-mono); font-size: var(--text-sm); background: var(--surface-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); margin: var(--space-3) 0;">
@@ -83,6 +107,38 @@ import GatePanel from '../../components/assessment/GatePanel';
     </div>
 
     <div class="lesson-section">
+      <div class="section-label">Embedding State vs Hidden State</div>
+      <p>
+        It is important not to over-interpret embeddings. They are the <strong>initial</strong> representation of each token, not the final one.
+        Later layers will add positional information, compare tokens with one another, and repeatedly transform these vectors.
+        By the time the model is deep into the network, the hidden state for a token carries much more than the original embedding row.
+      </p>
+      <p>
+        That distinction matters when reading code. The embedding table is static model data. The hidden states are dynamic per-request tensors.
+        Confusing those two leads to a lot of conceptual bugs when people first read transformer implementations.
+      </p>
+      <p>
+        A useful informal phrase is:
+        "the embedding tells the model what token this is before context starts to matter; the hidden state tells the model what this token means here, in this sequence, after many layers of processing."
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">A Repeated Token Does and Does Not Stay the Same</div>
+      <p>
+        If the same token ID appears twice, the same embedding row is looked up twice. At the embedding step, those two positions start from the
+        same vector. That part is simple.
+      </p>
+      <p>
+        But that does <strong>not</strong> mean those positions remain identical forever. Later, position handling and contextual processing will
+        cause the two token positions to diverge. The same word in two different places can end up with very different hidden states.
+      </p>
+      <p>
+        So the embedding table gives you a shared starting point, not a permanent identity.
+      </p>
+    </div>
+
+    <div class="lesson-section">
       <div class="section-label">Implementation Hook</div>
       <div class="impl-hook">
         <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
@@ -90,6 +146,10 @@ import GatePanel from '../../components/assessment/GatePanel';
         </p>
         <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-top: var(--space-3);">
           This is the first place where symbolic input becomes numeric state. From here onward, the model only sees floating-point tensors, never strings.
+        </p>
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-top: var(--space-3);">
+          That is why model-loading bugs around vocabulary order are so dangerous. If token IDs point at the wrong embedding rows, the rest of the
+          model is operating on the wrong starting vectors even though all later tensor code may still look numerically valid.
         </p>
       </div>
     </div>
@@ -102,6 +162,10 @@ import GatePanel from '../../components/assessment/GatePanel';
         </p>
         <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-top: var(--space-3);">
           This is an important systems pattern: the embedding lookup is not compute-heavy like matrix multiply. It is more about memory footprint and memory access.
+        </p>
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-top: var(--space-3);">
+          That makes embeddings a good example of why "hot" code is not always "math-heavy" code. Some inference costs are dominated by arithmetic,
+          while others are dominated by storing and fetching large parameter tables efficiently.
         </p>
       </div>
     </div>

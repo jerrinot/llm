@@ -34,6 +34,11 @@ import DotProductPlayground from '../../components/interactive/DotProductPlaygro
       <p>
         In later modules, you will see that the dot product is central to how the model compares tokens and transforms representations. Understanding this operation is essential.
       </p>
+      <p>
+        The most useful engineering phrase for a dot product is not just "similarity." It is a <strong>weighted compatibility score</strong>.
+        Every coordinate contributes according to both vectors. Matching large coordinates push the score up. Opposing coordinates pull it down.
+        Coordinates near zero contribute little.
+      </p>
     </div>
 
     <div class="lesson-section">
@@ -90,6 +95,24 @@ import DotProductPlayground from '../../components/interactive/DotProductPlaygro
     </div>
 
     <div class="lesson-section">
+      <div class="section-label">How to Read the Score</div>
+      <p>
+        A dot product is best understood as a sum of local agreements and disagreements.
+        One coordinate says, effectively, "I vote for these vectors going together."
+        Another coordinate may say the opposite.
+        The final scalar is the total result after all of those coordinate-level votes are aggregated.
+      </p>
+      <p>
+        This is why the operation fits attention so well. A query vector can be thought of as saying what kinds of features it is looking for.
+        A key vector says what kinds of features are present. The dot product is then a score for how strongly those needs and offerings line up.
+      </p>
+      <p>
+        That is more specific and more useful than vague "similarity." Two vectors can be compatible for one task because the coordinates that matter
+        to the current computation line up strongly, even if a human would not describe them as semantically similar in ordinary language.
+      </p>
+    </div>
+
+    <div class="lesson-section">
       <div class="section-label">Math</div>
       <div style="font-family: var(--font-mono); font-size: var(--text-sm); background: var(--surface-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); margin: var(--space-3) 0;">
         <div style="color: var(--sem-token);">a &middot; b = &sum;&#x1D62; a&#x1D62; &times; b&#x1D62;</div>
@@ -103,6 +126,38 @@ import DotProductPlayground from '../../components/interactive/DotProductPlaygro
     </div>
 
     <div class="lesson-section">
+      <div class="section-label">Cases Worth Memorizing</div>
+      <div class="toy-example">
+        <table style="width: 100%; border-collapse: collapse; font-size: var(--text-sm);">
+          <thead>
+            <tr style="border-bottom: var(--border-default);">
+              <th style="text-align: left; padding: var(--space-2); color: var(--ink-ghost); font-weight: 400; font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.08em;">Pattern</th>
+              <th style="text-align: left; padding: var(--space-2); color: var(--ink-ghost); font-weight: 400; font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.08em;">Effect on score</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr style="border-bottom: var(--border-subtle);">
+              <td style="padding: var(--space-2); font-family: var(--font-mono);">large positive × large positive</td>
+              <td style="padding: var(--space-2); color: var(--ink-secondary);">Strong positive contribution</td>
+            </tr>
+            <tr style="border-bottom: var(--border-subtle);">
+              <td style="padding: var(--space-2); font-family: var(--font-mono);">large positive × large negative</td>
+              <td style="padding: var(--space-2); color: var(--ink-secondary);">Strong negative contribution</td>
+            </tr>
+            <tr style="border-bottom: var(--border-subtle);">
+              <td style="padding: var(--space-2); font-family: var(--font-mono);">small value × anything</td>
+              <td style="padding: var(--space-2); color: var(--ink-secondary);">Small effect, because that coordinate barely votes</td>
+            </tr>
+            <tr>
+              <td style="padding: var(--space-2); font-family: var(--font-mono);">many medium matches</td>
+              <td style="padding: var(--space-2); color: var(--ink-secondary);">Can outweigh one dramatic mismatch because the sum aggregates all coordinates</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="lesson-section">
       <div class="section-label">Implementation Hook</div>
       <div class="impl-hook">
         <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
@@ -110,6 +165,10 @@ import DotProductPlayground from '../../components/interactive/DotProductPlaygro
         </p>
         <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-top: var(--space-3);">
           In other words: once you understand one dot product, you already understand the inner loop of a huge amount of model code. The next page scales that idea up to full matrix multiplication.
+        </p>
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-top: var(--space-3);">
+          This is a major code-reading milestone. Many low-level kernels look intimidating only because they optimize the mechanics of performing
+          the same multiply-and-accumulate pattern at scale.
         </p>
       </div>
     </div>
@@ -123,6 +182,10 @@ import DotProductPlayground from '../../components/interactive/DotProductPlaygro
         </p>
         <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-top: var(--space-3);">
           For one token pair this is tiny. For 1,024 tokens, the model needs over a million pairwise scores in one attention head. That is why such a simple primitive becomes a real runtime cost.
+        </p>
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-top: var(--space-3);">
+          This is one of the recurring lessons of systems work on LLMs: a tiny primitive repeated often enough becomes the product.
+          The mathematical idea is simple; the engineering challenge is making that simple idea run efficiently for enormous shapes.
         </p>
       </div>
     </div>

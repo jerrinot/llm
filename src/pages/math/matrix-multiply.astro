@@ -28,6 +28,10 @@ import MatrixMultiplyBuilder from '../../components/interactive/MatrixMultiplyBu
       <p>
         A useful way to think about it: each row of A is one input item, and each column of B is one output feature. Matrix multiplication asks, for every input row and every output feature, "how strongly do these line up?"
       </p>
+      <p>
+        That last sentence is the real transformer bridge. If the rows of <code>A</code> are token states and the columns of <code>B</code> are learned
+        output features, then matrix multiply is the operation that applies one learned transformation to an entire token batch at once.
+      </p>
     </div>
 
     <div class="lesson-section">
@@ -99,6 +103,23 @@ import MatrixMultiplyBuilder from '../../components/interactive/MatrixMultiplyBu
     </div>
 
     <div class="lesson-section">
+      <div class="section-label">From One Dot Product to a Whole Token Batch</div>
+      <p>
+        The previous lesson taught you how one vector compares to another. Matrix multiplication simply scales that up.
+        Instead of asking for one score, you ask for every output feature for every input row.
+      </p>
+      <p>
+        In LLM terms, imagine <code>A</code> as a matrix of hidden states shaped <code>[n_tokens, d_model]</code>.
+        Each row is one token vector. Now imagine <code>B</code> as a learned projection matrix shaped <code>[d_model, d_out]</code>.
+        Each column is one output feature the model wants to compute.
+      </p>
+      <p>
+        Then <code>A × B</code> means: for every token row, compute all of the output features defined by the projection matrix.
+        This is why matrix multiply shows up everywhere in transformer code. It is the natural way to transform a whole sequence of token vectors in one operation.
+      </p>
+    </div>
+
+    <div class="lesson-section">
       <div class="section-label">Math</div>
       <div style="font-family: var(--font-mono); font-size: var(--text-sm); background: var(--surface-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); margin: var(--space-3) 0;">
         <div style="color: var(--sem-token);">C[i,j] = &sum;&#x2096; A[i,k] &times; B[k,j]</div>
@@ -106,6 +127,21 @@ import MatrixMultiplyBuilder from '../../components/interactive/MatrixMultiplyBu
       </div>
       <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
         So matrix multiplication is not mysterious new math. It is a scheduling pattern for many dot products. The outer grid tells you how many results you need. The inner dimension tells you how much work each result costs.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Common Misreadings</div>
+      <p>
+        Beginners often confuse matrix multiplication with elementwise multiplication. They are completely different operations.
+        Elementwise multiplication keeps the same shape and multiplies entries in the same positions. Matrix multiplication forms new outputs by
+        summing across the shared inner dimension.
+      </p>
+      <p>
+        Another common mistake is to memorize the shape rule mechanically without understanding the semantics. Do not stop at
+        <code>[m, k] × [k, n] → [m, n]</code>. Translate it. Say:
+        "I have <code>m</code> input rows. Each row has <code>k</code> features. I want <code>n</code> output features for each row."
+        That verbal narration is what makes the operation useful rather than ceremonial.
       </p>
     </div>
 
@@ -120,6 +156,10 @@ import MatrixMultiplyBuilder from '../../components/interactive/MatrixMultiplyBu
         <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-top: var(--space-3);">
           When you later read code like hidden states multiplied by <code>W_q</code> or <code>W_up</code>, mentally translate it into: "many row-column dot products happening in parallel."
         </p>
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-top: var(--space-3);">
+          This translation is worth practicing because it collapses a lot of apparent complexity. A huge amount of transformer code is ultimately
+          "take this batch of token vectors and apply this learned linear map."
+        </p>
       </div>
     </div>
 
@@ -132,6 +172,11 @@ import MatrixMultiplyBuilder from '../../components/interactive/MatrixMultiplyBu
         </p>
         <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-top: var(--space-3);">
           It is also one of the operations hardware handles best, because the same rows and columns get reused many times. This is why GEMM kernels are so heavily optimized.
+        </p>
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-top: var(--space-3);">
+          That reuse point matters. Matrix multiply is expensive, but it is structured work: rows and columns are reused enough that optimized kernels
+          can amortize memory traffic and keep the arithmetic units busy. This is one reason matrix-heavy phases like prefill behave differently from
+          more memory-sensitive decode paths.
         </p>
       </div>
     </div>

@@ -27,6 +27,10 @@ import GatePanel from '../../components/assessment/GatePanel';
       <p>
         This is the bridge from linear algebra to transformer semantics. The same hidden state can be projected into different spaces with different learned matrices. That is why one input vector can become a query, a key, a value, or an FFN-expanded representation.
       </p>
+      <p>
+        Another way to say this: a projection is not merely resizing a vector. It is <strong>re-expressing</strong> that vector in a new learned coordinate system.
+        The output coordinates ask different questions of the input than the original coordinates did.
+      </p>
     </div>
 
     <div class="lesson-section">
@@ -73,6 +77,24 @@ import GatePanel from '../../components/assessment/GatePanel';
     </div>
 
     <div class="lesson-section">
+      <div class="section-label">What One Output Coordinate Really Is</div>
+      <p>
+        Focus on a single column of the weight matrix. That column defines one output coordinate.
+        In the toy example, the first output coordinate of <code>hidden × W_q</code> is the dot product between
+        <code>hidden</code> and the first column of <code>W_q</code>.
+      </p>
+      <p>
+        So each output coordinate is a learned weighted sum of the input coordinates.
+        If the input vector has features the model cares about for that output role, the corresponding weights amplify or suppress those features.
+        The full projection simply computes many such learned coordinates at once.
+      </p>
+      <p>
+        This is why columns of the projection matrix are such a useful mental object.
+        Each column is one learned feature extractor for the new representation space.
+      </p>
+    </div>
+
+    <div class="lesson-section">
       <div class="section-label">Shapes</div>
       <div class="shape-card">
         <div>Projection: X [n_tokens, d_in] &times; W [d_in, d_out] = Y [n_tokens, d_out]</div>
@@ -84,6 +106,23 @@ import GatePanel from '../../components/assessment/GatePanel';
     </div>
 
     <div class="lesson-section">
+      <div class="section-label">Why Different Projections Create Different Roles</div>
+      <p>
+        Suppose the same hidden state goes through <code>W_q</code>, <code>W_k</code>, and <code>W_v</code>.
+        The input row is identical in all three cases. What changes is the learned matrix.
+      </p>
+      <p>
+        That means each projection asks a different set of questions of the same input.
+        One learned space may be good for "what information am I looking for?" Another may be good for
+        "what information do I contain that others might want?" Another may be good for the actual content to be transferred forward.
+      </p>
+      <p>
+        The exact semantics are learned, not hand-programmed. But the structural idea is simple:
+        change the projection matrix, and you change the operational role of the resulting vector.
+      </p>
+    </div>
+
+    <div class="lesson-section">
       <div class="section-label">Math</div>
       <div style="font-family: var(--font-mono); font-size: var(--text-sm); background: var(--surface-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); margin: var(--space-3) 0;">
         <div style="color: var(--sem-token);">Y = X W</div>
@@ -91,6 +130,23 @@ import GatePanel from '../../components/assessment/GatePanel';
       </div>
       <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
         Read the columns of <code>W</code> as output features. Each column tells you how to combine the input coordinates to produce one output coordinate.
+      </p>
+      <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+        For a whole token sequence, the same projection matrix is applied to every token row. That shared learned map is exactly what gives
+        transformer layers their strong regular structure.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">A Whole Sequence View</div>
+      <p>
+        The toy example used one hidden vector because that is the smallest readable case. But real inference nearly always applies projections to
+        a matrix of hidden states, not a single row.
+      </p>
+      <p>
+        If <code>X</code> has shape <code>[n_tokens, d_model]</code>, then the projection produces <code>Y = XW</code> with shape
+        <code>[n_tokens, d_out]</code>. Each token row is remapped into the new space, and all rows share the same learned matrix.
+        This "one matrix, many token rows" pattern is one of the most important repeated structures in the entire model.
       </p>
     </div>
 
@@ -104,6 +160,10 @@ import GatePanel from '../../components/assessment/GatePanel';
         <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-top: var(--space-3);">
           This is why transformer code can look repetitive: same operation family, different tensors, different semantic role.
         </p>
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-top: var(--space-3);">
+          Once you internalize that pattern, code navigation gets much easier. A projection site is no longer mysterious. You can ask:
+          what is the input shape, what is the weight shape, what output shape comes out, and what semantic role does this output play next?
+        </p>
       </div>
     </div>
 
@@ -115,6 +175,10 @@ import GatePanel from '../../components/assessment/GatePanel';
         </p>
         <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-top: var(--space-3);">
           This also explains why prefill and decode feel different: in prefill, many token rows are multiplied at once; in decode, one row is multiplied by many large matrices repeatedly.
+        </p>
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-top: var(--space-3);">
+          That distinction becomes central later when you reason about GEMM versus GEMV behavior. The math operation family is the same, but the
+          runtime regime changes a lot depending on whether you are projecting many rows at once or one row at a time.
         </p>
       </div>
     </div>
