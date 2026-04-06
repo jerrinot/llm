@@ -199,13 +199,14 @@ import SoftmaxInspector from '../../components/interactive/SoftmaxInspector';
     </div>
 
     <div class="lesson-section">
-      <div class="section-label">Softmax Appears Twice in a Transformer</div>
+      <div class="section-label">Softmax Appears Twice in the Model</div>
       <p>
         You have seen softmax here at the output head, turning logits into next-token probabilities.
-        You will see it again inside the transformer block: in attention, softmax converts raw Q&middot;K<sup>T</sup>
-        scores into attention weights that sum to 1 across the attended positions. The same formula, the same
-        properties (positive, sums to 1), the same numerical stability trick — just applied at a different point
-        in the computation.
+        In Module 4, you will see it again inside the model's layers: when tokens compare their queries against keys
+        to decide "how much should I attend to each previous token?", softmax converts those raw comparison scores
+        into weights that sum to 1. The same formula, the same properties (positive, sums to 1), the same numerical
+        stability trick — just applied at a different point in the computation. When you reach that lesson, the math
+        will already be familiar.
       </p>
     </div>
 

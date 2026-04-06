@@ -18,10 +18,12 @@ import SoftmaxInspector from '../../components/interactive/SoftmaxInspector';
     <div class="lesson-section">
       <div class="section-label">Intuition</div>
       <p>
-        After all transformer layers have run, the model has a final hidden state for the last token position —
-        a dense vector of dimension <code>d_model</code> that encodes everything the model "knows" about what should
-        come next. But this vector lives in the model's internal representation space. It does not directly tell you
-        which vocabulary token to output.
+        You have learned that token IDs become embedding vectors, and that those vectors can be transformed by
+        projections. Inside the model, a series of processing steps (which you will learn in detail in Module 4) transforms
+        the initial embeddings into a final <strong>hidden state</strong> for the last token position — a dense vector of
+        dimension <code>d_model</code> that encodes everything the model "knows" about what should come next. For now,
+        treat the model as a black box that takes in token embeddings and outputs a hidden-state vector. The important
+        thing is what happens to that vector <em>after</em> the model finishes.
       </p>
       <p>
         The <strong>output head</strong> bridges this gap. It is one final linear projection (a matrix multiply) that
@@ -34,9 +36,9 @@ import SoftmaxInspector from '../../components/interactive/SoftmaxInspector';
     <div class="lesson-section">
       <div class="section-label">Why a Linear Projection?</div>
       <p>
-        You might ask: why not something more complex? The answer is that the transformer layers have already done
-        the heavy lifting — dozens of layers of attention and FFN have transformed the initial embeddings into a
-        representation that encodes the next-token prediction implicitly. The output head only needs to "read out"
+        You might ask: why not something more complex? The answer is that the model's internal processing layers
+        (which you will learn about in Module 4) have already done the heavy lifting — they have transformed the initial
+        embeddings into a rich representation that encodes the next-token prediction implicitly. The output head only needs to "read out"
         that prediction into vocabulary space. A matrix multiply (with a weight matrix W<sub>out</sub> of shape
         [d_model, |V|]) is sufficient for this readout.
       </p>

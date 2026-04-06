@@ -17,7 +17,17 @@ import GatePanel from '../../components/assessment/GatePanel';
     <div class="lesson-section">
       <div class="section-label">Intuition</div>
       <p>
-        A transformer model is a stack of identical layers. Each layer takes in a set of hidden states — one vector per token (the [n_tokens, d_model] matrix you have been building since M2) — and produces updated hidden states of the same shape.
+        So far, you know how text becomes token IDs, how token IDs become embedding vectors, how projections transform
+        vectors, how logits score the vocabulary, and how softmax produces probabilities. The missing piece is the
+        <strong>model itself</strong> — the part that transforms initial embeddings into the rich hidden state that
+        the output head reads.
+      </p>
+      <p>
+        That model is built from <strong>layers</strong>. A "layer" (also called a "block") is a fixed sequence of
+        operations that takes in a set of hidden states — one vector per token (the [n_tokens, d_model] matrix
+        from M2) — and produces updated hidden states of the same shape. The model repeats this layer many times:
+        a 32-layer model applies the same pattern 32 times, each with its own learned weights. The output of layer 1
+        becomes the input to layer 2, and so on.
       </p>
       <p>
         Inside each layer, two things happen:
