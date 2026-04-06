@@ -23,7 +23,7 @@ import GatePanel from '../../components/assessment/GatePanel';
         <strong>Logits comparison</strong> is the most direct check: run the same prompt through the original and optimized models and compare the raw logit vectors. If the logits match (or differ by only floating-point rounding), the optimization is safe. If they diverge meaningfully, something has changed.
       </p>
       <p>
-        <strong>Perplexity</strong> provides a higher-level check. Perplexity measures how surprised the model is by a test dataset &mdash; specifically, it is the exponentiated average negative log-likelihood of the correct next token. <em>Lower</em> perplexity means the model assigns higher probability to the right answers, which means better predictions. If perplexity increases after an optimization, the model has gotten worse at predicting, even if it runs faster.
+        <strong>Perplexity</strong> provides a higher-level check. Perplexity measures how surprised the model is by a test dataset &mdash; specifically, it is the exponentiated average negative log-likelihood of the correct next token. <em>Lower</em> perplexity means the model assigns higher probability to the right answers, which means better predictions. Typical large models score around 5&ndash;8 on wikitext-2. If your model scores 7.2 before an optimization and 7.3 after, that is likely within tolerance. If it jumps to 9.0+, something has broken. If perplexity increases meaningfully after an optimization, the model has gotten worse at predicting, even if it runs faster.
       </p>
       <p>
         A valid speedup shows: same or negligibly different logits, and no perplexity regression on a standard test set.

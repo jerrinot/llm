@@ -284,7 +284,7 @@ import WorkedSolution from '../../components/course/WorkedSolution.astro';
               { id: 'b', text: 'The whole word may re-tokenize into completely different pieces because token merges depend on character sequences', isCorrect: true },
               { id: 'c', text: 'Nothing changes — the tokenizer works on whole words', isCorrect: false },
             ],
-            explanation: 'Tokenizers use learned merge rules over character sequences. Changing one character can break a merge, causing the word to fragment differently. "running" might be one token, but "runnxng" might become "run" + "nx" + "ng" — completely different pieces.',
+            explanation: 'Tokenizers use learned merge rules over character sequences. Changing one character can break a merge, causing the word to fragment differently. A word that was one token may become several smaller pieces — the exact split depends on the tokenizer, but the principle is universal.',
           },
           {
             id: 'L02-q3',

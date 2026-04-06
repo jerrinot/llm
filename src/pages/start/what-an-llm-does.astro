@@ -20,7 +20,7 @@ import GatePanel from '../../components/assessment/GatePanel';
         An LLM does one core computation: given a sequence of previous tokens, it produces scores over which token should come next.
       </p>
       <p>
-        It does not directly emit a finished word or sentence from nowhere. It computes a score for <strong>every token in its vocabulary</strong> — all of them, every time. The architecture commits to scoring the entire vocabulary on every step because the output head is a single linear projection from hidden state to vocabulary size. There is no shortcut that only scores "likely" candidates; the model does not know which tokens are likely until it has scored them all.
+        It does not directly emit a finished word or sentence from nowhere. It computes a score for <strong>every token in its vocabulary</strong> — all of them, every time. In the standard setup, the last step is one matrix multiply that produces one score for every vocabulary entry. The model's hidden state already encodes the information, but the scores make it explicit and comparable.
         A decoding rule such as argmax or sampling then turns those scores into one chosen next token.
       </p>
       <p>
