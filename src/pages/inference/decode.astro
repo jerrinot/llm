@@ -54,6 +54,53 @@ import GatePanel from '../../components/assessment/GatePanel';
     </div>
 
     <div class="lesson-section">
+      <div class="section-label">Why Decode Is Memory-Bound: A Concrete Analysis</div>
+      <p>
+        During decode, the model loads the same weight matrices as during prefill — but does far less arithmetic with them.
+        Consider one FFN down-projection: the weight matrix W_down has shape [d_ff, d_model]. With d_ff = 16,384 and
+        d_model = 4,096:
+      </p>
+      <ul style="list-style: none; padding: 0; margin: var(--space-3) 0;">
+        <li style="padding: var(--space-1) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          <strong>Bytes loaded:</strong> 16,384 &times; 4,096 &times; 2 (FP16) = ~134 MB for this one weight matrix.
+        </li>
+        <li style="padding: var(--space-1) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          <strong>FLOPs performed:</strong> 2 &times; 16,384 &times; 4,096 = ~134 million multiply-add operations (a matrix-vector product).
+        </li>
+        <li style="padding: var(--space-1) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          <strong>Arithmetic intensity:</strong> 134M FLOPs / 134 MB = ~1 FLOP/byte. At a machine balance of 100 FLOP/byte, the hardware spends 99% of its time waiting for data.
+        </li>
+      </ul>
+      <p>
+        This is the fundamental reason decode is slow: each weight element is loaded from memory but used only once (for one token).
+        During prefill with n tokens, the same weight is used n times, making the arithmetic intensity n times higher.
+        This is the same analysis you will formalize in M7, but the intuition is simple: <strong>one token cannot keep the hardware busy</strong>.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">What This Means for Latency</div>
+      <p>
+        Decode latency (time per generated token) is dominated by how fast you can stream weight data through the memory bus.
+        Improvements that help prefill (better matrix-multiply kernels, larger batch sizes) help decode very little,
+        because decode is not bottlenecked on compute. Instead, decode benefits from:
+      </p>
+      <ul style="list-style: none; padding: 0; margin: var(--space-3) 0;">
+        <li style="padding: var(--space-1) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          <strong>Quantization</strong> — smaller weights means fewer bytes to load (you will learn this in M7).
+        </li>
+        <li style="padding: var(--space-1) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          <strong>Fewer KV heads</strong> (GQA/MQA) — less KV cache data to read per attention layer.
+        </li>
+        <li style="padding: var(--space-1) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          <strong>Batching multiple requests</strong> — processing several users' decode tokens at once increases
+          arithmetic intensity because the loaded weights serve multiple tokens. This is why serving latency and
+          throughput are in tension.
+        </li>
+      </ul>
+    </div>
+
+    <div class="lesson-section">
       <div class="section-label">Shapes</div>
       <div class="shape-card">
         <div>New Q per head: [1, d_head]</div>
