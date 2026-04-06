@@ -18,69 +18,147 @@ import SoftmaxInspector from '../../components/interactive/SoftmaxInspector';
     <div class="lesson-section">
       <div class="section-label">Intuition</div>
       <p>
-        After all transformer layers have run, the model has a final hidden state for the last token position.
-        This hidden state needs to become a prediction: which token comes next?
+        After all transformer layers have run, the model has a final hidden state for the last token position —
+        a dense vector of dimension <code>d_model</code> that encodes everything the model "knows" about what should
+        come next. But this vector lives in the model's internal representation space. It does not directly tell you
+        which vocabulary token to output.
       </p>
       <p>
-        The <strong>output head</strong> is one final linear projection. It takes the hidden state (dimension <code>d_model</code>) and projects it to a vector of size <code>|V|</code> — one score per vocabulary entry. Why a linear projection? Because it is the simplest operation that can transform a d_model-dimensional representation into |V| scores. The transformer layers have already done the hard work of building a rich representation; the output head just needs to map that representation into vocabulary space. A matrix multiply is sufficient, and keeping it simple avoids adding parameters that would be expensive to store and compute for the large |V| dimension.
-      </p>
-      <p>
-        These raw scores are called <strong>logits</strong>. They can be any real number: positive, negative, or zero. A larger logit means the model considers that token more likely — but logits are not yet probabilities.
+        The <strong>output head</strong> bridges this gap. It is one final linear projection (a matrix multiply) that
+        maps the hidden state from <code>d_model</code> dimensions to <code>|V|</code> dimensions — one number per
+        vocabulary entry. The result is a vector of <strong>logits</strong>: raw, unbounded scores that rank every token
+        in the vocabulary.
       </p>
     </div>
 
     <div class="lesson-section">
-      <div class="section-label">Interactive — Softmax Inspector</div>
+      <div class="section-label">Why a Linear Projection?</div>
+      <p>
+        You might ask: why not something more complex? The answer is that the transformer layers have already done
+        the heavy lifting — dozens of layers of attention and FFN have transformed the initial embeddings into a
+        representation that encodes the next-token prediction implicitly. The output head only needs to "read out"
+        that prediction into vocabulary space. A matrix multiply (with a weight matrix W<sub>out</sub> of shape
+        [d_model, |V|]) is sufficient for this readout.
+      </p>
+      <p>
+        There is also a cost argument. The output head weight matrix is large — with d_model = 4096 and |V| = 128,000,
+        it contains over 500 million parameters. Adding nonlinearities or extra layers here would multiply that cost
+        for minimal benefit, since the representation is already rich.
+      </p>
+      <p>
+        In many models, W<sub>out</sub> is actually the <strong>same matrix</strong> as the embedding table (transposed).
+        This is called <strong>weight tying</strong> — the model uses the same learned vectors for reading tokens in
+        (embedding) and reading predictions out (output head). This saves memory and often works as well as or better
+        than using separate matrices.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">What Logits Actually Are</div>
+      <p>
+        The word "logit" comes from statistics, where it refers to the log-odds of a probability. In the LLM context,
+        the meaning is looser: <strong>a logit is a raw score for one vocabulary entry</strong>, before any normalization.
+      </p>
+      <p>
+        Logits are unbounded real numbers. They can be positive, negative, or zero. A larger logit means the model
+        considers that token more likely. But logits are <em>not</em> probabilities:
+      </p>
+      <ul style="list-style: none; padding: 0; margin: var(--space-3) 0;">
+        <li style="padding: var(--space-1) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          A logit of 5.4 does not mean "54% likely." It just means "higher score than a logit of 3.2."
+        </li>
+        <li style="padding: var(--space-1) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          The absolute magnitude of logits depends on the model, the input, and the training dynamics. There is no universal scale.
+        </li>
+        <li style="padding: var(--space-1) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          Raw logits are only meaningful relative to other logits at the same position of the same model.
+        </li>
+      </ul>
+      <p>
+        To turn logits into probabilities, you need <strong>softmax</strong> — the subject of the next lesson.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Worked Example</div>
+      <div class="toy-example">
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-bottom: var(--space-3);">
+          After processing "The cat sat", the model's final hidden state has shape [4096].
+          The output head multiplies it by W<sub>out</sub> (shape [4096, 128000]) to produce 128,000 logits — one per vocabulary entry.
+          Here is a tiny slice showing the top 5:
+        </p>
+        <div style="font-family: var(--font-mono); font-size: var(--text-sm);">
+          <div style="display: grid; grid-template-columns: auto auto auto; gap: 4px 16px; align-items: center;">
+            <span style="color: var(--ink-ghost);">Token</span>
+            <span style="color: var(--ink-ghost);">ID</span>
+            <span style="color: var(--ink-ghost);">Logit</span>
+            <span style="color: var(--ink-tertiary);">" on"</span>
+            <span style="color: var(--ink-tertiary);">373</span>
+            <span style="color: var(--sem-logits); font-weight: 600;">5.4</span>
+            <span style="color: var(--ink-tertiary);">" the"</span>
+            <span style="color: var(--ink-tertiary);">279</span>
+            <span>2.1</span>
+            <span style="color: var(--ink-tertiary);">" a"</span>
+            <span style="color: var(--ink-tertiary);">247</span>
+            <span>0.8</span>
+            <span style="color: var(--ink-tertiary);">" dog"</span>
+            <span style="color: var(--ink-tertiary);">5765</span>
+            <span>1.2</span>
+            <span style="color: var(--ink-tertiary);">"."</span>
+            <span style="color: var(--ink-tertiary);">13</span>
+            <span>-0.3</span>
+          </div>
+          <div style="color: var(--ink-ghost); margin-top: var(--space-2);">... plus 127,995 more logits (one for every other vocabulary entry)</div>
+        </div>
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-top: var(--space-3);">
+          The token " on" has the highest logit (5.4), but that number alone is not a probability.
+          To know <em>how much more likely</em> " on" is than " the" or " a", you need to run softmax over all 128,000 logits.
+          That computation is what the next lesson covers.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Interactive — Logit Explorer</div>
       <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-bottom: var(--space-3);">
-        Adjust the logit values and see how they relate to the bar chart. In the next lesson you will learn softmax — for now, focus on the left side (logits).
+        Adjust the logit values below and see how the bar chart changes. For now, focus on the left side (logits).
+        In the next lesson you will learn how softmax converts these into the probability bars on the right.
       </p>
       <SoftmaxInspector client:load />
     </div>
 
     <div class="lesson-section">
-      <div class="section-label">Toy Example</div>
-      <div class="toy-example">
-        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-bottom: var(--space-3);">
-          After processing "The cat sat", the output head produces logits like:
-        </p>
-        <div style="font-family: var(--font-mono); font-size: var(--text-sm);">
-          <div style="display: grid; grid-template-columns: auto 1fr; gap: 8px 16px;">
-            <span style="color: var(--ink-tertiary);">"on"</span><span style="color: var(--sem-logits);">5.4</span>
-            <span style="color: var(--ink-tertiary);">"the"</span><span>2.1</span>
-            <span style="color: var(--ink-tertiary);">"a"</span><span>0.8</span>
-            <span style="color: var(--ink-tertiary);">"dog"</span><span>1.2</span>
-            <span style="color: var(--ink-tertiary);">"."</span><span>-0.3</span>
-            <span style="color: var(--ink-ghost);">... (|V| total scores)</span><span></span>
-          </div>
-        </div>
-        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-top: var(--space-3);">
-          "on" has the highest logit (5.4), so it is the most preferred next token. But 5.4 is not a probability — it is a raw score.
-        </p>
-      </div>
-    </div>
-
-    <div class="lesson-section">
       <div class="section-label">Shapes</div>
       <div class="shape-card">
-        <div>Final hidden state: [d_model]</div>
-        <div>Output head weight: [d_model, |V|]</div>
+        <div>Final hidden state for last position: [d_model]</div>
+        <div>Output head weight matrix: [d_model, |V|]</div>
         <div style="color: var(--sem-logits); margin-top: var(--space-2);">Logits: [|V|] &nbsp; <span style="color: var(--ink-tertiary);">one score per vocabulary entry</span></div>
+        <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">Computation: [d_model] &times; [d_model, |V|] = [|V|] &nbsp; (one matrix-vector product)</div>
       </div>
     </div>
 
     <div class="lesson-section">
       <div class="section-label">Math</div>
+      <p>The output head computation is a single matrix-vector product:</p>
       <div style="font-family: var(--font-mono); font-size: var(--text-sm); background: var(--surface-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); margin: var(--space-3) 0;">
-        <div style="color: var(--sem-logits);">z = h &middot; W_out</div>
-        <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">z &isin; &reals;^|V| &nbsp; (logits are unbounded real numbers)</div>
+        <div style="color: var(--sem-logits);">z = h &middot; W<sub>out</sub></div>
+        <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">h &isin; &reals;<sup>d_model</sup>, &nbsp; W<sub>out</sub> &isin; &reals;<sup>d_model &times; |V|</sup>, &nbsp; z &isin; &reals;<sup>|V|</sup></div>
       </div>
+      <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+        Each logit z<sub>i</sub> is the dot product of the hidden state with the i-th column of W<sub>out</sub>.
+        You can think of each column as a "template" for one vocabulary token — the logit measures how well the
+        hidden state matches that template. Higher match &rarr; higher logit &rarr; model thinks that token is more likely.
+      </p>
     </div>
 
     <div class="lesson-section">
       <div class="section-label">Implementation Hook</div>
       <div class="impl-hook">
         <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
-          The output head is a single matrix multiply. In many models, the output weight matrix is the same as the embedding table (weight tying). In <code>llama.cpp</code>, this projection is the last operation in the computation graph.
+          In <code>llama.cpp</code>, the output head is the final <code>build_lora_mm(model.output, cur)</code> call
+          in the model builder. If weight tying is used, <code>model.output</code> points to the same tensor as
+          <code>model.tok_embd</code> (the embedding table). The resulting logits are the last node in the computation
+          graph — everything after this (softmax, sampling) happens outside the graph.
         </p>
       </div>
     </div>
@@ -89,7 +167,10 @@ import SoftmaxInspector from '../../components/interactive/SoftmaxInspector';
       <div class="section-label">Performance Hook</div>
       <div class="perf-hook">
         <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
-          The output projection is [d_model, |V|] — a large matrix multiply. With |V| = 128,000 and d_model = 4096, this is a significant fraction of per-token compute. Larger vocabularies make this step more expensive.
+          The output head projection is [d_model, |V|]. With d_model = 4096 and |V| = 128,000, this single multiply
+          involves 4096 &times; 128,000 = 524 million multiply-add operations per token. For models with very large
+          vocabularies, this is a significant fraction of per-token compute — sometimes more expensive than a single
+          attention or FFN projection. Vocabulary size is not just a tokenizer concern; it is a performance parameter.
         </p>
       </div>
     </div>
@@ -97,10 +178,14 @@ import SoftmaxInspector from '../../components/interactive/SoftmaxInspector';
     <div class="lesson-section">
       <div class="section-label">What Logits Cannot Do Yet</div>
       <p>
-        Logits are raw scores. They can be any real number — positive, negative, very large, very small. You cannot interpret them as probabilities: a logit of 5.1 does not mean "51% chance." Raw logits are only directly meaningful relative to other logits at the same position of the same model — their absolute magnitudes do not have a universal scale.
+        Logits are raw scores — not probabilities. You cannot say "the model is 70% confident" from a logit of 5.4,
+        because you do not know what the other 127,999 logits look like. The number 5.4 is only meaningful in comparison
+        to the other logits at this position.
       </p>
       <p>
-        The next lesson introduces softmax, which turns one position's raw logits into a proper probability distribution that sums to 1. That is the specific problem softmax solves.
+        The next lesson introduces <strong>softmax</strong>, which takes all |V| logits at once and converts them into
+        a probability distribution: positive numbers that sum to 1. That is the specific transformation that makes
+        logits interpretable as relative likelihoods.
       </p>
     </div>
 
@@ -114,14 +199,26 @@ import SoftmaxInspector from '../../components/interactive/SoftmaxInspector';
           {
             id: 'L11-q1',
             type: 'single_choice',
-            prompt: 'Given logits [3.2, 1.0, 5.1, -0.5], which token index is most preferred?',
-            tag: 'conceptual',
+            prompt: 'The output head weight matrix has shape [4096, 128000]. How many multiply-add operations does one output-head computation require per token?',
+            tag: 'math',
             choices: [
-              { id: 'a', text: 'Index 0 (logit 3.2)', isCorrect: false },
-              { id: 'b', text: 'Index 2 (logit 5.1)', isCorrect: true },
-              { id: 'c', text: 'Index 3 (logit -0.5)', isCorrect: false },
+              { id: 'a', text: '128,000 (one per vocabulary entry)', isCorrect: false },
+              { id: 'b', text: '4096 × 128,000 ≈ 524 million (each logit is a 4096-dimensional dot product)', isCorrect: true },
+              { id: 'c', text: '4096 (one per hidden dimension)', isCorrect: false },
             ],
-            explanation: 'The highest logit (5.1 at index 2) indicates the most preferred token. Larger logit = more preferred.',
+            explanation: 'Each of the 128,000 logits is the dot product of a 4096-dimensional hidden state with one column of W_out. That is 4096 multiply-adds per logit, times 128,000 logits = ~524 million operations. This is the same shape math you learned for matrix multiplication in L08.',
+          },
+          {
+            id: 'L11-q2',
+            type: 'single_choice',
+            prompt: 'Two models produce logits for the same prompt. Model A gives token "on" a logit of 8.2. Model B gives "on" a logit of 3.1. Which model thinks "on" is more likely?',
+            tag: 'reasoning',
+            choices: [
+              { id: 'a', text: 'Model A — 8.2 is higher than 3.1', isCorrect: false },
+              { id: 'b', text: 'Cannot tell — logit magnitude depends on each model\'s internal scale, not a universal ranking', isCorrect: true },
+              { id: 'c', text: 'Model B — lower logits indicate higher confidence', isCorrect: false },
+            ],
+            explanation: 'Logit magnitudes are model-specific. Model A might produce logits in the range [-10, 10] while Model B produces them in [-5, 5]. A logit of 3.1 might be the highest in Model B and a logit of 8.2 might be second-highest in Model A. You can only compare logits within a single model at a single position.',
           },
         ]}
       />

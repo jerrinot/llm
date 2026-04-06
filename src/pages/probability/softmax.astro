@@ -18,56 +18,213 @@ import SoftmaxInspector from '../../components/interactive/SoftmaxInspector';
     <div class="lesson-section">
       <div class="section-label">Intuition</div>
       <p>
-        Logits are raw scores — they can be any number. To choose the next token, we need <strong>probabilities</strong>: positive numbers that sum to 1.
+        The previous lesson left us with logits — raw, unbounded scores, one per vocabulary entry. Logits are the model's
+        internal ranking of how likely each next token is. But we cannot use them directly for two reasons:
       </p>
+      <ol style="list-style: decimal; padding-left: var(--space-5); margin: var(--space-3) 0;">
+        <li style="padding: var(--space-1) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          They can be negative. You cannot interpret a logit of -2.3 as a probability.
+        </li>
+        <li style="padding: var(--space-1) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          They do not sum to 1. Without a total, you cannot compare them as relative likelihoods.
+        </li>
+      </ol>
       <p>
-        <strong>Softmax</strong> converts logits to probabilities. It exponentiates each logit (making them all positive), then divides by the total. The result: the largest logit gets the biggest probability, and all probabilities sum to exactly 1.
+        <strong>Softmax</strong> fixes both problems in one operation. It converts a vector of arbitrary real numbers
+        into a vector of positive numbers that sum to exactly 1 — a proper probability distribution.
       </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">The Formula, Step by Step</div>
       <p>
-        The exponential function amplifies differences. A logit that is just slightly larger than the rest can dominate after softmax. This is why softmax makes the model's top choice stand out sharply.
+        Softmax has three stages. Understanding each stage separately makes the whole formula easy to follow.
+      </p>
+
+      <div style="margin: var(--space-4) 0;">
+        <p style="font-weight: 600; color: var(--ink-primary);">Stage 1: Exponentiate every logit.</p>
+        <p>
+          Take each logit z<sub>i</sub> and compute e<sup>z<sub>i</sub></sup>. This is the key step — it guarantees
+          every output is positive, because e<sup>x</sup> &gt; 0 for any real number x. It does not matter if the
+          logit is -100 or +100; the exponential always produces a positive result.
+        </p>
+        <p>
+          Why exponentials and not, say, just adding a constant to make everything positive?
+          Because exponentials preserve the <strong>ordering</strong> of the logits (larger input &rarr; larger output)
+          while also <strong>amplifying differences</strong>. The ratio between e<sup>5</sup> and e<sup>3</sup> is
+          much larger than the difference between 5 and 3. This amplification is exactly what makes softmax
+          produce a "peaked" distribution — the most likely token stands out.
+        </p>
+      </div>
+
+      <div style="margin: var(--space-4) 0;">
+        <p style="font-weight: 600; color: var(--ink-primary);">Stage 2: Sum all the exponentials.</p>
+        <p>
+          Compute Z = &sum;<sub>j</sub> e<sup>z<sub>j</sub></sup>. This is the normalization constant. It ensures
+          we can divide each exponentiated logit by the total and get numbers that sum to 1.
+        </p>
+      </div>
+
+      <div style="margin: var(--space-4) 0;">
+        <p style="font-weight: 600; color: var(--ink-primary);">Stage 3: Divide each exponentiated logit by the total.</p>
+        <p>
+          The softmax probability for token i is:
+        </p>
+        <div style="font-family: var(--font-mono); font-size: var(--text-sm); background: var(--surface-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); margin: var(--space-3) 0;">
+          <div style="color: var(--sem-logits);">p<sub>i</sub> = e<sup>z<sub>i</sub></sup> / Z &nbsp;&nbsp; where Z = &sum;<sub>j</sub> e<sup>z<sub>j</sub></sup></div>
+        </div>
+        <p>
+          Every p<sub>i</sub> is positive (because the numerator is an exponential). The sum of all p<sub>i</sub>
+          is exactly 1 (because each shares the same denominator Z = total of all numerators).
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Worked Example</div>
+      <div class="toy-example">
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-bottom: var(--space-3);">
+          Three logits: z = [2.0, 1.0, 0.1]. Walk through softmax step by step.
+        </p>
+        <div style="font-family: var(--font-mono); font-size: var(--text-sm);">
+          <div style="color: var(--ink-primary); margin-bottom: var(--space-2);">Step 1: Exponentiate</div>
+          <div style="padding-left: var(--space-4); margin-bottom: var(--space-2);">
+            e<sup>2.0</sup> = 7.389 &nbsp;&nbsp; e<sup>1.0</sup> = 2.718 &nbsp;&nbsp; e<sup>0.1</sup> = 1.105
+          </div>
+          <div style="color: var(--ink-primary); margin-bottom: var(--space-2);">Step 2: Sum</div>
+          <div style="padding-left: var(--space-4); margin-bottom: var(--space-2);">
+            Z = 7.389 + 2.718 + 1.105 = 11.212
+          </div>
+          <div style="color: var(--ink-primary); margin-bottom: var(--space-2);">Step 3: Divide</div>
+          <div style="padding-left: var(--space-4);">
+            p<sub>0</sub> = 7.389 / 11.212 = <span style="color: var(--sem-logits); font-weight: 600;">0.659</span><br/>
+            p<sub>1</sub> = 2.718 / 11.212 = <span style="color: var(--sem-logits);">0.242</span><br/>
+            p<sub>2</sub> = 1.105 / 11.212 = <span style="color: var(--sem-logits);">0.099</span>
+          </div>
+        </div>
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-top: var(--space-3);">
+          Check: 0.659 + 0.242 + 0.099 = 1.000. The largest logit (2.0) gets 65.9% of the probability mass.
+          The difference between logits 2.0 and 1.0 was just 1.0, but the probability ratio is 0.659 / 0.242 &asymp; 2.7 —
+          the exponential amplified a small difference into a noticeable gap.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">What Happens at the Extremes</div>
+      <p>
+        The amplification effect means softmax behavior depends strongly on the <em>spread</em> of the logits:
+      </p>
+      <ul style="list-style: none; padding: 0; margin: var(--space-3) 0;">
+        <li style="display: flex; gap: var(--space-3); padding: var(--space-2) 0; font-size: var(--text-sm);">
+          <span style="color: var(--sem-logits); font-weight: 600; min-width: 120px;">Large spread</span>
+          <span style="color: var(--ink-secondary);">If the top logit is 10.0 and the rest are near 0, the top token gets almost all the probability. Softmax becomes nearly argmax. The distribution is "sharp" or "peaked."</span>
+        </li>
+        <li style="display: flex; gap: var(--space-3); padding: var(--space-2) 0; font-size: var(--text-sm);">
+          <span style="color: var(--sem-logits); font-weight: 600; min-width: 120px;">Small spread</span>
+          <span style="color: var(--ink-secondary);">If all logits are close together (e.g., 1.0, 1.1, 0.9), the probabilities are nearly uniform. The model is "uncertain" — no token stands out strongly.</span>
+        </li>
+        <li style="display: flex; gap: var(--space-3); padding: var(--space-2) 0; font-size: var(--text-sm);">
+          <span style="color: var(--sem-logits); font-weight: 600; min-width: 120px;">Identical logits</span>
+          <span style="color: var(--ink-secondary);">If all logits are the same value (e.g., all zeros), every probability equals 1/|V|. Maximum uncertainty. Note that the absolute value does not matter — softmax([0, 0, 0]) and softmax([100, 100, 100]) produce the same result, because only relative differences matter.</span>
+        </li>
+      </ul>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Temperature: Controlling the Sharpness</div>
+      <p>
+        <strong>Temperature</strong> is a scalar T that divides the logits before softmax:
+      </p>
+      <div style="font-family: var(--font-mono); font-size: var(--text-sm); background: var(--surface-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); margin: var(--space-3) 0;">
+        <div style="color: var(--sem-logits);">p<sub>i</sub> = e<sup>z<sub>i</sub> / T</sup> / &sum;<sub>j</sub> e<sup>z<sub>j</sub> / T</sup></div>
+      </div>
+      <p>
+        Dividing by T changes the spread of the logits before the exponential sees them:
+      </p>
+      <ul style="list-style: none; padding: 0; margin: var(--space-3) 0;">
+        <li style="padding: var(--space-1) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          <strong>T &lt; 1</strong> (e.g., 0.5): Logit differences are amplified. z/0.5 = 2z, so the spread doubles.
+          The distribution becomes sharper — the model acts more "confident." At T &rarr; 0, softmax approaches argmax.
+        </li>
+        <li style="padding: var(--space-1) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          <strong>T = 1</strong>: No change. Standard softmax.
+        </li>
+        <li style="padding: var(--space-1) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          <strong>T &gt; 1</strong> (e.g., 2.0): Logit differences are compressed. z/2 halves the spread.
+          The distribution becomes flatter — more tokens have a reasonable chance of being picked.
+          At T &rarr; &infin;, the distribution approaches uniform (1/|V| for each token).
+        </li>
+      </ul>
+      <p>
+        Temperature does not change the model's logits. It changes how the decoding policy interprets them.
+        This is why temperature is a runtime setting, not a model property — you can adjust it between requests.
       </p>
     </div>
 
     <div class="lesson-section">
       <div class="section-label">Interactive — Softmax Inspector</div>
       <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-bottom: var(--space-3);">
-        Adjust the logits and temperature. Watch how the probability distribution changes. Lower temperature makes the distribution sharper. Higher temperature makes it more uniform.
+        Adjust the logits and temperature below. Watch how the probability bars change. Try:
+        setting one logit much higher than the rest, setting all logits equal, and adjusting temperature to see sharpening and flattening.
       </p>
       <SoftmaxInspector client:load />
     </div>
 
     <div class="lesson-section">
-      <div class="section-label">Toy Example</div>
-      <div class="toy-example">
-        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-bottom: var(--space-3);">
-          Softmax of [2.0, 1.0, 0.1]:
-        </p>
-        <div style="font-family: var(--font-mono); font-size: var(--text-sm);">
-          <div>exp(2.0) = 7.39 &nbsp;&nbsp; exp(1.0) = 2.72 &nbsp;&nbsp; exp(0.1) = 1.11</div>
-          <div style="margin-top: 4px;">sum = 7.39 + 2.72 + 1.11 = 11.22</div>
-          <div style="margin-top: 8px; color: var(--sem-logits);">
-            probs = [7.39/11.22, 2.72/11.22, 1.11/11.22] = [0.659, 0.242, 0.099]
-          </div>
-        </div>
-        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-top: var(--space-3);">
-          All positive. Sum to 1.000. The largest logit (2.0) gets 65.9% of the probability.
-        </p>
+      <div class="section-label">Numerical Stability: The Max-Subtraction Trick</div>
+      <p>
+        There is one practical problem with computing softmax directly. If a logit is very large (say, 1000),
+        then e<sup>1000</sup> overflows — it is too large for floating-point numbers to represent. The result is <code>Inf</code>,
+        and the division produces <code>NaN</code>.
+      </p>
+      <p>
+        The standard fix is to subtract the maximum logit from all logits before exponentiating:
+      </p>
+      <div style="font-family: var(--font-mono); font-size: var(--text-sm); background: var(--surface-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); margin: var(--space-3) 0;">
+        <div style="color: var(--ink-primary);">m = max(z<sub>0</sub>, z<sub>1</sub>, ..., z<sub>n-1</sub>)</div>
+        <div style="color: var(--sem-logits); margin-top: var(--space-1);">p<sub>i</sub> = e<sup>(z<sub>i</sub> - m)</sup> / &sum;<sub>j</sub> e<sup>(z<sub>j</sub> - m)</sup></div>
       </div>
+      <p>
+        Why does this work? Because subtracting a constant from all logits does not change the softmax output.
+        The proof is one line: e<sup>(z<sub>i</sub> - m)</sup> / &sum; e<sup>(z<sub>j</sub> - m)</sup> =
+        (e<sup>z<sub>i</sub></sup> &middot; e<sup>-m</sup>) / (&sum; e<sup>z<sub>j</sub></sup> &middot; e<sup>-m</sup>)
+        = e<sup>z<sub>i</sub></sup> / &sum; e<sup>z<sub>j</sub></sup>. The e<sup>-m</sup> cancels from numerator
+        and denominator. The result is identical, but now the largest exponent is e<sup>0</sup> = 1, which never overflows.
+      </p>
+      <p>
+        Every real softmax implementation uses this trick. If you see <code>max</code> before <code>exp</code> in model code,
+        this is what it is doing.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Softmax Appears Twice in a Transformer</div>
+      <p>
+        You have seen softmax here at the output head, turning logits into next-token probabilities.
+        You will see it again inside the transformer block: in attention, softmax converts raw Q&middot;K<sup>T</sup>
+        scores into attention weights that sum to 1 across the attended positions. The same formula, the same
+        properties (positive, sums to 1), the same numerical stability trick — just applied at a different point
+        in the computation.
+      </p>
     </div>
 
     <div class="lesson-section">
       <div class="section-label">Shapes</div>
       <div class="shape-card">
         <div>Input logits: [|V|]</div>
-        <div style="color: var(--sem-logits);">Output probabilities: [|V|] &nbsp; <span style="color: var(--ink-tertiary);">same shape, but now all positive and sum to 1</span></div>
+        <div style="color: var(--sem-logits);">Output probabilities: [|V|] &nbsp; <span style="color: var(--ink-tertiary);">same shape, but all positive and sum to 1</span></div>
+        <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">In attention: input scores [n_tokens, n_tokens] &rarr; output weights [n_tokens, n_tokens] (softmax along the key axis)</div>
       </div>
     </div>
 
     <div class="lesson-section">
       <div class="section-label">Math</div>
+      <p>The full softmax formula, including temperature and the stability trick:</p>
       <div style="font-family: var(--font-mono); font-size: var(--text-sm); background: var(--surface-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); margin: var(--space-3) 0;">
-        <div style="color: var(--sem-logits);">p&#x1D62; = exp(z&#x1D62;) / &sum;&#x2C7C; exp(z&#x2C7C;)</div>
-        <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">Every p&#x1D62; &gt; 0, and &sum; p&#x1D62; = 1</div>
+        <div style="color: var(--ink-primary);">m = max<sub>j</sub>(z<sub>j</sub>)</div>
+        <div style="color: var(--sem-logits); margin-top: var(--space-1);">p<sub>i</sub> = exp((z<sub>i</sub> - m) / T) / &sum;<sub>j</sub> exp((z<sub>j</sub> - m) / T)</div>
+        <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">Properties: p<sub>i</sub> &gt; 0 for all i, &nbsp; &sum;<sub>i</sub> p<sub>i</sub> = 1, &nbsp; T = 1 by default</div>
       </div>
     </div>
 
@@ -75,7 +232,10 @@ import SoftmaxInspector from '../../components/interactive/SoftmaxInspector';
       <div class="section-label">Implementation Hook</div>
       <div class="impl-hook">
         <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
-          Softmax converts logits to probabilities. You have seen it here at the output head. Later, you will see it used again inside the model's layers. In <code>llama.cpp</code>, the <code>ggml_soft_max</code> operation handles this.
+          In <code>llama.cpp</code>, softmax is implemented via <code>ggml_soft_max</code>. The max-subtraction trick
+          is built into this operator — you do not need to apply it manually. Temperature scaling is handled
+          separately in the sampling code, not in the model graph. The model always produces raw logits at T=1;
+          temperature is applied by the runtime before sampling.
         </p>
       </div>
     </div>
@@ -84,7 +244,11 @@ import SoftmaxInspector from '../../components/interactive/SoftmaxInspector';
       <div class="section-label">Performance Hook</div>
       <div class="perf-hook">
         <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
-          Softmax itself is cheap — it is elementwise exp plus a sum. But the exponentiation can cause numerical issues with very large logits. Real implementations subtract the max logit first for numerical stability. This is a detail you will see in code.
+          Softmax itself is cheap — three passes over the data (max, exp-and-sum, divide). For the output head,
+          the vector has |V| elements (e.g., 128K), which is small compared to the projection that produced it.
+          For attention, the softmax is over the key dimension (sequence length), and each head does its own softmax.
+          With very long sequences, the attention softmax can become noticeable in profiles, but it is rarely the
+          dominant cost.
         </p>
       </div>
     </div>
@@ -99,25 +263,38 @@ import SoftmaxInspector from '../../components/interactive/SoftmaxInspector';
           {
             id: 'L12-q1',
             type: 'single_choice',
-            prompt: 'After softmax, can any probability be negative?',
-            tag: 'conceptual',
+            prompt: 'softmax([5.0, 5.0, 5.0]) produces what distribution?',
+            tag: 'math',
             choices: [
-              { id: 'a', text: 'Yes, if the logit was negative', isCorrect: false },
-              { id: 'b', text: 'No, exp(x) is always positive', isCorrect: true },
+              { id: 'a', text: '[5.0, 5.0, 5.0] — softmax does not change equal inputs', isCorrect: false },
+              { id: 'b', text: '[1/3, 1/3, 1/3] — equal logits produce a uniform distribution', isCorrect: true },
+              { id: 'c', text: '[1.0, 0.0, 0.0] — softmax always picks the first element', isCorrect: false },
             ],
-            explanation: 'The exponential function always produces positive numbers, so every softmax output is positive regardless of the input logit.',
+            explanation: 'When all logits are equal, every exp(z_i) is the same value, so every p_i = exp(z_i) / (3 × exp(z_i)) = 1/3. Softmax only cares about relative differences between logits, not their absolute values. softmax([0,0,0]) and softmax([100,100,100]) produce the same result.',
           },
           {
             id: 'L12-q2',
             type: 'single_choice',
-            prompt: 'If one logit is much larger than the rest, what happens after softmax?',
-            tag: 'math',
+            prompt: 'You lower the temperature from T=1.0 to T=0.1. What happens to the probability of the highest-logit token?',
+            tag: 'reasoning',
             choices: [
-              { id: 'a', text: 'All probabilities become roughly equal', isCorrect: false },
-              { id: 'b', text: 'The largest logit gets most of the probability mass', isCorrect: true },
-              { id: 'c', text: 'Softmax outputs stay the same as the logits', isCorrect: false },
+              { id: 'a', text: 'It stays the same — temperature does not affect which token is most probable', isCorrect: false },
+              { id: 'b', text: 'It increases sharply — dividing by 0.1 amplifies logit differences, making the top token dominate', isCorrect: true },
+              { id: 'c', text: 'It decreases — lower temperature means less confident', isCorrect: false },
             ],
-            explanation: 'Exponentials amplify differences. A much larger logit dominates the sum, capturing most of the probability. This is why models can be confident.',
+            explanation: 'Dividing logits by T=0.1 is equivalent to multiplying by 10. This stretches the spread: if two logits differed by 1.0, they now differ by 10.0. After exponentiation, the ratio becomes e^10 ≈ 22,026 instead of e^1 ≈ 2.7. The top token takes almost all the probability mass.',
+          },
+          {
+            id: 'L12-q3',
+            type: 'single_choice',
+            prompt: 'Why do real softmax implementations subtract the max logit before exponentiating?',
+            tag: 'reasoning',
+            choices: [
+              { id: 'a', text: 'To change the output distribution to be centered at zero', isCorrect: false },
+              { id: 'b', text: 'To prevent numerical overflow — subtracting a constant does not change the result but keeps exponents small', isCorrect: true },
+              { id: 'c', text: 'To remove the effect of outlier logits on the distribution', isCorrect: false },
+            ],
+            explanation: 'exp(1000) overflows to Inf in floating point. Subtracting max(z) from all logits guarantees the largest exponent is exp(0)=1. Mathematically, the result is identical because the constant cancels in the numerator/denominator ratio.',
           },
         ]}
       />

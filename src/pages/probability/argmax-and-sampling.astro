@@ -17,46 +17,147 @@ import GatePanel from '../../components/assessment/GatePanel';
     <div class="lesson-section">
       <div class="section-label">Intuition</div>
       <p>
-        After softmax converts logits to probabilities, something must choose the next token from that distribution. This choice is called the <strong>decoding strategy</strong>, and it is separate from the model itself.
+        After softmax, you have a probability distribution over |V| tokens. Every token has a positive probability,
+        and they sum to 1. Now something must choose <em>one</em> token from that distribution.
       </p>
       <p>
-        <strong>Argmax</strong> (or greedy decoding) always picks the highest-probability token. It is deterministic — the same input always produces the same output.
-      </p>
-      <p>
-        <strong>Sampling</strong> randomly picks a token according to the probability distribution. Higher-probability tokens are more likely, but lower-probability tokens can still be chosen. This is why model outputs can vary between runs.
-      </p>
-      <p>
-        The key insight: the model computes the same logits regardless of the decoding strategy. Argmax vs sampling is a policy choice made <em>after</em> the model runs. It changes generation quality and diversity, not the model's computation.
+        This choice is called the <strong>decoding strategy</strong>. It is not part of the model — it is a policy
+        applied <em>after</em> the model runs. The model produces the same logits and probabilities regardless of which
+        decoding strategy is used. This separation is fundamental: changing how you pick tokens changes the quality
+        and diversity of the output, not the model's computation.
       </p>
     </div>
 
     <div class="lesson-section">
-      <div class="section-label">Toy Example</div>
+      <div class="section-label">Argmax (Greedy Decoding)</div>
+      <p>
+        The simplest strategy: always pick the token with the highest probability.
+      </p>
+      <div style="font-family: var(--font-mono); font-size: var(--text-sm); background: var(--surface-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); margin: var(--space-3) 0;">
+        <div style="color: var(--sem-logits);">next_token = argmax<sub>i</sub>(p<sub>i</sub>)</div>
+      </div>
+      <p>
+        Argmax is <strong>deterministic</strong>: the same input always produces the same output. There is no randomness.
+        This makes it predictable and reproducible, which is useful for testing and debugging.
+      </p>
+      <p>
+        The downside: greedy decoding can produce repetitive, bland text. Because it always takes the
+        locally highest-probability path, it can get stuck in loops ("the the the...") or choose boring continuations
+        when a slightly less probable token would have led to a better overall sentence.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Sampling</div>
+      <p>
+        Instead of always picking the top token, <strong>sampling</strong> randomly draws a token from the probability
+        distribution. A token with probability 0.65 has a 65% chance of being picked; a token with probability 0.05 has
+        a 5% chance.
+      </p>
+      <p>
+        Sampling is <strong>stochastic</strong>: the same input can produce different outputs on different runs.
+        This is what makes LLM outputs feel creative and varied — each generation is a different random walk through
+        the probability space.
+      </p>
+      <p>
+        Raw sampling from the full distribution can produce incoherent text, because very low-probability tokens
+        (the "tail" of the distribution) occasionally get selected. This is where filtering strategies help.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Filtering: Top-k and Top-p</div>
+      <p>
+        In practice, most systems do not sample from the full distribution. They apply filters first:
+      </p>
+      <div style="margin: var(--space-4) 0;">
+        <p style="font-weight: 600; color: var(--ink-primary);">Top-k sampling</p>
+        <p>
+          Keep only the k most probable tokens; set all others to probability zero; renormalize so the remaining
+          probabilities sum to 1; then sample. For example, with k=50, sampling draws from the top 50 tokens only.
+          This prevents the model from picking wildly unlikely tokens that would break coherence.
+        </p>
+      </div>
+      <div style="margin: var(--space-4) 0;">
+        <p style="font-weight: 600; color: var(--ink-primary);">Top-p (nucleus) sampling</p>
+        <p>
+          Instead of a fixed number of tokens, keep the smallest set of tokens whose cumulative probability exceeds p.
+          For example, with p=0.9, add tokens from most probable to least probable until their probabilities sum to
+          at least 0.9, then sample from only those tokens.
+        </p>
+        <p>
+          Top-p adapts to the shape of the distribution. If the model is very confident (one token has probability 0.95),
+          top-p might keep just 1-2 tokens. If the model is uncertain (many tokens with similar probabilities),
+          top-p might keep hundreds.
+        </p>
+      </div>
+      <p>
+        Top-k and top-p can be combined (apply both filters). These filters, together with temperature (from the softmax
+        lesson), give the runtime fine-grained control over the diversity-quality tradeoff without changing the model at all.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Worked Example</div>
       <div class="toy-example">
         <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-bottom: var(--space-3);">
-          Given probabilities: "on" = 0.65, "in" = 0.20, "at" = 0.10, "the" = 0.05
+          After "The cat sat", softmax produced these probabilities (showing top 6 of 128,000):
         </p>
         <div style="font-family: var(--font-mono); font-size: var(--text-sm);">
-          <div style="display: flex; gap: var(--space-6);">
-            <div>
-              <div style="color: var(--ink-ghost); font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px;">Argmax</div>
-              <div>Always picks: <span style="color: var(--sem-logits); font-weight: 600;">"on"</span></div>
-              <div style="color: var(--ink-tertiary); font-size: var(--text-xs); margin-top: 2px;">deterministic</div>
-            </div>
-            <div>
-              <div style="color: var(--ink-ghost); font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px;">Sampling</div>
-              <div>Usually picks <span style="color: var(--sem-logits);">"on"</span>, sometimes <span style="color: var(--ink-secondary);">"in"</span> or <span style="color: var(--ink-secondary);">"at"</span></div>
-              <div style="color: var(--ink-tertiary); font-size: var(--text-xs); margin-top: 2px;">stochastic</div>
-            </div>
+          <div style="display: grid; grid-template-columns: auto auto; gap: 4px 16px; margin-bottom: var(--space-3);">
+            <span style="color: var(--ink-tertiary);">" on"</span><span style="color: var(--sem-logits); font-weight: 600;">0.52</span>
+            <span style="color: var(--ink-tertiary);">" in"</span><span>0.18</span>
+            <span style="color: var(--ink-tertiary);">" down"</span><span>0.11</span>
+            <span style="color: var(--ink-tertiary);">" on the"</span><span>0.07</span>
+            <span style="color: var(--ink-tertiary);">" and"</span><span>0.04</span>
+            <span style="color: var(--ink-tertiary);">" there"</span><span>0.02</span>
+            <span style="color: var(--ink-ghost);">... 127,994 more</span><span style="color: var(--ink-ghost);">0.06 total</span>
+          </div>
+          <div style="border-top: var(--border-subtle); padding-top: var(--space-3); display: grid; gap: var(--space-2);">
+            <div><span style="color: var(--ink-ghost); min-width: 80px; display: inline-block;">Argmax:</span> Always picks <span style="color: var(--sem-logits); font-weight: 600;">" on"</span></div>
+            <div><span style="color: var(--ink-ghost); min-width: 80px; display: inline-block;">Top-k=3:</span> Samples from (" on": 0.64, " in": 0.22, " down": 0.14) <span style="color: var(--ink-tertiary);">(renormalized)</span></div>
+            <div><span style="color: var(--ink-ghost); min-width: 80px; display: inline-block;">Top-p=0.9:</span> Samples from (" on", " in", " down", " on the") &mdash; cumulative = 0.88+0.07=0.95 &gt; 0.9</div>
           </div>
         </div>
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-top: var(--space-3);">
+          Notice how top-k always keeps exactly 3 tokens regardless of distribution shape, while top-p adapts — here it keeps 4 because the probability mass is spread more than the top-k cutoff assumes.
+        </p>
       </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">The Full Decoding Toolkit</div>
+      <p>
+        Putting it all together, a typical generation runtime applies these controls in order:
+      </p>
+      <ol style="list-style: decimal; padding-left: var(--space-5); margin: var(--space-3) 0;">
+        <li style="padding: var(--space-1) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          <strong>Model produces logits</strong> — fixed, deterministic, same regardless of decoding settings.
+        </li>
+        <li style="padding: var(--space-1) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          <strong>Temperature</strong> scales the logits: z<sub>i</sub> / T.
+        </li>
+        <li style="padding: var(--space-1) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          <strong>Softmax</strong> converts scaled logits to probabilities.
+        </li>
+        <li style="padding: var(--space-1) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          <strong>Top-k / top-p filtering</strong> removes unlikely tokens.
+        </li>
+        <li style="padding: var(--space-1) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          <strong>Sampling or argmax</strong> picks the final token.
+        </li>
+      </ol>
+      <p>
+        All of steps 2-5 are runtime policy. The model only does step 1. This is why you can serve the same model
+        with different temperature, top-k, and top-p settings for different use cases — coding assistance might use
+        low temperature (more deterministic), while creative writing might use high temperature (more varied).
+      </p>
     </div>
 
     <div class="lesson-section">
       <div class="section-label">Shapes</div>
       <div class="shape-card">
-        <div>Input to decoding: probabilities [|V|]</div>
+        <div>Input to decoding: probabilities [|V|] <span style="color: var(--ink-tertiary);">(or logits [|V|] before softmax)</span></div>
         <div>Output of decoding: one token ID (a single integer)</div>
         <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">The decoding step reduces |V| probabilities to 1 choice.</div>
       </div>
@@ -65,8 +166,10 @@ import GatePanel from '../../components/assessment/GatePanel';
     <div class="lesson-section">
       <div class="section-label">Math</div>
       <div style="font-family: var(--font-mono); font-size: var(--text-sm); background: var(--surface-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); margin: var(--space-3) 0;">
-        <div style="color: var(--sem-logits);">argmax: next = arg max&#x1D62; p&#x1D62;</div>
-        <div style="color: var(--sem-logits); margin-top: var(--space-2);">sampling: pick randomly according to probabilities p</div>
+        <div style="color: var(--sem-logits);">Argmax: &nbsp; next = arg max<sub>i</sub> p<sub>i</sub></div>
+        <div style="color: var(--sem-logits); margin-top: var(--space-1);">Sampling: next ~ Categorical(p<sub>0</sub>, p<sub>1</sub>, ..., p<sub>|V|-1</sub>)</div>
+        <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">Top-k: keep k largest p<sub>i</sub>, zero out the rest, renormalize, then sample</div>
+        <div style="color: var(--ink-tertiary);">Top-p: keep smallest set S where &sum;<sub>i &isin; S</sub> p<sub>i</sub> &ge; p, renormalize, then sample</div>
       </div>
     </div>
 
@@ -74,8 +177,14 @@ import GatePanel from '../../components/assessment/GatePanel';
       <div class="section-label">Implementation Hook</div>
       <div class="impl-hook">
         <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
-          In <code>llama.cpp</code>, decoding happens outside the model graph. The graph produces logits.
-          Various sampling strategies exist. These knobs change generation behavior without changing the model.
+          In <code>llama.cpp</code>, decoding happens entirely outside the model computation graph. The graph ends
+          at logits. The sampling module then applies temperature, top-k, top-p, and other filters before selecting
+          a token. This clean separation means you can change sampling behavior without rebuilding the model graph.
+        </p>
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-top: var(--space-3);">
+          <strong>In the wild:</strong> Common CLI flags like <code>--temp 0.7</code>, <code>--top-k 40</code>, and
+          <code>--top-p 0.9</code> all control this post-model decoding pipeline. They never touch the model's
+          weights or computation.
         </p>
       </div>
     </div>
@@ -84,7 +193,10 @@ import GatePanel from '../../components/assessment/GatePanel';
       <div class="section-label">Performance Hook</div>
       <div class="perf-hook">
         <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
-          Sampling itself is trivially cheap compared to model computation. The performance-relevant insight is that decoding strategy does not change the cost of running the model — it only changes which token gets appended for the next step.
+          Sampling itself is trivially cheap — a sort (for top-k/top-p) and a random draw. The runtime cost of
+          generating a token is dominated by the model forward pass (attention + FFN + output head), not by the
+          decoding strategy. The performance-relevant insight is that changing temperature or top-k does not change
+          the cost of running the model — it only changes which token gets appended for the next step.
         </p>
       </div>
     </div>
@@ -99,13 +211,26 @@ import GatePanel from '../../components/assessment/GatePanel';
           {
             id: 'L13-q1',
             type: 'single_choice',
-            prompt: 'For a single inference step with the same input, if you switch from argmax to sampling, does the model compute different logits?',
-            tag: 'conceptual',
+            prompt: 'You run the same model on the same prompt twice: once with temperature 0.7, once with temperature 1.5. Are the logits different?',
+            tag: 'reasoning',
             choices: [
-              { id: 'a', text: 'Yes, the model adjusts its computation', isCorrect: false },
-              { id: 'b', text: 'No, the model always produces the same logits — decoding is a separate step', isCorrect: true },
+              { id: 'a', text: 'Yes — different temperatures cause the model to compute differently', isCorrect: false },
+              { id: 'b', text: 'No — the model produces identical logits; temperature is applied afterward', isCorrect: true },
+              { id: 'c', text: 'It depends on the model architecture', isCorrect: false },
             ],
-            explanation: 'The model computation is identical. Decoding strategy is applied after the model produces logits. It changes which token is selected, not how the model runs.',
+            explanation: 'The model forward pass produces the same logits regardless of decoding settings. Temperature divides logits before softmax, but this happens outside the model. The model does not "know" what temperature will be applied.',
+          },
+          {
+            id: 'L13-q2',
+            type: 'single_choice',
+            prompt: 'The top-5 token probabilities are [0.40, 0.25, 0.15, 0.10, 0.05]. With top-p=0.9, how many tokens are in the candidate set?',
+            tag: 'math',
+            choices: [
+              { id: 'a', text: '3 tokens (cumulative: 0.40 + 0.25 + 0.15 = 0.80 < 0.9, need one more)', isCorrect: false },
+              { id: 'b', text: '4 tokens (cumulative: 0.40 + 0.25 + 0.15 + 0.10 = 0.90 ≥ 0.9)', isCorrect: true },
+              { id: 'c', text: '5 tokens (always include all that have nonzero probability)', isCorrect: false },
+            ],
+            explanation: 'Top-p adds tokens from most probable to least until cumulative probability reaches p. After 3 tokens: 0.80 < 0.9. After 4 tokens: 0.90 ≥ 0.9. So the candidate set is 4 tokens. The 5th token (probability 0.05) is excluded.',
           },
         ]}
       />
