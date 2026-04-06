@@ -127,14 +127,14 @@ import GatePanel from '../../components/assessment/GatePanel';
           {
             id: 'L38-q2',
             type: 'single_choice',
-            prompt: 'Why is lower perplexity better?',
-            tag: 'conceptual',
+            prompt: 'You optimized a kernel and decode speed improved by 25%. Perplexity on wikitext-2 went from 7.2 to 7.3. Your colleague\'s optimization improved speed by 35% but perplexity went from 7.2 to 9.1. Which optimization(s) should ship?',
+            tag: 'reasoning',
             choices: [
-              { id: 'a', text: 'Lower perplexity means the model generates fewer tokens, saving time', isCorrect: false },
-              { id: 'b', text: 'Lower perplexity means the model assigns higher probability to correct next tokens — it is less "surprised" by the test data', isCorrect: true },
-              { id: 'c', text: 'Lower perplexity means the model uses less memory', isCorrect: false },
+              { id: 'a', text: 'Both — any speed improvement is worth shipping', isCorrect: false },
+              { id: 'b', text: 'Yours only — the 0.1 PPL increase is within tolerance, but a jump from 7.2 to 9.1 indicates a quality regression', isCorrect: true },
+              { id: 'c', text: 'Neither — perplexity changed in both cases', isCorrect: false },
             ],
-            explanation: 'Perplexity measures how surprised the model is by a test set. Lower values mean the model predicts the correct next token with higher confidence on average. A perplexity increase after optimization indicates the model has become worse at prediction.',
+            explanation: 'Small perplexity changes (0.1 on a base of 7.2) are typical rounding-level noise from quantization or repack changes. A jump from 7.2 to 9.1 is a 26% degradation — the model is substantially worse at prediction. The first optimization is valid; the second has a correctness bug that must be investigated before shipping.',
           },
         ]}
       />

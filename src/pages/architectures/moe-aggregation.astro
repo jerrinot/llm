@@ -20,7 +20,7 @@ import GatePanel from '../../components/assessment/GatePanel';
         Once the router has selected the top-<em>k</em> experts for a token, each selected expert processes the token independently. Every expert is a small FFN — it takes in the hidden state and produces an output of the same shape.
       </p>
       <p>
-        The final output is not a simple average. The router's gating weights are <strong>renormalized</strong> over just the selected experts so they sum to 1. Then the expert outputs are combined as a <strong>weighted sum</strong> using these normalized weights.
+        The final output is not a simple average. The router's gating weights are <strong>renormalized</strong> over just the selected experts so they sum to 1. Why renormalize? Because the original softmax weights summed to 1 across <em>all</em> experts, but we only run top-k. Without renormalization, the weights of the selected experts might sum to 0.6 or 0.9, making the output arbitrarily scaled. Renormalizing ensures the weighted sum is a proper blend. Then the expert outputs are combined as a <strong>weighted sum</strong> using these normalized weights.
       </p>
       <p>
         If Expert A got gating weight 0.8 and Expert B got 0.2, the combined output is 80% Expert A's answer and 20% Expert B's answer. This soft blending lets the model smoothly mix information from multiple specialists.
