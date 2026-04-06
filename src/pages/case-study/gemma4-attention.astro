@@ -33,7 +33,7 @@ import GatePanel from '../../components/assessment/GatePanel';
         SWA layers are much cheaper because the attention matrix is sparse &mdash; each row only has entries for tokens within the window. The occasional full-attention layer ensures the model can still capture long-range dependencies.
       </p>
       <p>
-        On top of this, Gemma 4 uses <strong>shared-KV layers</strong>. Only a subset of layers (controlled by a config parameter) compute their own K/V projections. The remaining layers skip K/V projection entirely and reuse the KV cache from the nearest earlier layer that has its own K/V. This dramatically reduces memory usage and compute — shared layers need no K/V weight matrices and write nothing to the cache.
+        On top of this, Gemma 4 uses <strong>shared-KV layers</strong>. Only a subset of layers (determined by the model config) compute their own K/V projections. The remaining layers skip K/V projection entirely and reuse the KV cache written by an earlier layer. The exact reuse pattern depends on the model's layer configuration. This dramatically reduces memory usage and compute — shared layers need no K/V weight matrices and write nothing to the cache.
       </p>
       <p>
         The builder code handles this by checking <code>has_kv(il)</code> for each layer. If true, the layer projects fresh K and V. If false, it passes <code>nullptr</code> for K/V, telling <code>build_attn()</code> to read from an earlier layer's cache entry. The attention computation itself is the same &mdash; only the cache source and the window mask differ.
