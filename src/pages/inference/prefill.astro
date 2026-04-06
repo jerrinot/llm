@@ -113,7 +113,7 @@ import GatePanel from '../../components/assessment/GatePanel';
       <div class="section-label">Implementation Hook</div>
       <div class="impl-hook">
         <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
-          In <code>llama.cpp</code>, prefill and decode share the same computation graph but with different input sizes. During prefill, the batch contains all prompt tokens, producing large matrix multiplies that saturate GPU compute. The entire prompt is evaluated in a single call to <code>llama_decode()</code>.
+          In <code>llama.cpp</code>, prefill and decode share the same computation graph but with different input sizes. During prefill, the batch contains prompt tokens, producing large matrix multiplies that saturate GPU compute. Long prompts may require multiple <code>llama_decode()</code> calls and are internally split into ubatches depending on batch size settings.
         </p>
         <div class="file-path"><a href="https://github.com/ggml-org/llama.cpp/blob/94ca829b6001019622c0f67fcd48e9ec6bd7dce8/src/llama-context.cpp#L3432" target="_blank" rel="noopener">src/llama-context.cpp — llama_decode() (L3432)</a></div>
       </div>
