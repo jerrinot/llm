@@ -4,6 +4,7 @@ import '../../styles/global.css';
 import '../../styles/course.css';
 import LessonPage from '../../components/course/LessonPage';
 import GatePanel from '../../components/assessment/GatePanel';
+import ShapeTrace from '../../components/interactive/ShapeTrace';
 ---
 
 <BaseLayout title="Putting the Whole Decoder Block Together">
@@ -213,6 +214,29 @@ import GatePanel from '../../components/assessment/GatePanel';
           The full block cost is dominated by matrix multiplies: three for Q/K/V projection, one for the attention output projection, and two or three for the FFN. The norms, residual adds, softmax, and masking are comparatively cheap. For a model with N layers, every operation in this block runs N times per token generated.
         </p>
       </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Shape Trace: Full Block</div>
+      <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-bottom: var(--space-3);">
+        Trace the shapes through one complete decoder block. The model has 10 tokens, d_model=512, n_heads=8 (so d_head=64), and d_ff=2048.
+      </p>
+      <ShapeTrace
+        client:load
+        title="One Decoder Block (10 tokens, d_model=512)"
+        steps={[
+          { label: "Block input", shape: [10, 512] },
+          { label: "After RMSNorm", shape: [10, 512] },
+          { label: "Q per head", description: "8 heads, d_head=64", shape: [10, 64] },
+          { label: "Attention scores per head", description: "Q·Kᵀ", shape: [10, 10] },
+          { label: "Attention output", description: "all heads concatenated + W_O", shape: [10, 512] },
+          { label: "After first residual add", shape: [10, 512] },
+          { label: "After second RMSNorm", shape: [10, 512] },
+          { label: "FFN up-projection", description: "d_ff=2048", shape: [10, 2048] },
+          { label: "FFN down-projection", description: "back to d_model", shape: [10, 512] },
+          { label: "Block output", description: "after second residual", shape: [10, 512] },
+        ]}
+      />
     </div>
 
     <div class="lesson-section">

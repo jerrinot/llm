@@ -4,6 +4,7 @@ import '../../styles/global.css';
 import '../../styles/course.css';
 import LessonPage from '../../components/course/LessonPage';
 import GatePanel from '../../components/assessment/GatePanel';
+import ShapeTrace from '../../components/interactive/ShapeTrace';
 ---
 
 <BaseLayout title="Tensor Shapes Are the Language of Model Code">
@@ -277,6 +278,24 @@ import GatePanel from '../../components/assessment/GatePanel';
           operations are likely to dominate.
         </p>
       </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Shape Trace Exercise</div>
+      <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-bottom: var(--space-3);">
+        Trace the shapes through a small pipeline. Fill in every dimension. Think before you type — narrate each step like you practiced above.
+      </p>
+      <ShapeTrace
+        client:load
+        title="Embedding → Projection → Attention Scores"
+        steps={[
+          { label: "Token IDs", description: "5 tokens", shape: [5] },
+          { label: "After embedding lookup", description: "d_model=256", shape: [5, 256] },
+          { label: "Q projection", description: "d_head=64", shape: [5, 64] },
+          { label: "K projection", description: "d_head=64", shape: [5, 64] },
+          { label: "Attention scores Q·Kᵀ", shape: [5, 5] },
+        ]}
+      />
     </div>
 
     <div class="lesson-section">

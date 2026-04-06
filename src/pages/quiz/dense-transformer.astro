@@ -4,6 +4,7 @@ import '../../styles/global.css';
 import '../../styles/course.css';
 import LessonPage from '../../components/course/LessonPage';
 import GatePanel from '../../components/assessment/GatePanel';
+import ShapeTrace from '../../components/interactive/ShapeTrace';
 ---
 
 <BaseLayout title="Quiz: Dense Transformer Block">
@@ -18,6 +19,26 @@ import GatePanel from '../../components/assessment/GatePanel';
       <p style="color: var(--ink-tertiary); font-size: var(--text-sm); margin-top: var(--space-2);">
         You need 80% or better to proceed.
       </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Shape Trace</div>
+      <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-bottom: var(--space-3);">
+        Before the multiple choice, trace shapes through one attention sub-layer. The model has 20 tokens, d_model=1024, n_heads=16, d_head=64.
+      </p>
+      <ShapeTrace
+        client:load
+        title="Attention sub-layer (20 tokens, d_model=1024, 16 heads)"
+        steps={[
+          { label: "Input hidden states", shape: [20, 1024] },
+          { label: "After RMSNorm", shape: [20, 1024] },
+          { label: "Q per head", description: "d_head=64", shape: [20, 64] },
+          { label: "K per head", description: "d_head=64", shape: [20, 64] },
+          { label: "Scores per head", description: "Q·Kᵀ", shape: [20, 20] },
+          { label: "After W_O projection", description: "all heads → d_model", shape: [20, 1024] },
+          { label: "After residual add", shape: [20, 1024] },
+        ]}
+      />
     </div>
 
     <div class="lesson-section">
