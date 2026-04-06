@@ -54,6 +54,43 @@ import GatePanel from '../../components/assessment/GatePanel';
     </div>
 
     <div class="lesson-section">
+      <div class="section-label">The Load Balancing Problem</div>
+      <p>
+        In an ideal MoE, different tokens go to different experts — the workload is spread evenly. But without explicit
+        encouragement, training can collapse into a few "popular" experts that handle most tokens while others are
+        rarely used. This is called <strong>expert collapse</strong>.
+      </p>
+      <p>
+        Why does this happen? The router is trained to maximize prediction quality. If expert 2 happens to become slightly
+        better early in training, the router sends more tokens to it, which gives it more gradient updates, which makes it
+        even better — a positive feedback loop. Meanwhile, unused experts stagnate.
+      </p>
+      <p>
+        Training addresses this with a <strong>load-balancing loss</strong>: an auxiliary objective that penalizes the model
+        when the token distribution across experts is too uneven. This is a training concern (not an inference concern), but
+        you should know about it because it explains why real MoE models work well instead of degenerating — and why you
+        sometimes see a "balance_loss" term in training configs.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">The Core Tradeoff: Parameters vs Active Compute</div>
+      <p>
+        MoE lets you scale the model's <strong>total knowledge</strong> (parameter count) independently from its
+        <strong>per-token cost</strong> (active compute). A dense 7B-parameter model activates all 7B parameters for
+        every token. A MoE model with 64 experts of 1B each has 64B total parameters but only activates ~2B per token
+        (with top-2 routing). The per-token compute is similar to a 2B dense model, but the total knowledge is similar
+        to a 64B dense model.
+      </p>
+      <p>
+        The catch: all 64B parameters must fit in memory, even though only 2B are computed per token. MoE models are
+        memory-heavy and bandwidth-heavy (loading expert weights), even if they are not compute-heavy. This is why
+        MoE models are often memory-bandwidth-bound during decode — the exact same bottleneck you learned about in L28,
+        but amplified by the large total parameter count.
+      </div>
+    </div>
+
+    <div class="lesson-section">
       <div class="section-label">Shapes</div>
       <div class="shape-card">
         <div>Hidden state per token: [d_model]</div>
