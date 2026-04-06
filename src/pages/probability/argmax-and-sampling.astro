@@ -4,6 +4,7 @@ import '../../styles/global.css';
 import '../../styles/course.css';
 import LessonPage from '../../components/course/LessonPage';
 import GatePanel from '../../components/assessment/GatePanel';
+import LiveInferenceDemo from '../../components/interactive/live-inference/LiveInferenceDemo';
 ---
 
 <BaseLayout title="Argmax, Sampling, and Next-Token Choice">
@@ -203,10 +204,14 @@ import GatePanel from '../../components/assessment/GatePanel';
       </div>
     </div>
 
-    <div class="lesson-section" style="background: var(--surface-2); border: 1px solid var(--accent); border-radius: var(--radius-md); padding: var(--space-4);">
-      <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
-        <strong>See it live:</strong> The <a href="/reference/live-inference" style="color: var(--accent);">Live Inference demo</a> runs a real model in your browser. You can watch tokenization, logits, softmax with temperature, and autoregressive generation — everything you just learned — on real model weights.
+    <div class="lesson-section">
+      <div class="section-label">Try It Live — Full Generation Pipeline</div>
+      <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-bottom: var(--space-3);">
+        Everything from this lesson and the previous two in action. Load the model and run the full pipeline:
+        tokenize, forward pass, logits, softmax with temperature, and autoregressive generation — all on
+        real model weights in your browser.
       </p>
+      <LiveInferenceDemo client:only="react" />
     </div>
 
     <div class="lesson-section">

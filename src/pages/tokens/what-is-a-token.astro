@@ -5,6 +5,7 @@ import '../../styles/course.css';
 import LessonPage from '../../components/course/LessonPage';
 import GatePanel from '../../components/assessment/GatePanel';
 import TokenizerExplorer from '../../components/interactive/TokenizerExplorer';
+import LiveTokenizer from '../../components/interactive/live-inference/slices/LiveTokenizer';
 import WorkedSolution from '../../components/course/WorkedSolution.astro';
 ---
 
@@ -54,6 +55,15 @@ import WorkedSolution from '../../components/course/WorkedSolution.astro';
           { label: 'Emoji + text', value: 'Hello 🙂 world!' },
         ]}
       />
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Try It Live — Real GPT-2 Tokenizer</div>
+      <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-bottom: var(--space-3);">
+        The explorer above is a teaching tokenizer. The widget below runs <strong>GPT-2's actual tokenizer</strong> in your browser.
+        Try the same inputs and compare — notice how the real tokenizer handles spaces, punctuation, and emoji differently.
+      </p>
+      <LiveTokenizer client:only="react" />
     </div>
 
     <div class="lesson-section">

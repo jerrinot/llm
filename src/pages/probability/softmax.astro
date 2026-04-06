@@ -5,6 +5,7 @@ import '../../styles/course.css';
 import LessonPage from '../../components/course/LessonPage';
 import GatePanel from '../../components/assessment/GatePanel';
 import SoftmaxInspector from '../../components/interactive/SoftmaxInspector';
+import LiveSoftmax from '../../components/interactive/live-inference/slices/LiveSoftmax';
 ---
 
 <BaseLayout title="Softmax Turns Scores into a Distribution">
@@ -233,6 +234,16 @@ import SoftmaxInspector from '../../components/interactive/SoftmaxInspector';
         <div style="color: var(--sem-logits); margin-top: var(--space-1);">p<sub>i</sub> = exp((z<sub>i</sub> - m) / T) / &sum;<sub>j</sub> exp((z<sub>j</sub> - m) / T)</div>
         <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">Properties: p<sub>i</sub> &gt; 0 for all i, &nbsp; &sum;<sub>i</sub> p<sub>i</sub> = 1, &nbsp; T = 1 by default</div>
       </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Try It Live — Temperature on Real Output</div>
+      <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-bottom: var(--space-3);">
+        The inspector above uses hand-tuned logits. The widget below runs the <strong>same temperature slider
+        on real DistilGPT-2 output</strong>. Watch how the probability distribution sharpens at low temperature
+        and flattens at high temperature — on actual model predictions, not synthetic numbers.
+      </p>
+      <LiveSoftmax client:only="react" />
     </div>
 
     <div class="lesson-section">

@@ -12,9 +12,10 @@ function tokenColor(id: number): string {
 
 interface Props {
   pieces: TokenPiece[];
+  label?: string;
 }
 
-export function TokenizationPanel({ pieces }: Props) {
+export function TokenizationPanel({ pieces, label }: Props) {
   return (
     <div style={{
       padding: 'var(--space-4)',
@@ -30,7 +31,7 @@ export function TokenizationPanel({ pieces }: Props) {
         marginBottom: 'var(--space-2)',
         fontWeight: 600,
       }}>
-        Stage 1: Tokenization &mdash; {pieces.length} tokens
+        {label || 'Stage 1: Tokenization'} &mdash; {pieces.length} tokens
       </div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-1)' }}>
         {pieces.map((p, i) => (

@@ -5,6 +5,7 @@ import '../../styles/course.css';
 import LessonPage from '../../components/course/LessonPage';
 import GatePanel from '../../components/assessment/GatePanel';
 import SoftmaxInspector from '../../components/interactive/SoftmaxInspector';
+import LiveLogits from '../../components/interactive/live-inference/slices/LiveLogits';
 ---
 
 <BaseLayout title="The Output Head Produces One Logit Per Vocabulary Entry">
@@ -153,6 +154,16 @@ import SoftmaxInspector from '../../components/interactive/SoftmaxInspector';
         You can think of each column as a "template" for one vocabulary token — the logit measures how well the
         hidden state matches that template. Higher match &rarr; higher logit &rarr; model thinks that token is more likely.
       </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Try It Live — Real Model Logits</div>
+      <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-bottom: var(--space-3);">
+        The examples above use made-up numbers. The widget below runs <strong>DistilGPT-2</strong> in your browser
+        and shows the actual logit vector the model produces for your prompt. Notice the top predictions — these are
+        the model's real next-token guesses, before softmax.
+      </p>
+      <LiveLogits client:only="react" />
     </div>
 
     <div class="lesson-section">
