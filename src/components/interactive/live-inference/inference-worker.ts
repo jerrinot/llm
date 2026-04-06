@@ -1,14 +1,23 @@
-import { AutoTokenizer, AutoModelForCausalLM, type Tensor } from '@huggingface/transformers';
+import { AutoTokenizer, AutoModelForCausalLM, Tensor } from '@huggingface/transformers';
 import type { WorkerInMessage, WorkerOutMessage, TokenPiece, TopKEntry } from './types';
 
-const MODEL_ID = 'Xenova/distilgpt2';
+const MODEL_ID = 'onnx-community/distilgpt2';
 const TOP_K = 15;
 
 let tokenizer: Awaited<ReturnType<typeof AutoTokenizer.from_pretrained>> | null = null;
 let model: Awaited<ReturnType<typeof AutoModelForCausalLM.from_pretrained>> | null = null;
 
+// Serialize all requests through a single promise chain to prevent race conditions
+let workQueue: Promise<void> = Promise.resolve();
+
 function post(msg: WorkerOutMessage) {
   self.postMessage(msg);
+}
+
+function enqueue(fn: () => Promise<void>) {
+  workQueue = workQueue.then(fn).catch(e => {
+    post({ type: 'error', message: e?.message || 'Unknown worker error' });
+  });
 }
 
 async function loadModel() {
@@ -67,13 +76,12 @@ async function forwardPass(inputIds: number[]) {
     return;
   }
   try {
-    const input = { input_ids: BigInt64Array.from(inputIds.map(id => BigInt(id))), };
-    // Reshape to [1, seq_len]
-    const { ort } = await import('@huggingface/transformers');
-    const tensor = new ort.Tensor('int64', input.input_ids, [1, inputIds.length]);
+    // Create input tensor [1, seq_len] of int64
+    const int64Data = BigInt64Array.from(inputIds.map(id => BigInt(id)));
+    const inputTensor = new Tensor('int64', int64Data, [1, inputIds.length]);
 
-    const output = await model.forward({ input_ids: tensor });
-    const logitsTensor: Tensor = output.logits;
+    const output = await model.forward({ input_ids: inputTensor });
+    const logitsTensor = output.logits;
 
     // Get logits for the last position: shape [1, seq_len, vocab_size]
     const vocabSize = logitsTensor.dims[2];
@@ -97,17 +105,17 @@ async function forwardPass(inputIds: number[]) {
   }
 }
 
-self.onmessage = async (e: MessageEvent<WorkerInMessage>) => {
+self.onmessage = (e: MessageEvent<WorkerInMessage>) => {
   const msg = e.data;
   switch (msg.type) {
     case 'load-model':
-      await loadModel();
+      enqueue(() => loadModel());
       break;
     case 'tokenize':
-      await tokenize(msg.text);
+      enqueue(() => tokenize(msg.text));
       break;
     case 'forward-pass':
-      await forwardPass(msg.inputIds);
+      enqueue(() => forwardPass(msg.inputIds));
       break;
   }
 };

@@ -32,35 +32,58 @@ export function useInferenceWorker() {
   const getWorker = useCallback(() => {
     if (typeof window === 'undefined') return null;
     if (!workerRef.current) {
-      workerRef.current = new Worker(
-        new URL('./inference-worker.ts', import.meta.url),
-        { type: 'module' }
-      );
-      workerRef.current.onmessage = (e: MessageEvent<WorkerOutMessage>) => {
-        const msg = e.data;
-        switch (msg.type) {
-          case 'model-progress':
-            setState(s => ({
-              ...s,
-              modelStatus: 'downloading',
-              downloadProgress: msg.progress,
-              downloadLabel: msg.status,
-            }));
-            break;
-          case 'model-ready':
-            setState(s => ({ ...s, modelStatus: 'ready', downloadProgress: 100, downloadLabel: 'Model ready' }));
-            break;
-          case 'tokenized':
-            setState(s => ({ ...s, tokens: msg.pieces, inputIds: msg.inputIds, isInferring: false }));
-            break;
-          case 'logits':
-            setState(s => ({ ...s, logits: msg.logits, topK: msg.topK, isInferring: false }));
-            break;
-          case 'error':
-            setState(s => ({ ...s, error: msg.message, isInferring: false, modelStatus: s.modelStatus === 'downloading' ? 'error' : s.modelStatus }));
-            break;
-        }
-      };
+      try {
+        const w = new Worker(
+          new URL('./inference-worker.ts', import.meta.url),
+          { type: 'module' }
+        );
+        w.onmessage = (e: MessageEvent<WorkerOutMessage>) => {
+          const msg = e.data;
+          switch (msg.type) {
+            case 'model-progress':
+              setState(s => ({
+                ...s,
+                modelStatus: 'downloading',
+                downloadProgress: msg.progress,
+                downloadLabel: msg.status,
+              }));
+              break;
+            case 'model-ready':
+              setState(s => ({ ...s, modelStatus: 'ready', downloadProgress: 100, downloadLabel: 'Model ready' }));
+              break;
+            case 'tokenized':
+              setState(s => ({ ...s, tokens: msg.pieces, inputIds: msg.inputIds, isInferring: false }));
+              break;
+            case 'logits':
+              setState(s => ({ ...s, logits: msg.logits, topK: msg.topK, isInferring: false }));
+              break;
+            case 'error':
+              setState(s => ({
+                ...s,
+                error: msg.message,
+                isInferring: false,
+                modelStatus: s.modelStatus === 'downloading' ? 'error' : s.modelStatus,
+              }));
+              break;
+          }
+        };
+        w.onerror = (e) => {
+          setState(s => ({
+            ...s,
+            error: `Worker error: ${e.message || 'unknown'}`,
+            isInferring: false,
+            modelStatus: s.modelStatus === 'downloading' ? 'error' : s.modelStatus,
+          }));
+        };
+        workerRef.current = w;
+      } catch (e: any) {
+        setState(s => ({
+          ...s,
+          error: `Failed to create worker: ${e.message}`,
+          modelStatus: 'error',
+        }));
+        return null;
+      }
     }
     return workerRef.current;
   }, []);

@@ -1,22 +1,24 @@
 import type { TopKEntry } from './types';
 
-function softmax(logits: number[], temperature: number): number[] {
+function softmaxFull(logits: number[], temperature: number): Float64Array {
   const scaled = logits.map(l => l / temperature);
   const max = Math.max(...scaled);
   const exps = scaled.map(l => Math.exp(l - max));
   const sum = exps.reduce((a, b) => a + b, 0);
-  return exps.map(e => e / sum);
+  return Float64Array.from(exps.map(e => e / sum));
 }
 
 interface Props {
+  logits: number[] | null;
   topK: TopKEntry[];
   temperature: number;
   onTemperatureChange: (t: number) => void;
 }
 
-export function SoftmaxPanel({ topK, temperature, onTemperatureChange }: Props) {
-  const logits = topK.map(e => e.logit);
-  const probs = softmax(logits, temperature);
+export function SoftmaxPanel({ logits, topK, temperature, onTemperatureChange }: Props) {
+  // Compute softmax over the FULL logit vector, then pick probabilities for the displayed top-K tokens
+  const fullProbs = logits ? softmaxFull(logits, temperature) : null;
+  const topKProbs = topK.map(entry => fullProbs ? fullProbs[entry.id] : 0);
 
   return (
     <div style={{
@@ -36,7 +38,6 @@ export function SoftmaxPanel({ topK, temperature, onTemperatureChange }: Props) 
         Stage 3: Softmax with Temperature
       </div>
 
-      {/* Temperature slider */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', marginBottom: 'var(--space-3)' }}>
         <label style={{ fontSize: 'var(--text-xs)', color: 'var(--ink-secondary)', fontFamily: 'var(--font-mono)' }}>
           T = {temperature.toFixed(2)}
@@ -72,7 +73,6 @@ export function SoftmaxPanel({ topK, temperature, onTemperatureChange }: Props) 
         </div>
       </div>
 
-      {/* Probability bars */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
         {topK.map((entry, i) => (
           <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
@@ -95,7 +95,7 @@ export function SoftmaxPanel({ topK, temperature, onTemperatureChange }: Props) 
             }}>
               <div style={{
                 height: '100%',
-                width: `${probs[i] * 100}%`,
+                width: `${topKProbs[i] * 100}%`,
                 background: i === 0 ? 'var(--sem-ffn)' : 'var(--sem-kvcache)',
                 borderRadius: '2px',
                 transition: 'width 0.15s',
@@ -108,7 +108,7 @@ export function SoftmaxPanel({ topK, temperature, onTemperatureChange }: Props) 
               minWidth: '3.5rem',
               textAlign: 'right',
             }}>
-              {(probs[i] * 100).toFixed(1)}%
+              {(topKProbs[i] * 100).toFixed(1)}%
             </span>
           </div>
         ))}
@@ -120,7 +120,7 @@ export function SoftmaxPanel({ topK, temperature, onTemperatureChange }: Props) 
           : temperature > 1.5
             ? 'High temperature: distribution is flat — many tokens have similar probability.'
             : 'Default temperature: a moderate distribution across likely tokens.'}
-        {' '}Drag the slider to see how temperature reshapes the probability distribution.
+        {' '}Probabilities are computed over the full vocabulary ({logits ? logits.length.toLocaleString() : '?'} tokens), not just the displayed top-{topK.length}.
       </div>
     </div>
   );

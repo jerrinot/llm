@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useInferenceWorker } from './useInferenceWorker';
 import { ModelStatusBar } from './ModelStatusBar';
 import { TokenizationPanel } from './TokenizationPanel';
@@ -18,34 +18,45 @@ export default function LiveInferenceDemo() {
   const [inputText, setInputText] = useState(PRESETS[0]);
   const [temperature, setTemperature] = useState(1.0);
   const [activeStage, setActiveStage] = useState<number>(0);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Clean up timers
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
+
+  // Auto-advance: tokens arrived → run forward pass
+  useEffect(() => {
+    if (activeStage === 1 && worker.tokens && !worker.isInferring && worker.inputIds) {
+      timerRef.current = setTimeout(() => {
+        setActiveStage(2);
+        worker.runForward(worker.inputIds!);
+      }, 50);
+      return () => { if (timerRef.current) clearTimeout(timerRef.current); };
+    }
+  }, [activeStage, worker.tokens, worker.isInferring, worker.inputIds]);
+
+  // Auto-advance: logits arrived → show results
+  useEffect(() => {
+    if (activeStage === 2 && worker.topK && !worker.isInferring) {
+      timerRef.current = setTimeout(() => setActiveStage(3), 50);
+      return () => { if (timerRef.current) clearTimeout(timerRef.current); };
+    }
+  }, [activeStage, worker.topK, worker.isInferring]);
 
   const handleRun = useCallback(() => {
-    if (worker.modelStatus !== 'ready') return;
+    if (worker.modelStatus !== 'ready' || isGenerating) return;
     setActiveStage(1);
     worker.tokenize(inputText);
-  }, [worker, inputText]);
+  }, [worker, inputText, isGenerating]);
 
-  // When tokens arrive, auto-run forward pass
-  const handleTokensReady = useCallback(() => {
-    if (worker.inputIds && worker.inputIds.length > 0) {
-      setActiveStage(2);
-      worker.runForward(worker.inputIds);
-    }
-  }, [worker]);
-
-  // Auto-advance when logits arrive
-  if (worker.topK && activeStage === 2) {
-    setTimeout(() => setActiveStage(3), 50);
-  }
-
-  // Auto-advance when tokens arrive
-  if (worker.tokens && activeStage === 1 && !worker.isInferring) {
-    setTimeout(() => handleTokensReady(), 50);
-  }
+  const disabled = worker.isInferring || isGenerating || !inputText.trim();
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
-      {/* Model loader */}
       <ModelStatusBar
         status={worker.modelStatus}
         progress={worker.downloadProgress}
@@ -54,7 +65,6 @@ export default function LiveInferenceDemo() {
         onLoad={worker.loadModel}
       />
 
-      {/* Input */}
       {worker.modelStatus === 'ready' && (
         <div>
           <label style={{ display: 'block', fontSize: 'var(--text-sm)', color: 'var(--ink-secondary)', marginBottom: 'var(--space-2)', fontWeight: 600 }}>
@@ -65,6 +75,7 @@ export default function LiveInferenceDemo() {
               <button
                 key={p}
                 onClick={() => { setInputText(p); setActiveStage(0); }}
+                disabled={isGenerating}
                 style={{
                   fontFamily: 'var(--font-mono)',
                   fontSize: 'var(--text-xs)',
@@ -73,7 +84,8 @@ export default function LiveInferenceDemo() {
                   color: inputText === p ? 'white' : 'var(--ink-secondary)',
                   border: 'none',
                   borderRadius: 'var(--radius-sm)',
-                  cursor: 'pointer',
+                  cursor: isGenerating ? 'default' : 'pointer',
+                  opacity: isGenerating ? 0.5 : 1,
                 }}
               >
                 {p}
@@ -85,6 +97,7 @@ export default function LiveInferenceDemo() {
               type="text"
               value={inputText}
               onChange={e => { setInputText(e.target.value); setActiveStage(0); }}
+              disabled={isGenerating}
               style={{
                 flex: 1,
                 fontFamily: 'var(--font-mono)',
@@ -94,20 +107,21 @@ export default function LiveInferenceDemo() {
                 border: '1px solid var(--ink-ghost)',
                 borderRadius: 'var(--radius-sm)',
                 color: 'var(--ink-primary)',
+                opacity: isGenerating ? 0.5 : 1,
               }}
             />
             <button
               onClick={handleRun}
-              disabled={worker.isInferring || !inputText.trim()}
+              disabled={disabled}
               style={{
                 fontFamily: 'var(--font-mono)',
                 fontSize: 'var(--text-sm)',
                 padding: 'var(--space-2) var(--space-4)',
-                background: worker.isInferring ? 'var(--surface-3)' : 'var(--accent)',
-                color: worker.isInferring ? 'var(--ink-ghost)' : 'white',
+                background: disabled ? 'var(--surface-3)' : 'var(--accent)',
+                color: disabled ? 'var(--ink-ghost)' : 'white',
                 border: 'none',
                 borderRadius: 'var(--radius-sm)',
-                cursor: worker.isInferring ? 'default' : 'pointer',
+                cursor: disabled ? 'default' : 'pointer',
                 whiteSpace: 'nowrap',
               }}
             >
@@ -117,12 +131,10 @@ export default function LiveInferenceDemo() {
         </div>
       )}
 
-      {/* Stage 1: Tokenization */}
       {worker.tokens && activeStage >= 1 && (
         <TokenizationPanel pieces={worker.tokens} />
       )}
 
-      {/* Stage 2: Forward pass indicator */}
       {activeStage === 2 && worker.isInferring && (
         <div style={{
           padding: 'var(--space-4)',
@@ -145,20 +157,20 @@ export default function LiveInferenceDemo() {
         </div>
       )}
 
-      {/* Stage 3: Logits + Softmax + Sampling */}
       {worker.topK && activeStage >= 3 && (
         <>
           <LogitsChart topK={worker.topK} />
-          <SoftmaxPanel topK={worker.topK} temperature={temperature} onTemperatureChange={setTemperature} />
+          <SoftmaxPanel logits={worker.logits} topK={worker.topK} temperature={temperature} onTemperatureChange={setTemperature} />
           <GenerationLoop
             worker={worker}
             initialText={inputText}
             temperature={temperature}
+            isGenerating={isGenerating}
+            onGeneratingChange={setIsGenerating}
           />
         </>
       )}
 
-      {/* Error display */}
       {worker.error && (
         <div style={{
           padding: 'var(--space-3) var(--space-4)',
