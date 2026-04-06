@@ -96,6 +96,47 @@ import AttentionSimulator from '../../components/interactive/AttentionSimulator'
     </div>
 
     <div class="lesson-section">
+      <div class="section-label">What the Weighted Sum Actually Computes</div>
+      <p>
+        After softmax, each row of the attention weight matrix tells one token how much to "listen to" each
+        earlier token. But what is it listening <em>for</em>? The answer is the <strong>value vectors</strong>.
+      </p>
+      <p>
+        For each token position i, the output is:
+      </p>
+      <div style="font-family: var(--font-mono); font-size: var(--text-sm); background: var(--surface-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); margin: var(--space-3) 0;">
+        <div style="color: var(--sem-attention);">output[i] = w[i,0] &times; V[0] + w[i,1] &times; V[1] + ... + w[i,i] &times; V[i]</div>
+      </div>
+      <p>
+        This is a weighted average of value vectors. If token 3 has attention weights [0.12, 0.48, 0.40] over
+        positions 1, 2, 3, it gets 12% of position 1's value, 48% of position 2's value, and 40% of its own value.
+        The output is a blend — a new vector that mixes information from the attended positions in the proportions
+        the scores determined.
+      </p>
+      <p>
+        This is the fundamental mechanism by which tokens exchange information. The query decides <em>where</em> to look
+        (via scores), and the values carry <em>what</em> information flows. Changing W<sub>Q</sub> and W<sub>K</sub> changes
+        which positions are attended. Changing W<sub>V</sub> changes what information is extracted from those positions.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Why Scale by &radic;d_head?</div>
+      <p>
+        The dot product Q[i] &middot; K[j] sums d_head terms. If each term has variance ~1, the sum has variance ~d_head.
+        With d_head = 128, the raw scores can easily reach magnitudes of 10-20, which pushes softmax into saturation —
+        one position gets nearly all the weight and the rest get nearly zero. The model loses its ability to attend
+        to multiple positions.
+      </p>
+      <p>
+        Dividing by &radic;d_head normalizes the variance back to ~1, keeping scores in a range where softmax produces
+        a useful (not-too-sharp) distribution. This is not a learned parameter — it is a fixed constant derived from
+        the dimensionality. You saw a related effect in L07: doubling Q magnitudes doubles the dot product. Scaling
+        by &radic;d_head counteracts this dimensional growth.
+      </p>
+    </div>
+
+    <div class="lesson-section">
       <div class="section-label">Shapes</div>
       <div class="shape-card">
         <div>Q: [n_tokens, d_head] &nbsp;&nbsp; K: [n_tokens, d_head]</div>

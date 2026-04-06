@@ -57,6 +57,44 @@ import GatePanel from '../../components/assessment/GatePanel';
     </div>
 
     <div class="lesson-section">
+      <div class="section-label">Why Expand, Then Contract?</div>
+      <p>
+        The expand-then-contract pattern is not arbitrary. It creates a wide intermediate representation where the
+        activation function can do useful work. Consider what would happen without the expansion: the model would
+        apply a nonlinearity to a d_model-dimensional vector, where every dimension is already heavily used to encode
+        information. There would be little room for the activation to selectively amplify or suppress features.
+      </p>
+      <p>
+        By projecting to a wider space (d_ff = 4&times; d_model is typical), the model gives the activation function
+        many more dimensions to work with. Some of those dimensions will be strongly activated (high values after SiLU),
+        others will be near zero (suppressed). The down-projection then selects and recombines the surviving features
+        back into d_model dimensions. The effect is a learned, nonlinear feature-mixing operation.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">What the Gate Does (SwiGLU)</div>
+      <p>
+        In the gated variant, two parallel projections are computed from the same input: <code>x &middot; W_gate</code>
+        and <code>x &middot; W_up</code>. The gate projection passes through SiLU (a smooth activation), then multiplies
+        elementwise with the up projection. This means the gate learns a <strong>soft mask</strong> over the expanded features:
+      </p>
+      <ul style="list-style: none; padding: 0; margin: var(--space-3) 0;">
+        <li style="padding: var(--space-1) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          Where the gate output is near 1, the up-projection feature passes through.
+        </li>
+        <li style="padding: var(--space-1) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          Where the gate output is near 0, the feature is suppressed.
+        </li>
+      </ul>
+      <p>
+        This gives the model finer-grained control than a simple activate-everything approach. The cost is one
+        extra projection matrix (W_gate), which is why gated FFNs have 3 weight matrices instead of 2. Empirically,
+        SwiGLU outperforms the older ReLU-based FFN at the same parameter count.
+      </p>
+    </div>
+
+    <div class="lesson-section">
       <div class="section-label">Shapes</div>
       <div class="shape-card">
         <div>Input: [n_tokens, d_model]</div>
