@@ -164,7 +164,7 @@ import AttentionSimulator from '../../components/interactive/AttentionSimulator'
       <div class="section-label">Implementation Hook</div>
       <div class="impl-hook">
         <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
-          In <code>llama.cpp</code>, <code>build_attn()</code> in <code>src/llama-graph.cpp</code> orchestrates the full attention computation: Q/K/V projection, RoPE, score computation, masking, softmax, and the weighted sum of V. The causal mask is constructed to enforce the left-to-right constraint.
+          In <code>llama.cpp</code>, each model builder (e.g. <code>src/models/gemma.cpp</code>) projects Q, K, V and applies RoPE. Then <code>build_attn()</code> in <code>src/llama-graph.cpp</code> takes the already-rotated Q and K and handles the rest: score computation, causal masking, softmax, weighted V sum, and output projection.
         </p>
       </div>
     </div>
