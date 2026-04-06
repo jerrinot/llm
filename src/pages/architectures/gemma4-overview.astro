@@ -175,7 +175,7 @@ import GatePanel from '../../components/assessment/GatePanel';
       <div class="section-label">Performance Hook</div>
       <div class="perf-hook">
         <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
-          Heterogeneous layers make performance analysis harder. Some layers are cheap (SWA + shared KV + dense FFN). Some are expensive (full attention + fresh KV + MoE). Profiling a Gemma 4 model shows uneven per-layer timing. You cannot assume every layer costs the same — a mistake common when reasoning about plain dense decoders.
+          Heterogeneous layers make performance analysis harder. Some layers are cheap (SWA + shared KV + dense FFN). Some are expensive (full attention + fresh KV + MoE). Profiling a Gemma 4 model shows uneven per-layer timing. You cannot assume every layer costs the same — a mistake common when reasoning about plain dense decoders. Next, you will see how these architectures actually execute at inference time: the split between prefill and decode, and why the distinction matters for every optimization decision.
         </p>
       </div>
     </div>

@@ -127,6 +127,27 @@ import WorkedSolution from '../../components/course/WorkedSolution.astro';
     </div>
 
     <div class="lesson-section">
+      <div class="section-label">Concrete Token Costs</div>
+      <p>
+        To build intuition for token counts in practice, here are rough numbers for common input types
+        (using a typical BPE tokenizer with ~128K vocabulary):
+      </p>
+      <div class="toy-example">
+        <div style="font-family: var(--font-mono); font-size: var(--text-sm);">
+          <div style="margin-bottom: var(--space-1);">1 page of English prose (~500 words) &nbsp;&nbsp;&asymp; <strong>~650 tokens</strong></div>
+          <div style="margin-bottom: var(--space-1);">A 10-line Python function &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&asymp; <strong>~80-120 tokens</strong></div>
+          <div style="margin-bottom: var(--space-1);">A JSON object with 5 key-value pairs &nbsp;&asymp; <strong>~40-60 tokens</strong></div>
+          <div style="margin-bottom: var(--space-1);">A URL like https://example.com/path &nbsp;&asymp; <strong>~10-15 tokens</strong></div>
+          <div>A single emoji (🎉) &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&asymp; <strong>~2-4 tokens</strong></div>
+        </div>
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-top: var(--space-3);">
+          The rule of thumb "1 token &asymp; 0.75 words" works for English prose but breaks down for code, structured
+          data, and non-Latin scripts, which typically cost more tokens per information unit.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
       <div class="section-label">A Better Mental Model</div>
       <p>
         Treat tokenization as a lossy view of text structure from the engineer's perspective.
