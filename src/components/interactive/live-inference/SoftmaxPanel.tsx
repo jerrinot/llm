@@ -44,6 +44,7 @@ export function SoftmaxPanel({ logits, topK, temperature, onTemperatureChange }:
         </label>
         <input
           type="range"
+          aria-label="Temperature"
           min="0.1"
           max="3.0"
           step="0.05"

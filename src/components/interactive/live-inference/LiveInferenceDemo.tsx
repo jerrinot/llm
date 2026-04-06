@@ -95,6 +95,7 @@ export default function LiveInferenceDemo() {
           <div style={{ display: 'flex', gap: 'var(--space-3)' }}>
             <input
               type="text"
+              aria-label="Prompt text"
               value={inputText}
               onChange={e => { setInputText(e.target.value); setActiveStage(0); }}
               disabled={isGenerating}

@@ -127,6 +127,7 @@ export default function ShapeTrace({ title, steps }: Props) {
                   <input
                     type="text"
                     inputMode="numeric"
+                    aria-label={`${step.label} dimension ${di + 1}`}
                     maxLength={6}
                     value={values[`${si}-${di}`] || ''}
                     onChange={e => handleChange(si, di, e.target.value)}

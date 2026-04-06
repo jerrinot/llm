@@ -54,7 +54,7 @@ export default function LiveLogits() {
             ))}
           </div>
           <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
-            <input type="text" value={inputText}
+            <input type="text" aria-label="Prompt text" value={inputText}
               onChange={e => { setInputText(e.target.value); setRan(false); }}
               style={{
                 flex: 1, fontFamily: 'var(--font-mono)', fontSize: 'var(--text-sm)',
