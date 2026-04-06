@@ -4,6 +4,7 @@ import '../../styles/global.css';
 import '../../styles/course.css';
 import LessonPage from '../../components/course/LessonPage';
 import GatePanel from '../../components/assessment/GatePanel';
+import ContextBudgetPlanner from '../../components/interactive/ContextBudgetPlanner';
 ---
 
 <BaseLayout title="Context Length Means Token Capacity">
@@ -25,6 +26,17 @@ import GatePanel from '../../components/assessment/GatePanel';
       <p>
         Context length is not measured in characters or words. It is measured in tokens, because that is the unit the model operates on.
       </p>
+      <p>
+        In practice, context length is not just a spec-sheet number. It determines whether a prompt fits at all, how much room remains for the answer, and how expensive long prompts become at runtime.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Interactive — Budget Planner</div>
+      <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-bottom: var(--space-3);">
+        Adjust the prompt and output sizes below. Watch how a request can fail even before generation starts if the prompt already consumes most of the context window.
+      </p>
+      <ContextBudgetPlanner client:visible />
     </div>
 
     <div class="lesson-section">
@@ -53,10 +65,53 @@ import GatePanel from '../../components/assessment/GatePanel';
     </div>
 
     <div class="lesson-section">
+      <div class="section-label">Operational Cases</div>
+      <div class="toy-example">
+        <table style="width: 100%; border-collapse: collapse; font-size: var(--text-sm);">
+          <thead>
+            <tr style="border-bottom: var(--border-default);">
+              <th style="text-align: left; padding: var(--space-2); color: var(--ink-ghost); font-weight: 400; font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.08em;">Scenario</th>
+              <th style="text-align: left; padding: var(--space-2); color: var(--ink-ghost); font-weight: 400; font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.08em;">Why context matters</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr style="border-bottom: var(--border-subtle);">
+              <td style="padding: var(--space-2); font-family: var(--font-mono);">Short chat turn</td>
+              <td style="padding: var(--space-2); color: var(--ink-secondary);">Fits easily, so there is plenty of room for generation and the prompt is cheap to prefill.</td>
+            </tr>
+            <tr style="border-bottom: var(--border-subtle);">
+              <td style="padding: var(--space-2); font-family: var(--font-mono);">RAG prompt with many retrieved passages</td>
+              <td style="padding: var(--space-2); color: var(--ink-secondary);">The context window is shared by instructions, retrieved text, citations, and the answer budget.</td>
+            </tr>
+            <tr>
+              <td style="padding: var(--space-2); font-family: var(--font-mono);">Long source file or transcript</td>
+              <td style="padding: var(--space-2); color: var(--ink-secondary);">Even if it fits, the model must process every prompt token first, so time-to-first-token gets much worse.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">What Context Length Is Not</div>
+      <p>
+        Context length is not a promise that the model will perfectly reason over every token in a huge prompt.
+        It is a capacity limit: the maximum sequence length the runtime and model architecture are prepared to handle.
+      </p>
+      <p>
+        It is also not the same thing as "memory" in the ordinary English sense.
+        A model with a longer context window can carry more prior tokens forward, but that does not guarantee good retrieval, faithful summarization, or equal attention to every earlier detail.
+        Those are quality questions layered on top of the raw capacity limit.
+      </p>
+    </div>
+
+    <div class="lesson-section">
       <div class="section-label">Shapes</div>
       <div class="shape-card">
         <div>context_length: maximum number of tokens the model can process</div>
         <div>n_prompt + n_generated &#x2264; context_length</div>
+        <div>remaining_budget = context_length - n_prompt</div>
+        <div>active sequence length grows from n_prompt to n_prompt + n_generated during generation</div>
       </div>
     </div>
 
@@ -69,6 +124,46 @@ import GatePanel from '../../components/assessment/GatePanel';
       <p style="font-size: var(--text-sm); color: var(--ink-tertiary);">
         where L is the context length. Both the input and the output compete for the same budget.
       </p>
+      <div style="font-family: var(--font-mono); font-size: var(--text-sm); color: var(--sem-token); background: var(--surface-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); margin: var(--space-3) 0; display: inline-block;">
+        remaining = L - n_prompt
+      </div>
+      <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+        If you request more than <code>remaining</code> output tokens, the runtime has to refuse, truncate the request, or drop earlier context depending on its policy.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Why Long Context Becomes Expensive</div>
+      <p>
+        There are two distinct moments to keep in mind.
+        First, the runtime must process the entire prompt before generation can begin. This is often called <strong>prefill</strong>.
+        A 20,000-token prompt is expensive even if the answer will be only 10 tokens long, because all 20,000 prompt tokens still have to go through the model first.
+      </p>
+      <p>
+        Second, once generation starts, each new token is produced while carrying the accumulated context forward.
+        That means later generated tokens are not independent of prompt length.
+        A long active context can slow generation even if the per-token decode path is cheaper than prefill.
+      </p>
+      <p>
+        This is the systems reason long prompts can feel bad twice: slow time-to-first-token and slower per-token generation afterward.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Runtime Policies When the Budget Does Not Fit</div>
+      <p>
+        Real serving systems have to choose a policy when a request exceeds the context budget.
+        The simplest option is to reject the request. Another common option is to truncate the prompt or cap the allowed output length.
+        Some systems also drop older tokens from a conversation and keep only the most recent span.
+      </p>
+      <p>
+        None of these are "free." Rejection hurts usability. Truncation may silently remove important instructions.
+        Sliding windows or eviction policies may keep the request alive but change what information the model can still condition on.
+      </p>
+      <p>
+        This is why context budgeting is a product decision as much as a systems one.
+        The runtime needs a clear policy for what to protect: instructions, recent turns, retrieved documents, or answer budget.
+      </p>
     </div>
 
     <div class="lesson-section">
@@ -78,6 +173,15 @@ import GatePanel from '../../components/assessment/GatePanel';
           Context length is set in the model's metadata and enforced at runtime.
           In <code>llama.cpp</code>, exceeding the context length results in an error or truncation, not a graceful degradation.
         </p>
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-top: var(--space-3);">
+          This is why inference servers expose knobs like context size and max generated tokens separately.
+          A serving system has to budget room for the answer instead of letting the prompt consume the whole window by accident.
+        </p>
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-top: var(--space-3);">
+          In practice, engineers often reserve generation budget explicitly.
+          Instead of asking "does the prompt fit?", they ask "does the prompt fit while still leaving enough room for the answer we promised the user?"
+          That is a much more useful production question.
+        </p>
       </div>
     </div>
 
@@ -86,6 +190,14 @@ import GatePanel from '../../components/assessment/GatePanel';
       <div class="perf-hook">
         <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
           Longer context means more tokens for the model to process — more computation in every layer. The cost grows with the number of tokens. You will learn exactly how later.
+        </p>
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-top: var(--space-3);">
+          Two costs matter in practice. <strong>Prefill</strong> cost depends on how many prompt tokens you send up front. <strong>Decode</strong> cost depends on how many tokens the model has to carry while generating each new token.
+          This is why a long prompt can make both the first token and later tokens slower.
+        </p>
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-top: var(--space-3);">
+          The practical lesson is simple: context length is a budget you spend, not a badge you own.
+          If you spend it carelessly on verbose prompts, oversized retrieval payloads, or raw logs, you will pay in latency, memory pressure, and reduced room for useful output.
         </p>
       </div>
     </div>
@@ -108,6 +220,30 @@ import GatePanel from '../../components/assessment/GatePanel';
               { id: 'c', text: '3500', isCorrect: false },
             ],
             explanation: '4096 - 3500 = 596 tokens remaining for generation. Prompt and output share the same budget.',
+          },
+          {
+            id: 'L04-q2',
+            type: 'single_choice',
+            prompt: 'Why can a long prompt make an answer slow even if you only ask for 20 new tokens?',
+            tag: 'conceptual',
+            choices: [
+              { id: 'a', text: 'Because generation speed depends only on the requested output length', isCorrect: false },
+              { id: 'b', text: 'Because the model must process the full prompt first and then carry that context while decoding', isCorrect: true },
+              { id: 'c', text: 'Because the tokenizer becomes much slower for long prompts', isCorrect: false },
+            ],
+            explanation: 'Long prompts are expensive twice: first during prompt processing, then because the generated tokens are produced while attending over a larger active context.',
+          },
+          {
+            id: 'L04-q3',
+            type: 'single_choice',
+            prompt: 'You have an 8,192-token context window, a 7,900-token prompt, and you request 600 output tokens. What has to happen?',
+            tag: 'shape',
+            choices: [
+              { id: 'a', text: 'The request fits exactly because generation is counted separately', isCorrect: false },
+              { id: 'b', text: 'The runtime must reduce output, reject the request, or remove context because only 292 tokens remain', isCorrect: true },
+              { id: 'c', text: 'The tokenizer compresses the prompt automatically to make room', isCorrect: false },
+            ],
+            explanation: 'The prompt already uses 7,900 tokens, so only 292 tokens remain. Asking for 600 output tokens exceeds the shared context budget.',
           },
         ]}
       />

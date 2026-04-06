@@ -32,14 +32,26 @@ import TokenizerExplorer from '../../components/interactive/TokenizerExplorer';
       <p>
         When people say a model has a "context length of 128K tokens," they mean 128,000 of these pieces — not 128,000 words.
       </p>
+      <p>
+        This matters operationally: English prose, source code, JSON, log lines, emojis, and oddly formatted text can all produce very different token counts even when the character count looks similar.
+        Engineers who reason in characters or words usually underestimate prompt cost.
+      </p>
     </div>
 
     <div class="lesson-section">
       <div class="section-label">Interactive — Tokenizer Explorer</div>
       <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-bottom: var(--space-3);">
-        Type text below and see how it splits into tokens. Notice how token boundaries don't always match word boundaries.
+        Type text below and see how it splits into tokens. Try prose, punctuation-heavy text, repeated spaces, and code-like inputs.
       </p>
-      <TokenizerExplorer client:load />
+      <TokenizerExplorer
+        client:visible
+        suggestions={[
+          { label: 'Simple prose', value: 'The cat sat on the mat.' },
+          { label: 'Extra spaces', value: 'The  cat   sat' },
+          { label: 'Code-like', value: 'foo(bar)==42' },
+          { label: 'Emoji + text', value: 'Hello 🙂 world!' },
+        ]}
+      />
     </div>
 
     <div class="lesson-section">
@@ -64,12 +76,78 @@ import TokenizerExplorer from '../../components/interactive/TokenizerExplorer';
     </div>
 
     <div class="lesson-section">
+      <div class="section-label">Why Models Do Not Read Raw Text</div>
+      <p>
+        Neural networks operate on numbers, not on strings. That sounds obvious, but it does not yet explain why we need tokens instead of just using raw character codes.
+        In principle, we could feed the model one Unicode code point at a time. In practice, that would make sequences much longer, which would make every later stage of inference more expensive.
+      </p>
+      <p>
+        At the other extreme, we could try to store every whole word as its own symbol. That sounds convenient for English prose, but it breaks down quickly.
+        Natural language contains inflections, typos, names, punctuation variants, code fragments, URLs, numbers, and multilingual text.
+        A pure word-level vocabulary would either be enormous or would fail constantly on novel strings.
+      </p>
+      <p>
+        Subword tokenization is the compromise. Common patterns like <code>" the"</code>, <code>"ing"</code>, or <code>"tion"</code> can be single pieces, while rarer text can still be expressed by smaller fragments.
+        This keeps the vocabulary finite and reusable without forcing every input down to individual characters.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Where Engineers Get Surprised</div>
+      <div class="toy-example">
+        <table style="width: 100%; border-collapse: collapse; font-size: var(--text-sm);">
+          <thead>
+            <tr style="border-bottom: var(--border-default);">
+              <th style="text-align: left; padding: var(--space-2); color: var(--ink-ghost); font-weight: 400; font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.08em;">Input pattern</th>
+              <th style="text-align: left; padding: var(--space-2); color: var(--ink-ghost); font-weight: 400; font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.08em;">Why token count can jump</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr style="border-bottom: var(--border-subtle);">
+              <td style="padding: var(--space-2); font-family: var(--font-mono);">hello, world!!!</td>
+              <td style="padding: var(--space-2); color: var(--ink-secondary);">Punctuation often becomes its own pieces or breaks merges that would work in plain prose.</td>
+            </tr>
+            <tr style="border-bottom: var(--border-subtle);">
+              <td style="padding: var(--space-2); font-family: var(--font-mono);">foo(bar)==42</td>
+              <td style="padding: var(--space-2); color: var(--ink-secondary);">Code mixes identifiers, punctuation, digits, and operators, which usually fragment more than natural language.</td>
+            </tr>
+            <tr style="border-bottom: var(--border-subtle);">
+              <td style="padding: var(--space-2); font-family: var(--font-mono);">The··cat···sat</td>
+              <td style="padding: var(--space-2); color: var(--ink-secondary);">Whitespace is not free. Repeated spaces can create extra pieces or change token boundaries.</td>
+            </tr>
+            <tr>
+              <td style="padding: var(--space-2); font-family: var(--font-mono);">naïve🙂</td>
+              <td style="padding: var(--space-2); color: var(--ink-secondary);">Rare Unicode combinations often split into smaller known pieces, so character count and token count drift apart.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">A Better Mental Model</div>
+      <p>
+        Treat tokenization as a lossy view of text structure from the engineer's perspective.
+        The tokenizer is not trying to preserve words, syntax trees, or user intent. It is trying to rewrite text as a sequence of entries from a finite vocabulary the model already knows how to embed.
+      </p>
+      <p>
+        That means the boundaries you care about as a human often disappear. A word may become several pieces. Several characters of punctuation may each become separate tokens.
+        A leading space may be fused into the next token piece. The model does not know that one token "is a word" and another token "is punctuation." It only knows that each ID leads to a learned vector.
+      </p>
+      <p>
+        This is the right place to form a durable habit: when you estimate inference cost, think in <strong>tokenized sequence length</strong>, not in words, lines, or bytes.
+        The raw string is what users see. The token sequence is what the model pays for.
+      </p>
+    </div>
+
+    <div class="lesson-section">
       <div class="section-label">Shapes</div>
       <div class="shape-card">
         <div>Input text: a string of characters</div>
         <div>After tokenization: a sequence of token pieces</div>
         <div>Sequence length (n_tokens): the number of tokens in the sequence</div>
         <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">n_tokens ≠ n_words (usually n_tokens > n_words)</div>
+        <div style="color: var(--ink-tertiary);">Two strings with similar character counts can still have very different n_tokens.</div>
       </div>
     </div>
 
@@ -85,6 +163,23 @@ import TokenizerExplorer from '../../components/interactive/TokenizerExplorer';
       <p style="font-size: var(--text-sm); color: var(--ink-tertiary);">
         where each t&#x1D62; is a symbol from the vocabulary.
       </p>
+      <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+        From a systems perspective, the most important number is <code>n</code>. Every later stage of the model scales with the token sequence length, not with the original number of characters.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Practical Consequences</div>
+      <p>
+        Once text has been tokenized, everything downstream becomes sequence processing over <code>n</code> discrete items.
+        The embedding layer receives <code>n</code> IDs. Attention later runs over positions in that token sequence. Context limits are measured in tokens.
+        Sampling predicts one new token ID at a time.
+      </p>
+      <p>
+        This is why "prompt engineering" and "systems engineering" meet at tokenization.
+        A reformatted prompt, an extra JSON wrapper, a long stack trace, or a pasted source file may change token count much more than the raw visual length suggests.
+        If you are optimizing latency or cost, tokenization is not an implementation detail you can ignore.
+      </p>
     </div>
 
     <div class="lesson-section">
@@ -95,6 +190,15 @@ import TokenizerExplorer from '../../components/interactive/TokenizerExplorer';
           In <code>llama.cpp</code>, tokenization is handled before the model graph runs.
           The model never sees raw text — only integer token IDs.
         </p>
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-top: var(--space-3);">
+          This is also why tokenizer mismatch is fatal. If you feed a model IDs from the wrong tokenizer, the embedding lookup is wrong from the very first token.
+          The model is not robust to that kind of input contract violation.
+        </p>
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-top: var(--space-3);">
+          Put differently: the tokenizer and the embedding table are a paired contract.
+          The tokenizer says which integer should represent each piece of text, and the embedding matrix says what vector that integer should fetch.
+          Break the mapping and the model is reading the wrong symbols before any transformer layer has a chance to help.
+        </p>
       </div>
     </div>
 
@@ -104,6 +208,13 @@ import TokenizerExplorer from '../../components/interactive/TokenizerExplorer';
         <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
           Tokenization is fast relative to model computation. But the token count determines how much work the model must do.
           More tokens means more computation in every layer. This is why "context length" is measured in tokens — it directly controls the cost.
+        </p>
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-top: var(--space-3);">
+          This is why code, JSON, logs, and chat transcripts can feel "expensive" even when they are not visually long. They often compress poorly into tokens compared with ordinary prose.
+        </p>
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-top: var(--space-3);">
+          A useful rule of thumb is that tokenization is rarely the latency bottleneck, but it is often the hidden reason the bottleneck is larger than expected.
+          Engineers usually profile the model kernels and forget that the input format determined how much work those kernels had to do.
         </p>
       </div>
     </div>
@@ -138,6 +249,18 @@ import TokenizerExplorer from '../../components/interactive/TokenizerExplorer';
               { id: 'c', text: 'Both — the model can handle either format', isCorrect: false },
             ],
             explanation: 'The tokenizer converts text to integer token IDs before the model sees anything. The model never operates on raw text characters.',
+          },
+          {
+            id: 'L02-q3',
+            type: 'single_choice',
+            prompt: 'Which input is most likely to consume more tokens than a similarly sized plain-English sentence?',
+            tag: 'shape',
+            choices: [
+              { id: 'a', text: 'A short paragraph of ordinary prose with common words', isCorrect: false },
+              { id: 'b', text: 'A punctuation-heavy code snippet like foo(bar)==42', isCorrect: true },
+              { id: 'c', text: 'A sentence with the same common word repeated', isCorrect: false },
+            ],
+            explanation: 'Code-like text tends to fragment into more pieces because punctuation, operators, identifiers, and digits disrupt the token merges that work well in natural language.',
           },
         ]}
       />
