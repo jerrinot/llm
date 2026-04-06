@@ -134,7 +134,7 @@ import GatePanel from '../../components/assessment/GatePanel';
               { id: 'b', text: 'Yours only — the 0.1 PPL increase is within tolerance, but a jump from 7.2 to 9.1 indicates a quality regression', isCorrect: true },
               { id: 'c', text: 'Neither — perplexity changed in both cases', isCorrect: false },
             ],
-            explanation: 'Small perplexity changes (0.1 on a base of 7.2) are typical rounding-level noise from quantization or repack changes. A jump from 7.2 to 9.1 is a 26% degradation — the model is substantially worse at prediction. The first optimization is valid; the second has a correctness bug that must be investigated before shipping.',
+            explanation: 'A 0.1 increase on a base of 7.2 (~1.4%) is small and may be acceptable depending on the application. A jump from 7.2 to 9.1 (~26% degradation) is clearly a quality regression that needs investigation. The exact tolerance depends on context — but the key principle is that you must check, and large changes are always suspicious. The first optimization warrants closer evaluation; the second almost certainly has a bug.',
           },
         ]}
       />

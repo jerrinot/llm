@@ -46,10 +46,10 @@ import GatePanel from '../../components/assessment/GatePanel';
             tag: 'reasoning',
             choices: [
               { id: 'a', text: 'No — any perplexity increase means the optimization is invalid', isCorrect: false },
-              { id: 'b', text: 'Yes — perplexity increased by only 0.1 (within typical tolerance), and the 40% speedup is substantial', isCorrect: true },
+              { id: 'b', text: 'Likely yes — the perplexity increase is small (~1.7%), suggesting quality is largely preserved, and the 40% speedup is substantial', isCorrect: true },
               { id: 'c', text: 'Cannot tell — perplexity is not a valid metric for quantization', isCorrect: false },
             ],
-            explanation: 'A small perplexity increase (0.1 on a base of 5.8 ≈ 1.7%) is within typical tolerance for Q8_0 quantization. The 40% decode speedup comes from loading fewer bytes per weight (half the memory traffic). This is a reasonable quality-speed tradeoff. Larger increases (like 5.8 → 7.2) would indicate unacceptable degradation.',
+            explanation: 'A 0.1 increase on a base of 5.8 (~1.7%) is small — the model is still predicting nearly as well. Whether this is acceptable depends on the application, but Q8_0 quantization commonly produces changes in this range. The 40% decode speedup comes from loading fewer bytes per weight. The key reasoning: check perplexity, compare the magnitude of change to the baseline, and make a judgment call. A jump to 7.2 would be a different story.',
           },
           {
             id: 'QM7-q3',
