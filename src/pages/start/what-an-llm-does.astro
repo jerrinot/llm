@@ -17,17 +17,31 @@ import GatePanel from '../../components/assessment/GatePanel';
     <div class="lesson-section">
       <div class="section-label">Intuition</div>
       <p>
-        An LLM does exactly one thing: given a sequence of tokens, it predicts which token comes next.
+        An LLM does one core computation: given a sequence of previous tokens, it produces scores over which token should come next.
       </p>
       <p>
-        It does not "understand" language. It does not "think." It computes a score for every token in its vocabulary, and the highest-scoring token is the prediction.
+        It does not directly emit a finished word or sentence from nowhere. It computes a score for every token in its vocabulary.
+        A decoding rule such as argmax or sampling then turns those scores into one chosen next token.
       </p>
       <p>
         Generation — the process of producing long outputs — is just this one-step prediction repeated.
-        The model predicts one token, that token is appended to the sequence, and the model predicts again.
+        The model produces scores, one token is chosen and appended to the sequence, and the model runs again.
       </p>
       <p>
         This is called <strong>autoregressive generation</strong>. The model's output becomes its own input on the next step.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Model vs Decoding Policy</div>
+      <p>
+        This distinction is worth making explicit early because it survives the entire course.
+        The <strong>model</strong> produces logits. The <strong>runtime decoding policy</strong> turns those logits into a token choice.
+      </p>
+      <p>
+        If the runtime uses greedy decoding, it picks the highest-scoring token. If it uses sampling, it can choose a lower-scoring token on purpose
+        according to a probability distribution derived from the logits.
+        Either way, the transformer layers did not directly output text. They output scores.
       </p>
     </div>
 
@@ -41,28 +55,48 @@ import GatePanel from '../../components/assessment/GatePanel';
             <span style="color: var(--sem-token);">["The", " cat", " sat"]</span>
           </div>
           <div style="display: flex; align-items: center; gap: var(--space-3);">
-            <span style="color: var(--ink-secondary); min-width: 60px;">output:</span>
+            <span style="color: var(--ink-secondary); min-width: 60px;">model:</span>
+            <span style="color: var(--sem-logits);">logits over |V|</span>
+            <span style="color: var(--ink-ghost);">(scores for every possible next token)</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: var(--space-3); margin-top: var(--space-2);">
+            <span style="color: var(--ink-secondary); min-width: 60px;">decode:</span>
             <span style="color: var(--sem-logits);">" on"</span>
-            <span style="color: var(--ink-ghost);">(highest-scoring next token)</span>
+            <span style="color: var(--ink-ghost);">(chosen next token)</span>
           </div>
         </div>
 
         <div style="border-top: var(--border-subtle); margin-top: var(--space-4); padding-top: var(--space-4);">
           <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-bottom: var(--space-3);">Autoregressive generation repeats this:</p>
           <div style="font-family: var(--font-mono); font-size: var(--text-xs); color: var(--ink-secondary); display: flex; flex-direction: column; gap: 6px;">
-            <div>Step 1: ["The", " cat", " sat"] → <span style="color: var(--sem-logits);">" on"</span></div>
-            <div>Step 2: ["The", " cat", " sat", " on"] → <span style="color: var(--sem-logits);">" the"</span></div>
-            <div>Step 3: ["The", " cat", " sat", " on", " the"] → <span style="color: var(--sem-logits);">" mat"</span></div>
-            <div>Step 4: ["The", " cat", " sat", " on", " the", " mat"] → <span style="color: var(--sem-logits);">"."</span></div>
+            <div>Step 1: model logits over |V| → decode chooses <span style="color: var(--sem-logits);">" on"</span></div>
+            <div>Step 2: append that token, run model again → decode chooses <span style="color: var(--sem-logits);">" the"</span></div>
+            <div>Step 3: append again, run model again → decode chooses <span style="color: var(--sem-logits);">" mat"</span></div>
+            <div>Step 4: append again, run model again → decode chooses <span style="color: var(--sem-logits);">"."</span></div>
           </div>
         </div>
       </div>
     </div>
 
     <div class="lesson-section">
+      <div class="section-label">What Repeats and What Does Not</div>
+      <p>
+        Not every stage of inference repeats at the same cadence.
+        Tokenization is done once for the incoming prompt. After that, the core generation loop repeats:
+        model evaluation produces logits, decoding chooses one token, that token is appended, and the next step begins.
+      </p>
+      <p>
+        That split matters later when you learn prefill and decode. For now, keep just this invariant:
+        prompt preprocessing happens once, next-token prediction happens over and over.
+      </p>
+    </div>
+
+    <div class="lesson-section">
       <div class="section-label">Shapes</div>
-      <p>We are not working with tensor shapes yet. The key idea here is sequence growth:</p>
+      <p>We are not working with full tensor math yet. The key idea here is one-step input/output structure and sequence growth:</p>
       <div class="shape-card">
+        <div>one model step input: [n_tokens] &nbsp; <span style="color: var(--ink-tertiary);">a token sequence</span></div>
+        <div>one model step output: [|V|] &nbsp; <span style="color: var(--ink-tertiary);">logits over the vocabulary</span></div>
         <div>step 1 input length: 3 tokens</div>
         <div>step 2 input length: 4 tokens</div>
         <div>step 3 input length: 5 tokens</div>
@@ -72,10 +106,12 @@ import GatePanel from '../../components/assessment/GatePanel';
 
     <div class="lesson-section">
       <div class="section-label">Math</div>
-      <p>No math is required yet. The only concept is:</p>
+      <p>No heavy math is required yet. The durable statement to keep is:</p>
       <ul style="list-style: disc; padding-left: var(--space-5); font-size: var(--text-sm); color: var(--ink-secondary);">
-        <li>The model takes a sequence of token IDs and produces scores for every possible next token.</li>
-        <li>The prediction step does not depend on future tokens — only on what came before.</li>
+        <li>the model takes a sequence of token IDs and produces logits for every possible next token</li>
+        <li>the runtime chooses one token from those logits</li>
+        <li>that chosen token is appended, and the process repeats</li>
+        <li>the prediction step does not depend on future tokens — only on what came before</li>
       </ul>
     </div>
 
@@ -83,8 +119,17 @@ import GatePanel from '../../components/assessment/GatePanel';
       <div class="section-label">Implementation Hook</div>
       <div class="impl-hook">
         <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
-          In <code>llama.cpp</code>, the autoregressive loop lives in the server and CLI tools.
-          The model graph itself is evaluated once per step. You will see this in the case studies later.
+          In <code>llama.cpp</code>, the autoregressive loop lives in the runtime tools, not inside the model builder itself.
+        </p>
+        <div class="file-path">tools/cli/cli.cpp</div>
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-top: var(--space-2);">
+          What to notice later: this is where a user-facing generation loop lives. The runtime repeatedly evaluates the model, applies sampling settings,
+          and appends new tokens.
+        </p>
+        <div class="file-path" style="margin-top: var(--space-3);">src/llama-graph.cpp</div>
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-top: var(--space-2);">
+          What to notice later: this file builds the model computation itself. It produces the hidden states and logits, but it is not the whole
+          outer request loop.
         </p>
       </div>
     </div>
@@ -93,8 +138,9 @@ import GatePanel from '../../components/assessment/GatePanel';
       <div class="section-label">Performance Hook</div>
       <div class="perf-hook">
         <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
-          Because generation is iterative, the time to produce N tokens is roughly N times the time for one step.
-          Making each step fast is the central performance goal. Later, you will learn why the first step (prefill) and subsequent steps (decode) behave very differently.
+          Because generation is iterative, the time to produce N tokens is roughly N times the time for one generation step.
+          Tokenization does not dominate that loop. Model evaluation and token choice do.
+          Later, you will learn why the first step (processing the prompt) and subsequent steps (generating more tokens) behave very differently.
         </p>
       </div>
     </div>
@@ -109,14 +155,14 @@ import GatePanel from '../../components/assessment/GatePanel';
           {
             id: 'L01-q1',
             type: 'single_choice',
-            prompt: 'In one sentence, what does the model predict?',
+            prompt: 'What does the model directly produce on one step?',
             tag: 'conceptual',
             choices: [
               { id: 'a', text: 'The meaning of the input sentence', isCorrect: false },
-              { id: 'b', text: 'The next token in the sequence', isCorrect: true },
+              { id: 'b', text: 'Logits over the possible next tokens', isCorrect: true },
               { id: 'c', text: 'All remaining tokens at once', isCorrect: false },
             ],
-            explanation: 'The model predicts one next token per step. Multi-token output comes from repeating this process.',
+            explanation: 'The model directly produces logits. A decoding policy then uses those logits to choose one next token. Multi-token output comes from repeating this process.',
           },
           {
             id: 'L01-q2',

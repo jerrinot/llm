@@ -29,6 +29,10 @@ import PipelineStepper from '../../components/interactive/PipelineStepper';
         We will use this same pipeline as a running example throughout the course.
         Each module will revisit it from a deeper angle.
       </p>
+      <p>
+        One boundary matters immediately: tokenization happens once on the incoming text, but the model-evaluate-then-decode loop repeats every time
+        the system generates another token. The rest of the course will keep unpacking that split.
+      </p>
     </div>
 
     <div class="lesson-section">
@@ -67,10 +71,46 @@ import PipelineStepper from '../../components/interactive/PipelineStepper';
             <span>One score per vocabulary entry for the last token position</span>
           </div>
           <div style="display: flex; gap: var(--space-3); align-items: flex-start;">
-            <span style="color: var(--sem-logits); min-width: 90px;">Next token</span>
-            <span>" on" (highest-scoring token)</span>
+            <span style="color: var(--sem-logits); min-width: 90px;">Decode</span>
+            <span>argmax or sampling chooses one token from those logits</span>
+          </div>
+          <div style="display: flex; gap: var(--space-3); align-items: flex-start;">
+            <span style="color: var(--sem-logits); min-width: 90px;">Chosen token</span>
+            <span>" on" (the selected next token)</span>
           </div>
         </div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Responsibility Map</div>
+      <div class="toy-example">
+        <table style="width: 100%; border-collapse: collapse; font-size: var(--text-sm);">
+          <thead>
+            <tr style="border-bottom: var(--border-default);">
+              <th style="text-align: left; padding: var(--space-2); color: var(--ink-ghost); font-weight: 400; font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.08em;">Stage</th>
+              <th style="text-align: left; padding: var(--space-2); color: var(--ink-ghost); font-weight: 400; font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.08em;">Who owns it conceptually</th>
+              <th style="text-align: left; padding: var(--space-2); color: var(--ink-ghost); font-weight: 400; font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.08em;">What to remember</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr style="border-bottom: var(--border-subtle);">
+              <td style="padding: var(--space-2); font-family: var(--font-mono);">raw text → token IDs</td>
+              <td style="padding: var(--space-2); color: var(--ink-secondary);">tokenizer</td>
+              <td style="padding: var(--space-2); color: var(--ink-secondary);">done once on the input text</td>
+            </tr>
+            <tr style="border-bottom: var(--border-subtle);">
+              <td style="padding: var(--space-2); font-family: var(--font-mono);">IDs → hidden states → logits</td>
+              <td style="padding: var(--space-2); color: var(--ink-secondary);">model graph</td>
+              <td style="padding: var(--space-2); color: var(--ink-secondary);">the transformer machinery lives here</td>
+            </tr>
+            <tr>
+              <td style="padding: var(--space-2); font-family: var(--font-mono);">logits → chosen token</td>
+              <td style="padding: var(--space-2); color: var(--ink-secondary);">decoding/runtime policy</td>
+              <td style="padding: var(--space-2); color: var(--ink-secondary);">argmax or sampling chooses one token, then the loop repeats</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
 
@@ -83,6 +123,7 @@ import PipelineStepper from '../../components/interactive/PipelineStepper';
           <div><span style="color: var(--ink-tertiary);">After embedding:</span> [3, d_model] &nbsp; <span style="color: var(--ink-ghost);">(3 vectors)</span></div>
           <div><span style="color: var(--ink-tertiary);">After N layers:</span> [3, d_model] &nbsp; <span style="color: var(--ink-ghost);">(same shape, different values)</span></div>
           <div><span style="color: var(--ink-tertiary);">Logits:</span> [|V|] &nbsp; <span style="color: var(--ink-ghost);">(one score per vocabulary token)</span></div>
+          <div><span style="color: var(--ink-tertiary);">Chosen next token:</span> scalar token ID &nbsp; <span style="color: var(--ink-ghost);">(one selected vocabulary entry)</span></div>
         </div>
       </div>
     </div>
@@ -95,7 +136,8 @@ import PipelineStepper from '../../components/interactive/PipelineStepper';
         </p>
         <div class="file-path">src/llama-graph.cpp</div>
         <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-top: var(--space-2); margin-bottom: var(--space-3);">
-          This file contains the helpers that build each stage of the pipeline:
+          What to notice later: this file builds the model stages themselves. It is the graph-builder view of the pipeline.
+          The helpers correspond to major parts of the model:
         </p>
         <ul style="list-style: none; padding: 0; font-family: var(--font-mono); font-size: var(--text-sm);">
           <li style="padding: var(--space-1) 0;"><span style="color: var(--sem-attention);">build_attn()</span> <span style="color: var(--ink-ghost);">— attention stage</span></li>
@@ -103,11 +145,16 @@ import PipelineStepper from '../../components/interactive/PipelineStepper';
           <li style="padding: var(--space-1) 0;"><span style="color: var(--sem-router);">build_moe_ffn()</span> <span style="color: var(--ink-ghost);">— mixture-of-experts stage</span></li>
         </ul>
         <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-top: var(--space-3); margin-bottom: var(--space-2);">
-          And here is one complete model that wires them together:
+          Here is one complete model that wires those pieces together:
         </p>
         <div class="file-path">src/models/gemma.cpp</div>
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-top: var(--space-2);">
+          What to notice later: this file is not the runtime loop. It is the model-definition side.
+        </p>
+        <div class="file-path" style="margin-top: var(--space-3);">tools/cli/cli.cpp</div>
         <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-top: var(--space-2);">
-          You do not need to read these files yet. But they exist, they are real, and by the end of this course you will understand every major section.
+          What to notice later: this is where user-facing generation control lives. It helps separate "the model produced logits" from
+          "the runtime chose and emitted a token."
         </p>
       </div>
     </div>
@@ -116,7 +163,8 @@ import PipelineStepper from '../../components/interactive/PipelineStepper';
       <div class="section-label">Performance Hook</div>
       <div class="perf-hook">
         <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
-          During generation, the model computation (embedding, layers, output projection) runs for every new token. Tokenization happens only once on the input text. The cost of the model stages varies dramatically.
+          During generation, tokenization happens once on the input text. The model computation (embedding, layers, output projection) and token
+          choice repeat for every generated token. The cost of those repeated stages varies dramatically.
           Understanding where time goes is the goal of the performance modules later in the course.
         </p>
       </div>
@@ -144,14 +192,14 @@ import PipelineStepper from '../../components/interactive/PipelineStepper';
           {
             id: 'L01A-q2',
             type: 'single_choice',
-            prompt: 'Which stage produces the logits?',
+            prompt: 'Which stage is responsible for turning logits into one chosen token?',
             tag: 'shape',
             choices: [
               { id: 'a', text: 'The tokenizer', isCorrect: false },
               { id: 'b', text: 'The embedding table', isCorrect: false },
-              { id: 'c', text: 'The output head (final projection after the last layer)', isCorrect: true },
+              { id: 'c', text: 'The decoding/runtime policy after the model output head', isCorrect: true },
             ],
-            explanation: 'The output head takes the final hidden state and projects it to a vector of size |V| — one score per vocabulary entry.',
+            explanation: 'The output head produces logits. A decoding policy such as argmax or sampling turns those logits into one chosen next token.',
           },
         ]}
       />

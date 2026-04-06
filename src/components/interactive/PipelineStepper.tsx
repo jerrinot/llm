@@ -15,7 +15,7 @@ const STEPS = [
     description: 'Splits text into token pieces and maps each to an integer ID.',
     example: '["The", " cat", " sat"] → [791, 2368, 3290]',
     color: 'var(--sem-token)',
-    detail: 'Tokenization is a lookup, not a neural network operation. It happens before the model runs.',
+    detail: 'Tokenization is a lookup, not a neural network operation. It happens before the model runs, and it is done once for the input text rather than once per generated token.',
   },
   {
     id: 'embed',
@@ -43,11 +43,11 @@ const STEPS = [
   },
   {
     id: 'sample',
-    label: 'Next Token',
-    description: 'Softmax converts logits to probabilities. The next token is chosen by argmax or sampling.',
-    example: 'softmax → [0.03, 0.01, 0.89, 0.02, 0.00, ...] → "cat" → append → repeat',
+    label: 'Decode Policy',
+    description: 'A decoding policy turns logits into an actual next token by argmax or sampling.',
+    example: 'logits → softmax / sampler → " on" → append → repeat',
     color: 'var(--sem-logits)',
-    detail: 'This one token is appended to the sequence. The whole process repeats to generate more tokens.',
+    detail: 'This stage is outside the transformer layers. The model produced logits; the runtime now chooses one token ID, appends it, and repeats the model evaluation for the next step.',
   },
 ];
 

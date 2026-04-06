@@ -4,7 +4,6 @@ import '../../styles/global.css';
 import '../../styles/course.css';
 import LessonPage from '../../components/course/LessonPage';
 import GatePanel from '../../components/assessment/GatePanel';
-import PipelineStepper from '../../components/interactive/PipelineStepper';
 ---
 
 <BaseLayout title="What This Course Teaches">
@@ -22,7 +21,8 @@ import PipelineStepper from '../../components/interactive/PipelineStepper';
     <div class="lesson-section">
       <div class="section-label">Intuition</div>
       <p>
-        A large language model receives token IDs derived from text and predicts the next token. Everything else — the architecture, the math, the engineering — is machinery for doing that prediction well.
+        A large language model receives token IDs derived from text and produces <strong>logits</strong>: raw scores over the vocabulary for what token should come next.
+        A decoding policy then turns those scores into an actual chosen token. Everything else — the architecture, the math, the engineering — is machinery for producing good scores quickly and reliably.
       </p>
       <p>
         This course teaches you the machinery. Not as abstract theory, but as something you can trace through real code.
@@ -32,6 +32,24 @@ import PipelineStepper from '../../components/interactive/PipelineStepper';
       </p>
       <p style="color: var(--ink-tertiary); font-style: italic;">
         This course focuses on inference and systems understanding. It teaches only the minimum training and evaluation concepts needed for that purpose. It is not a full machine learning curriculum.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">How to Use This Course</div>
+      <p>
+        Treat the course as a guided code-reading apprenticeship, not as a glossary dump. Each lesson introduces one durable mental model,
+        one toy example, one code hook, and one performance consequence. The gates are not there to make the course feel academic.
+        They are there to stop you from drifting past a concept without being able to say it back clearly.
+      </p>
+      <p>
+        Use the running example aggressively. When a lesson mentions <code>"The cat sat"</code> and the token IDs
+        <code>[791, 2368, 3290]</code>, do not dismiss it as childish. That tiny example is the scaffold the later modules keep reusing.
+        The point is not the sentence. The point is that one stable object lets you compare ideas across lessons without constantly changing context.
+      </p>
+      <p>
+        One more practical rule: whenever you see a shape, narrate it in plain English. Whenever you see a file path, ask what role that file
+        plays in the pipeline. Those two habits carry a large fraction of this curriculum.
       </p>
     </div>
 
@@ -53,10 +71,13 @@ import PipelineStepper from '../../components/interactive/PipelineStepper';
           <span style="color: var(--ink-ghost);">→</span>
           <span style="color: var(--sem-logits);">logits</span>
           <span style="color: var(--ink-ghost);">→</span>
-          <span style="color: var(--sem-logits);">"on"</span>
+          <span style="color: var(--sem-logits);">decode</span>
+          <span style="color: var(--ink-ghost);">→</span>
+          <span style="color: var(--sem-logits);">" on"</span>
         </div>
         <p style="margin-top: var(--space-3); font-size: var(--text-sm); color: var(--ink-tertiary);">
-          The model received three token IDs and produced scores over the vocabulary. The highest-scoring token is "on". That is one inference step. Generation repeats this process.
+          The model received three token IDs and produced scores over the vocabulary. A decoding policy then chose the next token, shown here as " on".
+          That is one inference step. Generation repeats the model-evaluate-then-decode loop.
         </p>
       </div>
     </div>
@@ -108,10 +129,11 @@ import PipelineStepper from '../../components/interactive/PipelineStepper';
     <!-- Shapes (minimal for L00) -->
     <div class="lesson-section">
       <div class="section-label">Shapes</div>
-      <p>We have not introduced tensor shapes yet. For now, notice only that the model's input is a sequence of integers and its output is a set of scores — one per possible next token.</p>
+      <p>We have not introduced tensor shapes yet. For now, notice only that the model's input is a sequence of integers and its direct output is a set of scores — one per possible next token.</p>
       <div class="shape-card">
         <div>input: sequence of token IDs &nbsp; <span style="color: var(--ink-tertiary);">e.g. [791, 2368, 3290]</span></div>
-        <div>output: one score per vocabulary entry &nbsp; <span style="color: var(--ink-tertiary);">e.g. [2.1, 0.8, 5.4, ...]</span></div>
+        <div>model output: one score per vocabulary entry &nbsp; <span style="color: var(--ink-tertiary);">e.g. [2.1, 0.8, 5.4, ...]</span></div>
+        <div>decoded result: one chosen next token &nbsp; <span style="color: var(--ink-tertiary);">e.g. " on"</span></div>
       </div>
     </div>
 
@@ -123,8 +145,14 @@ import PipelineStepper from '../../components/interactive/PipelineStepper';
           The model code you will eventually read lives in <code>llama.cpp</code>. Specifically:
         </p>
         <div class="file-path">src/models/gemma.cpp</div>
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-top: var(--space-2);">
+          What to notice later: this file wires together one full model architecture out of repeated layer-building patterns. It is where the abstract
+          idea of "a decoder model" becomes a concrete graph.
+        </p>
+        <div class="file-path" style="margin-top: var(--space-3);">src/llama-graph.cpp</div>
         <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-top: var(--space-2);">
-          That file builds the computation graph for a dense Gemma model — one of the case studies at the end of this course. You do not need to understand it yet. You will.
+          What to notice later: this file contains the reusable graph-building helpers that implement the major model stages. You do not need to
+          understand them yet. The important thing is to know that the machinery we are describing does exist in concrete code.
         </p>
       </div>
     </div>
@@ -134,7 +162,9 @@ import PipelineStepper from '../../components/interactive/PipelineStepper';
       <div class="section-label">Performance Hook</div>
       <div class="perf-hook">
         <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
-          Everything you learn in this course matters because inference is real-time work. The model must produce tokens fast enough to be useful. Understanding the machinery is the first step toward understanding where time goes.
+          Everything you learn in this course matters because inference is real-time work. The model must produce tokens fast enough to be useful.
+          One important preview: tokenization happens once on the input text, but model evaluation and token selection repeat for every generated token.
+          Understanding that boundary is the first step toward understanding where time goes.
         </p>
       </div>
     </div>
@@ -162,14 +192,14 @@ import PipelineStepper from '../../components/interactive/PipelineStepper';
           {
             id: 'L00-q2',
             type: 'single_choice',
-            prompt: 'What does the model produce as output?',
+            prompt: 'What does the model itself produce as output, before decoding chooses a token?',
             tag: 'conceptual',
             choices: [
               { id: 'a', text: 'The next word in the sentence', isCorrect: false },
               { id: 'b', text: 'A set of scores (logits), one per vocabulary entry', isCorrect: true },
               { id: 'c', text: 'An embedding vector', isCorrect: false },
             ],
-            explanation: 'The model outputs logits — raw scores over the entire vocabulary. These are then converted to probabilities and used to select the next token.',
+            explanation: 'The model outputs logits — raw scores over the entire vocabulary. A decoding policy then uses those scores to choose the next token.',
           },
         ]}
       />
