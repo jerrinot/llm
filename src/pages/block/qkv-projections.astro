@@ -23,7 +23,7 @@ import GatePanel from '../../components/assessment/GatePanel';
         Think of it this way: Q asks "what am I looking for?", K says "what do I contain?", and V says "what information should I pass along if selected?" The Q-K interaction determines <em>where</em> to attend. V determines <em>what</em> gets passed along.
       </p>
       <p>
-        The projections are simple linear transforms — matrix multiplies with learned weights and no bias (in most modern models). The three weight matrices are the core learned parameters of attention.
+        The projections are simple linear transforms — matrix multiplies with learned weights (most modern models omit the additive bias term to save parameters). The three weight matrices are the core learned parameters of attention.
       </p>
     </div>
 

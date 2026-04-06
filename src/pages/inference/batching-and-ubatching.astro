@@ -42,7 +42,7 @@ import GatePanel from '../../components/assessment/GatePanel';
           about 20 GB in FP16 per head, multiplied across many heads and layers. Chunking into smaller ubatches caps the peak memory.
         </li>
         <li style="padding: var(--space-2) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
-          <strong>Latency fairness.</strong> In serving (see L30A), a huge prefill batch blocks decode for other
+          <strong>Latency fairness.</strong> In serving (covered next), a huge prefill batch blocks decode for other
           users. Smaller batches let the server interleave prefill and decode, keeping all users' streams flowing.
         </li>
         <li style="padding: var(--space-2) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
