@@ -34,7 +34,9 @@ import GatePanel from '../../components/assessment/GatePanel';
       <div class="section-label">Toy Example</div>
       <div class="toy-example">
         <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-bottom: var(--space-3);">
-          Hardware: 10 TFLOP/s compute, 100 GB/s memory bandwidth. Threshold = 100 FLOP/byte.
+          Hardware: 10 TFLOP/s compute, 100 GB/s memory bandwidth.<br/>
+          Threshold (machine balance) = Peak FLOP/s &divide; Peak bytes/s = 10T &divide; 100G = <strong>100 FLOP/byte</strong>.<br/>
+          <span style="color: var(--ink-ghost);">If an operation does more than 100 FLOPs per byte loaded, compute is the bottleneck. If fewer, memory is.</span>
         </p>
         <div style="font-family: var(--font-mono); font-size: var(--text-sm);">
           <div style="margin-bottom: var(--space-3); padding: var(--space-3); background: var(--surface-3); border-radius: var(--radius-sm);">

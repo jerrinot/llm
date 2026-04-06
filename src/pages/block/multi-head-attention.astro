@@ -80,7 +80,7 @@ import GatePanel from '../../components/assessment/GatePanel';
         <div style="color: var(--sem-attention);">output = concat &sdot; W_O &nbsp; <span style="color: var(--ink-tertiary);">// [n_tokens, d_model]</span></div>
       </div>
       <p style="font-size: var(--text-sm); color: var(--ink-tertiary);">
-        where d_head = d_model / n_heads (typically). Total parameters are the same as one big head, but the attention patterns are independent.
+        where d_head = d_model / n_heads (typically). The total Q/K/V projection parameters equal those of a single-head attention (since h &times; d_head = d_model), plus the W_O output projection. The difference is not parameter count — it is that each head learns independent attention patterns, letting the model attend to different relationships simultaneously.
       </p>
     </div>
 

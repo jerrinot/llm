@@ -23,7 +23,7 @@ import GatePanel from '../../components/assessment/GatePanel';
         During decode, the model runs a forward pass for <strong>one new token</strong>. It computes Q for that single token, but it needs K and V from all previous tokens to compute attention. Instead of recomputing K and V from scratch, it reuses the <span style="color: var(--sem-kvcache);">KV cache</span> (the stored key and value vectors from previous tokens — explained fully in L29) — the accumulated keys and values from prefill and all prior decode steps.
       </p>
       <p>
-        This changes the computational profile completely. The matrices are thin: Q has 1 row (one new token), while K and V have many rows (all previous tokens). The FFN also processes just 1 row. These are small matrix multiplies — or more precisely, matrix-vector products — which cannot saturate the GPU's compute units. Decode is <strong>memory-bandwidth-bound</strong>: the bottleneck is reading the model weights and KV cache from memory, not doing arithmetic.
+        This changes the computational profile completely. The matrices are thin: Q has 1 row (one new token), while K and V have many rows (all previous tokens). The FFN also processes just 1 row. These are small matrix multiplies — or more precisely, matrix-vector products — which cannot saturate the hardware's compute units. Decode is <strong>memory-bandwidth-bound</strong>: the hardware does so little arithmetic relative to the data it must read (weights and cached K/V) that the bottleneck is memory speed, not compute speed. L34 will make this distinction precise.
       </p>
     </div>
 

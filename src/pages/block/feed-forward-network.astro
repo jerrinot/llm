@@ -20,10 +20,10 @@ import GatePanel from '../../components/assessment/GatePanel';
         After attention has mixed information between tokens, the <strong>feed-forward network</strong> (FFN) processes each token <em>independently</em>. No token looks at any other token here — it is a per-position transformation.
       </p>
       <p>
-        The FFN first <strong>expands</strong> the hidden state to a larger dimension (typically 4&times; wider), applies a nonlinear <strong>activation function</strong>, then <strong>projects back</strong> to the original dimension. This expand-activate-contract pattern lets the model learn complex per-token transformations that a single linear layer could not represent.
+        The FFN first <strong>expands</strong> the hidden state to a larger dimension (typically 4&times; wider), applies a nonlinear <strong>activation function</strong>, then <strong>projects back</strong> to the original dimension. Why is the nonlinearity critical? Without it, stacking two linear projections (expand then contract) is mathematically equivalent to a single linear projection — the model cannot learn anything new. The activation function breaks this equivalence and lets the model represent complex, non-linear feature interactions.
       </p>
       <p>
-        Modern models often use a <strong>gated</strong> variant (SwiGLU), where two parallel projections are computed in the expanded space — one acts as a gate controlling how much of the other passes through. This is why you may see the FFN described as having three weight matrices instead of two.
+        Modern models often use a <strong>gated</strong> variant (SwiGLU), where two parallel projections are computed in the expanded space — one acts as a learned gate that controls how much of the other passes through. The gate selectively amplifies or suppresses features, giving the FFN finer-grained control. This is why you may see the FFN described as having three weight matrices instead of two.
       </p>
     </div>
 
