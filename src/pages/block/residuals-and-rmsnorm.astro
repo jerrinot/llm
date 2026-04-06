@@ -33,7 +33,7 @@ import GatePanel from '../../components/assessment/GatePanel';
     <div class="lesson-section">
       <div class="section-label">What RMSNorm Actually Computes</div>
       <p>
-        RMSNorm rescales a vector so that its root-mean-square is 1. Given a vector x of dimension d:
+        RMSNorm first normalizes a vector so its root-mean-square is 1, then applies a learned per-dimension scale. Given a vector x of dimension d:
       </p>
       <div style="font-family: var(--font-mono); font-size: var(--text-sm); background: var(--surface-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); margin: var(--space-3) 0;">
         <div style="color: var(--ink-primary);">RMS(x) = &radic;((1/d) &times; &sum; x<sub>i</sub>&sup2;)</div>
