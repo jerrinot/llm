@@ -41,6 +41,96 @@ import GatePanel from '../../components/assessment/GatePanel';
     </div>
 
     <div class="lesson-section">
+      <div class="section-label">How to Read a Profile: Step by Step</div>
+      <p>
+        A profile is a table of functions (or operations) and the time spent in each. Here is a systematic approach
+        to interpreting one:
+      </p>
+      <ol style="list-style: decimal; padding-left: var(--space-5); margin: var(--space-3) 0;">
+        <li style="padding: var(--space-1) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          <strong>Classify the mode.</strong> Is this a prefill profile or a decode profile? Check the batch size
+          or token count. If you do not know, the profile distribution itself tells you: if GEMM dominates (&gt;60%),
+          it is likely prefill. If GEMV + memory ops dominate, it is likely decode.
+        </li>
+        <li style="padding: var(--space-1) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          <strong>Sum the categories.</strong> Group operations into compute (GEMM/GEMV), memory (KV cache reads/writes,
+          weight loads), normalization (RMSNorm, softmax), and overhead (kernel launch, sync, memory allocation). The
+          category totals reveal the bottleneck class.
+        </li>
+        <li style="padding: var(--space-1) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          <strong>Check the overhead fraction.</strong> In a healthy profile, overhead should be &lt;15% for prefill and
+          &lt;25% for decode. High overhead (&gt;30%) suggests problems: too many small kernel launches, excessive
+          synchronization, or memory allocation during inference.
+        </li>
+        <li style="padding: var(--space-1) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          <strong>Compare against expected counts.</strong> Derive the expected kernel count from your model's block
+          structure: count the matmuls per layer (Q/K/V projections, output projection, FFN matrices) and multiply
+          by the number of layers. If the profile shows significantly more calls than expected, investigate — something
+          may be computed redundantly. If certain layers take much longer than others, check for heterogeneous config
+          (MoE, different attention type).
+        </li>
+        <li style="padding: var(--space-1) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          <strong>Only then look at individual hotspots.</strong> Now that you understand the big picture, drill into
+          the top 3-5 functions. Ask: is this function slow because of its inherent cost, or because it is being called
+          more often than expected?
+        </li>
+      </ol>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Common Profile Patterns and What They Mean</div>
+      <p>
+        After reading many profiles, certain patterns become recognizable:
+      </p>
+      <ul style="list-style: none; padding: 0; margin: var(--space-3) 0;">
+        <li style="padding: var(--space-2) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          <strong>Healthy prefill:</strong> 65-80% GEMM, 5-10% softmax, &lt;15% overhead. The compute units are busy
+          doing useful work. Optimization targets: GEMM kernel efficiency, tiling strategy.
+        </li>
+        <li style="padding: var(--space-2) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          <strong>Healthy decode:</strong> 50-65% GEMV, 15-20% KV cache, &lt;25% overhead. Memory bandwidth is
+          saturated. Optimization targets: quantization (reduce bytes loaded), KV cache layout.
+        </li>
+        <li style="padding: var(--space-2) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          <strong>Overhead-dominated:</strong> &gt;30% in sync/launch/alloc. This is pathological — the hardware is
+          mostly idle. Causes: too-small batch sizes, un-fused operations creating many tiny kernels, memory allocation
+          during the hot loop instead of pre-allocation.
+        </li>
+        <li style="padding: var(--space-2) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          <strong>Softmax-heavy prefill:</strong> &gt;15% in softmax. This usually means very long sequences — the
+          softmax cost scales with n_tokens&sup2; while GEMM scales with n_tokens &times; d_model. At extreme sequence
+          lengths, attention score computation and softmax can rival the projection GEMMs.
+        </li>
+      </ul>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">What Actionable Means</div>
+      <p>
+        A profile tells you where the time goes. It does not directly tell you what to <em>do</em>. The translation
+        depends on the bottleneck class:
+      </p>
+      <div style="font-family: var(--font-mono); font-size: var(--text-sm); background: var(--surface-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); margin: var(--space-3) 0;">
+        <div style="color: var(--sem-attention);">Compute-bound (prefill):</div>
+        <div style="padding-left: var(--space-4); color: var(--ink-secondary);">
+          &rarr; Better SIMD utilization, kernel tiling, fused operations
+        </div>
+        <div style="color: var(--sem-kvcache); margin-top: var(--space-2);">Memory-bound (decode):</div>
+        <div style="padding-left: var(--space-4); color: var(--ink-secondary);">
+          &rarr; Quantization, smaller data types, weight layout optimization, batching
+        </div>
+        <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">Overhead-bound:</div>
+        <div style="padding-left: var(--space-4); color: var(--ink-secondary);">
+          &rarr; Operation fusion, pre-allocation, reducing kernel launch count
+        </div>
+      </div>
+      <p>
+        Applying the wrong category of optimization wastes effort. Optimizing SIMD instructions when you are
+        memory-bound will have negligible effect — the ALUs are already waiting for data.
+      </p>
+    </div>
+
+    <div class="lesson-section">
       <div class="section-label">Toy Example</div>
       <div class="toy-example">
         <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-bottom: var(--space-3);">

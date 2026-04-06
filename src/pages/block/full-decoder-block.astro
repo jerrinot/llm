@@ -51,6 +51,96 @@ import GatePanel from '../../components/assessment/GatePanel';
     </div>
 
     <div class="lesson-section">
+      <div class="section-label">Why This Specific Order</div>
+      <p>
+        The ordering of operations inside a block is not arbitrary. Each design choice has a specific reason:
+      </p>
+      <div style="margin: var(--space-4) 0;">
+        <p style="font-weight: 600; color: var(--ink-primary);">Pre-norm, not post-norm</p>
+        <p>
+          The RMSNorm comes <em>before</em> each sub-layer (attention, FFN), not after. This is called pre-norm
+          and it matters for training stability. In the post-norm variant (the original transformer paper), gradients
+          must flow through the norm layer during backpropagation, which can cause vanishing gradients in deep networks.
+          Pre-norm places the norm inside the residual branch, so the residual connection provides a clean gradient
+          path regardless of what happens inside the norm and sub-layer. Practically all modern LLMs use pre-norm.
+        </p>
+      </div>
+      <div style="margin: var(--space-4) 0;">
+        <p style="font-weight: 600; color: var(--ink-primary);">Attention before FFN</p>
+        <p>
+          Attention is the token-mixing step: it lets each position read from other positions. The FFN is the per-token
+          step: it transforms each position independently. The ordering matters because the FFN's per-token transformation
+          is more useful when it operates on tokens that have already been enriched with cross-position information from
+          attention. If FFN came first, it would transform tokens in isolation, then attention would mix those
+          independently-transformed tokens — a less powerful composition.
+        </p>
+      </div>
+      <div style="margin: var(--space-4) 0;">
+        <p style="font-weight: 600; color: var(--ink-primary);">Two residual connections, not one</p>
+        <p>
+          Each sub-layer (attention, FFN) gets its own residual connection. Why not one residual around the whole block?
+          Because separate residuals give each sub-layer a direct path to the input. If attention produces something
+          unhelpful, the residual ensures the FFN still sees the original information. This makes the network more
+          robust and easier to train — each sub-layer only needs to learn the <em>delta</em> to add.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Parameter Count Per Block</div>
+      <p>
+        Understanding where the parameters live helps you reason about model size and cost. For a typical block with
+        d_model = 4096, n_heads = 32, d_head = 128, and d_ff = 14336 (a common ratio of ~3.5&times; d_model):
+      </p>
+      <div style="font-family: var(--font-mono); font-size: var(--text-sm); background: var(--surface-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); margin: var(--space-3) 0;">
+        <div style="color: var(--sem-attention); font-weight: 600;">Attention sub-layer:</div>
+        <div style="padding-left: var(--space-4);">
+          <div>W_Q: 4096 &times; 4096 = 16.8M params</div>
+          <div>W_K: 4096 &times; 4096 = 16.8M params</div>
+          <div>W_V: 4096 &times; 4096 = 16.8M params</div>
+          <div>W_O: 4096 &times; 4096 = 16.8M params</div>
+          <div style="color: var(--sem-attention);">Subtotal: <strong>67.1M params</strong> (4 &times; d_model&sup2;)</div>
+        </div>
+        <div style="color: var(--sem-ffn); font-weight: 600; margin-top: var(--space-2);">FFN sub-layer (SwiGLU):</div>
+        <div style="padding-left: var(--space-4);">
+          <div>W_gate: 4096 &times; 14336 = 58.7M params</div>
+          <div>W_up:   4096 &times; 14336 = 58.7M params</div>
+          <div>W_down: 14336 &times; 4096 = 58.7M params</div>
+          <div style="color: var(--sem-ffn);">Subtotal: <strong>176.2M params</strong> (3 &times; d_model &times; d_ff)</div>
+        </div>
+        <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">RMSNorm: 2 &times; 4096 = 8,192 params (negligible)</div>
+        <div style="color: var(--ink-primary); font-weight: 600; margin-top: var(--space-2);">Total per block: ~243M params</div>
+      </div>
+      <p>
+        The FFN accounts for about 72% of each block's parameters. (Later, you will see variants like GQA that reduce
+        K/V heads and shrink the attention share further.) A 32-layer model has 32 &times; 243M &asymp; 7.8B parameters
+        in its blocks alone, which is most of the model's total parameter count (embedding and output head add
+        relatively little).
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">What 32 Layers Accumulate</div>
+      <p>
+        Each layer refines the hidden states slightly. But what does "refine" mean across 32 passes?
+      </p>
+      <p>
+        Empirical studies on transformer internals show a progression. <strong>Early layers</strong> (1-8) tend to
+        learn local patterns: which tokens are adjacent, basic syntactic structure, common phrases. The residual stream
+        after these layers carries mostly surface-level features. <strong>Middle layers</strong> (9-24) build semantic
+        representations: subject-verb agreement across distances, entity tracking, basic reasoning chains. The
+        residual stream becomes increasingly abstract. <strong>Late layers</strong> (25-32) sharpen predictions:
+        they specialize the representation toward the specific next-token prediction task, often recovering surface
+        details needed for generation.
+      </p>
+      <p>
+        This matters for performance reasoning: not all layers are equally important for a given task. Some pruning
+        and distillation techniques exploit this by removing or simplifying middle layers that contribute less to
+        specific downstream tasks. But for general-purpose generation, every layer contributes.
+      </p>
+    </div>
+
+    <div class="lesson-section">
       <div class="section-label">Toy Example</div>
       <div class="toy-example">
         <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-bottom: var(--space-3);">
@@ -90,7 +180,7 @@ import GatePanel from '../../components/assessment/GatePanel';
       <div class="shape-card">
         <div>Block input: [n_tokens, d_model]</div>
         <div>Block output: [n_tokens, d_model]</div>
-        <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">Every operation inside the block preserves this shape. Internally, attention expands to [n_tokens, n_tokens] for scores and the FFN expands to [n_tokens, d_ff], but the block boundary shape is always [n_tokens, d_model].</div>
+        <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">Every operation inside the block preserves this shape. Internally, attention expands to [n_heads, n_tokens, n_tokens] for scores (per head) and the FFN expands to [n_tokens, d_ff], but the block boundary shape is always [n_tokens, d_model].</div>
       </div>
     </div>
 

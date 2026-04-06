@@ -26,8 +26,91 @@ import GatePanel from '../../components/assessment/GatePanel';
         The dividing line is the hardware's <strong>operational intensity threshold</strong>: the ratio of peak FLOPs/second to peak bytes/second. If your operation's arithmetic intensity (FLOPs per byte moved) is below this threshold, it is memory-bound. If above, it is compute-bound.
       </p>
       <p>
-        A key insight: an operation can have very few total FLOPs and still be slow if it is memory-bound. A GEMV with a 7B-parameter weight matrix does relatively little arithmetic but must load gigabytes of weights through the memory bus.
+        A key insight: an operation can have very few total FLOPs and still be slow if it is memory-bound. A single decode step through a 7B-parameter model does relatively little arithmetic per weight, but must load gigabytes of weights through the memory bus.
       </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">The Roofline Model</div>
+      <p>
+        The <strong>roofline model</strong> is a visual tool for understanding performance limits. It plots achievable
+        performance (FLOP/s) against arithmetic intensity (FLOP/byte). The plot has two regimes:
+      </p>
+      <div style="font-family: var(--font-mono); font-size: var(--text-sm); background: var(--surface-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); margin: var(--space-3) 0;">
+        <div style="color: var(--ink-tertiary);">Performance</div>
+        <div style="color: var(--ink-tertiary);">(FLOP/s)</div>
+        <div style="color: var(--ink-tertiary);">    |</div>
+        <div style="color: var(--sem-attention);">    |          _______________  &larr; peak FLOP/s (flat ceiling)</div>
+        <div style="color: var(--sem-attention);">    |         /</div>
+        <div style="color: var(--sem-kvcache);">    |       /   &larr; memory bandwidth slope</div>
+        <div style="color: var(--sem-kvcache);">    |     /</div>
+        <div style="color: var(--sem-kvcache);">    |   /</div>
+        <div style="color: var(--sem-kvcache);">    | /</div>
+        <div style="color: var(--ink-tertiary);">    +------|------------------&rarr; Arithmetic Intensity (FLOP/byte)</div>
+        <div style="color: var(--ink-tertiary);">           ^</div>
+        <div style="color: var(--ink-tertiary);">     machine balance point</div>
+      </div>
+      <p>
+        On the left slope, performance is limited by memory bandwidth: the hardware can compute faster than data arrives.
+        Every byte you save (through quantization, smaller types, better layout) directly improves speed. On the right
+        flat region, performance is limited by compute: data arrives faster than the hardware can process it. Better
+        algorithms, SIMD utilization, and kernel optimization help here.
+      </p>
+      <p>
+        The <strong>machine balance point</strong> (also called the "ridge point") is where the slope meets the ceiling.
+        Its x-coordinate is peak_FLOP/s &divide; peak_bandwidth — the hardware's characteristic ratio. Operations to the
+        left of this point are memory-bound; operations to the right are compute-bound.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">How Batch Size Shifts the Regime</div>
+      <p>
+        The same weight matrix, the same kernel — but with different batch sizes, the operation can be either
+        memory-bound or compute-bound. This is the single most important performance concept in inference:
+      </p>
+      <div style="font-family: var(--font-mono); font-size: var(--text-sm); background: var(--surface-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); margin: var(--space-3) 0;">
+        <div style="color: var(--ink-tertiary);">Weight matrix W: [4096, 4096] in FP16 = 4096 &times; 4096 &times; 2 bytes = 32 MiB</div>
+        <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">Each token: 2 &times; 4096 &times; 4096 &asymp; 33.6M FLOPs (2 for multiply-add)</div>
+        <div style="margin-top: var(--space-3);">
+          <div style="color: var(--sem-kvcache);">Batch = 1 token:   33.6M FLOPs / 32 MiB &asymp; <strong>1 FLOP/byte</strong> &rarr; memory-bound</div>
+          <div style="color: var(--ink-tertiary);">Batch = 32 tokens:  32 &times; 33.6M / 32 MiB &asymp; <strong>32 FLOP/byte</strong></div>
+          <div style="color: var(--sem-attention);">Batch = 256 tokens: 256 &times; 33.6M / 32 MiB &asymp; <strong>256 FLOP/byte</strong> &rarr; compute-bound</div>
+        </div>
+        <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">
+          The weight matrix is loaded once regardless of batch size. More tokens = more FLOPs per byte loaded.
+        </div>
+      </div>
+      <p>
+        This is why prefill (hundreds of tokens) is compute-bound and decode (one token) is memory-bound, even though
+        they execute the same operations on the same weights. The batch size determines which resource is the bottleneck.
+      </p>
+      <p>
+        It also explains why batching multiple users' decode steps together (continuous batching) improves
+        throughput: combining 32 single-token decodes into one batch of 32 shifts the arithmetic intensity from ~1 to
+        ~32 FLOP/byte, potentially moving the operation from deep in the memory-bound region toward the ridge point.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Real Hardware Numbers</div>
+      <p>
+        Machine balance varies enormously across hardware. This determines which operations are memory-bound on your
+        specific system:
+      </p>
+      <div class="toy-example">
+        <div style="font-family: var(--font-mono); font-size: var(--text-sm);">
+          <div style="margin-bottom: var(--space-2); color: var(--ink-ghost);">Machine balance = Peak FLOP/s &divide; Peak Bandwidth</div>
+          <div style="margin-bottom: var(--space-1);">Apple M2 Ultra: &nbsp; ~27 TFLOP/s FP16 / 800 GB/s = <strong>~34 FLOP/byte</strong></div>
+          <div style="margin-bottom: var(--space-1);">NVIDIA A100 80GB: ~312 TFLOP/s FP16 / 2039 GB/s = <strong>~153 FLOP/byte</strong></div>
+          <div style="margin-bottom: var(--space-1);">AMD EPYC (DDR5): &nbsp;~2.4 TFLOP/s FP32 / 460 GB/s = <strong>~5 FLOP/byte</strong></div>
+        </div>
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-top: var(--space-3);">
+          On the A100, an operation needs 153+ FLOP/byte to be compute-bound — single-token decode at ~1 FLOP/byte
+          is 150&times; below the ridge point. On a CPU with lower balance (~5), the same operation is still
+          memory-bound but less extremely so.
+        </p>
+      </div>
     </div>
 
     <div class="lesson-section">

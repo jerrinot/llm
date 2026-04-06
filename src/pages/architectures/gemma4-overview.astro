@@ -43,6 +43,81 @@ import GatePanel from '../../components/assessment/GatePanel';
     </div>
 
     <div class="lesson-section">
+      <div class="section-label">Why Heterogeneous Layers</div>
+      <p>
+        A uniform decoder stack treats every layer identically: each layer gets the same attention scope, its own K/V
+        projections, and the same FFN size. This is simple but wasteful. Research on layer-wise behavior shows that
+        not all layers contribute equally:
+      </p>
+      <ul style="list-style: none; padding: 0; margin: var(--space-3) 0;">
+        <li style="padding: var(--space-2) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          <strong>Early layers</strong> tend to learn local syntactic patterns — word order, phrase boundaries,
+          morphology. They rarely need to attend 100K tokens back. A sliding window is sufficient and much cheaper.
+        </li>
+        <li style="padding: var(--space-2) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          <strong>Middle layers</strong> learn semantic relationships that sometimes span long distances (coreference,
+          discourse structure) but often do not. An alternating pattern — some full attention, some local — captures
+          both needs without paying the full cost everywhere.
+        </li>
+        <li style="padding: var(--space-2) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          <strong>Later layers</strong> refine representations toward the specific prediction task. These often benefit
+          from full attention (to access any information the earlier layers gathered) and from MoE FFNs (to specialize
+          the per-token transformation without making the dense FFN enormous).
+        </li>
+      </ul>
+      <p>
+        The key insight: a uniform stack forces you to provision every layer for the worst case. If <em>any</em> layer
+        needs full attention, <em>all</em> layers get it. If <em>any</em> layer needs a large FFN, <em>all</em> layers
+        get it. Heterogeneous design lets each layer be right-sized for its actual role.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">How Config Specifies Per-Layer Behavior</div>
+      <p>
+        In a uniform model, the config is simple: one attention type, one FFN type, applied everywhere. Gemma 4
+        introduces <strong>per-layer config arrays</strong>. The model's metadata contains arrays that map each layer
+        index to its specific settings:
+      </p>
+      <div style="font-family: var(--font-mono); font-size: var(--text-sm); background: var(--surface-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); margin: var(--space-3) 0;">
+        <div style="color: var(--ink-tertiary);">// Conceptual config (simplified from actual model metadata)</div>
+        <div style="color: var(--sem-attention);">attn_type: [full, swa, full, swa, full, swa, ...]</div>
+        <div style="color: var(--sem-kvcache);">kv_shared_layer: [-1, 0, -1, 2, -1, 4, ...]  <span style="color: var(--ink-tertiary);">// -1 = fresh, N = share from layer N</span></div>
+        <div style="color: var(--sem-router);">ffn_type: [dense, dense, moe, dense, dense, moe, ...]</div>
+      </div>
+      <p>
+        The model builder reads these arrays and dispatches differently for each layer. This is fundamentally different
+        from the uniform pattern where a single <code>for i in range(n_layers)</code> loop calls the same functions.
+        Now each iteration must check: What attention type? Do I compute K/V or borrow? Dense FFN or MoE?
+      </p>
+      <p>
+        For the implementer, this means more branching in the graph-building code. For the performance analyst, it means
+        you cannot profile "a representative layer" — different layers have genuinely different costs and bottlenecks.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">The Memory Budget Tradeoff</div>
+      <p>
+        Heterogeneous design has a concrete memory payoff. Consider a hypothetical 42-layer model:
+      </p>
+      <div style="font-family: var(--font-mono); font-size: var(--text-sm); background: var(--surface-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); margin: var(--space-3) 0;">
+        <div style="color: var(--ink-tertiary);">Uniform design (42 layers, all full attention, all fresh KV):</div>
+        <div style="padding-left: var(--space-4);">KV cache entries: 42 layers &times; n_kv_heads &times; 2 (K+V)</div>
+        <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">Gemma 4-style (14 fresh KV, 28 shared; 14 full attn, 28 SWA w=4096):</div>
+        <div style="padding-left: var(--space-4); color: var(--sem-kvcache);">Fresh KV: 14 layers &times; n_kv_heads &times; 2 (K+V)</div>
+        <div style="padding-left: var(--space-4); color: var(--sem-kvcache);">Shared KV: 0 additional cache (reuse from fresh layers)</div>
+        <div style="padding-left: var(--space-4); color: var(--sem-attention);">SWA layers: cache bounded at w=4096 per head (vs unbounded for full)</div>
+      </div>
+      <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-top: var(--space-3);">
+        The combination of shared K/V (cutting unique KV layers by 2/3) and SWA (bounding cache per layer) dramatically
+        reduces the total KV cache footprint. This is what makes long-context serving feasible: a uniform model with 42
+        full-attention, fresh-KV layers would need an enormous cache at 128K context. The heterogeneous design achieves
+        similar quality with a fraction of the memory.
+      </p>
+    </div>
+
+    <div class="lesson-section">
       <div class="section-label">Toy Example</div>
       <div class="toy-example">
         <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-bottom: var(--space-3);">

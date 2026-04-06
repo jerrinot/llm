@@ -20,7 +20,7 @@ import GatePanel from '../../components/assessment/GatePanel';
         Making inference faster is only useful if the model still produces correct outputs. Many optimizations &mdash; quantization, kernel rewrites, layout changes, reduced precision &mdash; can subtly alter the numbers flowing through the model. A speed benchmark alone (tokens per second) cannot detect whether the outputs have degraded.
       </p>
       <p>
-        <strong>Logits comparison</strong> is the most direct check: run the same prompt through the original and optimized models and compare the raw logit vectors. If the logits match (or differ by only floating-point rounding), the optimization is safe. If they diverge meaningfully, something has changed.
+        <strong>Logits comparison</strong> is the most direct check: run the same prompt through the original and optimized models and compare the raw logit vectors. For lossless changes (repack, thread count), the logits should match within floating-point epsilon. For lossy changes (quantization, reduced precision), the logits <em>will</em> differ — the question is whether the difference is acceptable. Logit comparison alone cannot answer that; you need perplexity or task-level evaluation.
       </p>
       <p>
         <strong>Perplexity</strong> provides a higher-level check. Perplexity measures how surprised the model is by a test dataset &mdash; specifically, it is the exponentiated average negative log-likelihood of the correct next token. <em>Lower</em> perplexity means the model assigns higher probability to the right answers, which means better predictions. Typical large models score around 5&ndash;8 on wikitext-2. If your model scores 7.2 before an optimization and 7.3 after, that is likely within tolerance. If it jumps to 9.0+, something has broken. If perplexity increases meaningfully after an optimization, the model has gotten worse at predicting, even if it runs faster.
@@ -28,6 +28,109 @@ import GatePanel from '../../components/assessment/GatePanel';
       <p>
         A valid speedup shows: same or negligibly different logits, and no perplexity regression on a standard test set.
       </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">How to Compare Logits</div>
+      <p>
+        "Compare the logits" sounds simple, but there are several ways to measure divergence, each catching different
+        kinds of problems:
+      </p>
+      <div style="margin: var(--space-4) 0;">
+        <p style="font-weight: 600; color: var(--ink-primary);">1. Max absolute difference</p>
+        <p>
+          For each token position, compute max|logit_baseline - logit_optimized| across the vocabulary. This catches
+          the worst-case divergence. For lossless optimizations (repack, thread count changes), this should be zero
+          or within floating-point epsilon (~1e-5 for FP32, ~1e-3 for FP16). If the max diff exceeds 0.01, something
+          has changed beyond rounding.
+        </p>
+      </div>
+      <div style="margin: var(--space-4) 0;">
+        <p style="font-weight: 600; color: var(--ink-primary);">2. Cosine similarity of logit vectors</p>
+        <p>
+          Treat each position's logit vector as a point in vocab_size-dimensional space. Cosine similarity near 1.0
+          means the <em>ranking</em> of tokens is preserved even if absolute values shifted. This is useful for lossy
+          optimizations like quantization: the absolute logits will differ, but if the model still ranks the same
+          tokens highest, behavior is likely preserved. A cosine similarity below 0.999 at any position warrants
+          investigation.
+        </p>
+      </div>
+      <div style="margin: var(--space-4) 0;">
+        <p style="font-weight: 600; color: var(--ink-primary);">3. KL divergence of probability distributions</p>
+        <p>
+          Convert logits to probabilities (softmax), then compute KL(baseline || optimized). This measures how much
+          the <em>sampling distribution</em> has changed. KL divergence is sensitive to changes in the tail of the
+          distribution — tokens with low probability. A KL divergence above 0.01 nats averaged across positions
+          suggests meaningful behavioral change.
+        </p>
+      </div>
+      <p>
+        In practice, start with max absolute difference for lossless changes and perplexity for lossy ones. Use cosine
+        similarity and KL divergence when you need to understand <em>how</em> the outputs differ, not just <em>whether</em>
+        they differ.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">The Practical Validation Workflow</div>
+      <p>
+        A disciplined validation process follows a specific order, because each step catches different failure modes:
+      </p>
+      <ol style="list-style: decimal; padding-left: var(--space-5); margin: var(--space-3) 0;">
+        <li style="padding: var(--space-1) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          <strong>Bitwise logit comparison on a short prompt.</strong> Run 5-10 prompts through both baseline and optimized.
+          Compare raw logits. If max absolute diff is zero (or within FP epsilon), you have strong evidence that
+          the optimization is numerically identical for the tested inputs. (Edge-case shapes may still differ — see step 4.)
+        </li>
+        <li style="padding: var(--space-1) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          <strong>Perplexity on a reference dataset.</strong> If logits differ (expected for quantization, precision
+          changes), measure perplexity on wikitext-2 or a similar standard set. Compare against the baseline number.
+          Record both numbers and the delta.
+        </li>
+        <li style="padding: var(--space-1) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          <strong>Generation quality spot-check.</strong> Run the model on a diverse set of prompts (code, reasoning,
+          factual recall, creative) and manually inspect the outputs. Perplexity can miss mode collapse or systematic
+          biases that only appear for certain prompt types.
+        </li>
+        <li style="padding: var(--space-1) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          <strong>Edge-case testing.</strong> Try inputs that stress the optimization: very long contexts, unusual
+          token sequences, inputs that trigger all branches of a fused kernel. Many bugs only manifest for specific
+          input shapes (e.g., dimensions not divisible by the SIMD width).
+        </li>
+      </ol>
+      <p>
+        Steps 1-2 should be automated and run in CI. Steps 3-4 are manual but essential for high-risk changes.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Common Failure Modes</div>
+      <p>
+        Understanding how optimizations typically fail helps you know what to look for:
+      </p>
+      <ul style="list-style: none; padding: 0; margin: var(--space-3) 0;">
+        <li style="padding: var(--space-2) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          <strong>Stride/alignment bugs in repack:</strong> The weights are rearranged in memory but a stride
+          calculation is off by one element. Most layers work fine (dimensions happen to be aligned), but a few
+          layers silently read wrong values. Perplexity increases slightly — easy to miss without automated checks.
+        </li>
+        <li style="padding: var(--space-2) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          <strong>Precision loss in fused kernels:</strong> A fused kernel combines multiple operations (e.g., GEMV +
+          bias + activation) using intermediate FP16 where the original used FP32. Each step loses a small amount of
+          precision. Individually negligible, but compounded across 32+ layers the error grows.
+        </li>
+        <li style="padding: var(--space-2) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          <strong>Quantization of sensitive layers:</strong> Not all layers tolerate quantization equally. Attention
+          projection layers (especially Q and K) are often more sensitive than FFN layers. A uniform quantization scheme
+          that works on average may degrade specific layers badly.
+        </li>
+        <li style="padding: var(--space-2) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          <strong>Non-determinism from threading:</strong> Changing the thread count or thread dispatch order can change
+          the order of floating-point additions. Due to non-associativity of FP math (a+b)+c &ne; a+(b+c), this
+          produces different results. Usually within tolerance, but it means logit comparison must account for FP
+          non-determinism.
+        </li>
+      </ul>
     </div>
 
     <div class="lesson-section">

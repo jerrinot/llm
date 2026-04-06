@@ -41,6 +41,97 @@ import GatePanel from '../../components/assessment/GatePanel';
     </div>
 
     <div class="lesson-section">
+      <div class="section-label">How Errors Compound Across Layers</div>
+      <p>
+        A small per-operation error is not necessarily harmless. Consider a model with 32 layers, where an optimization
+        introduces a relative error of 0.1% per matrix multiply. Each layer has ~7 matrix multiplies. After one layer,
+        the error is roughly 0.7%. After 32 layers:
+      </p>
+      <div style="font-family: var(--font-mono); font-size: var(--text-sm); background: var(--surface-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); margin: var(--space-3) 0;">
+        <div style="color: var(--ink-tertiary);">Per matmul error: 0.001 (relative)</div>
+        <div style="color: var(--ink-tertiary);">Matmuls per layer: ~7</div>
+        <div style="color: var(--ink-tertiary);">Layers: 32</div>
+        <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">
+          Loose worst-case intuition (scalar model): (1.001)^(7 &times; 32) &asymp; 1.25
+        </div>
+        <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">
+          Real tensors do not compound this cleanly — residual connections dilute errors, norms re-scale them,
+          and positive/negative deviations partially cancel. But the key point stands: small per-operator errors
+          can amplify nonlinearly across layers, especially through softmax (which can shift attention to
+          entirely different positions from a tiny score change). The only reliable check is at the final output.
+        </div>
+      </div>
+      <p>
+        The residual connections actually help here — they add the sub-layer output to the input, so a small error
+        in the sub-layer is diluted by the much larger residual signal. But the attention mechanism can amplify errors:
+        if the Q&middot;K scores are perturbed, the softmax can shift attention to a different position entirely, creating
+        a discontinuous change in the output even from a tiny input perturbation.
+      </p>
+      <p>
+        This is why "works fine on layer 1" is not sufficient validation. You must check the <em>final</em> outputs
+        (logits or perplexity), not intermediate tensors.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">The Debugging Workflow</div>
+      <p>
+        When you discover a regression, here is the systematic approach to finding the root cause:
+      </p>
+      <ol style="list-style: decimal; padding-left: var(--space-5); margin: var(--space-3) 0;">
+        <li style="padding: var(--space-1) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          <strong>Reproduce reliably.</strong> Find a specific prompt + model + config that shows the divergence.
+          Record the baseline and optimized perplexity numbers. Make sure the difference is consistent across runs
+          (rule out non-determinism from threading or initialization).
+        </li>
+        <li style="padding: var(--space-1) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          <strong>Bisect commits.</strong> Use git bisect with the perplexity tool as the test oracle. This narrows
+          the problem to a single commit — often a specific file or function change.
+        </li>
+        <li style="padding: var(--space-1) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          <strong>Dump intermediate tensors.</strong> Run both baseline and optimized on the same input, dumping the
+          output of each operation. Compare tensor values layer by layer, operation by operation. The first point
+          where values diverge beyond FP tolerance is the bug location.
+        </li>
+        <li style="padding: var(--space-1) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          <strong>Check the edge cases.</strong> Once you know which operation diverges, test with different input
+          shapes. Many repack and kernel bugs only manifest when dimensions are not cleanly divisible by the SIMD
+          width (e.g., d_model = 4097 instead of 4096).
+        </li>
+        <li style="padding: var(--space-1) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          <strong>Fix and re-validate.</strong> After fixing the bug, re-run the full perplexity check — not just the
+          specific prompt that exposed the bug. The fix should not introduce new regressions.
+        </li>
+      </ol>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Why CI Validation Matters</div>
+      <p>
+        Manual validation catches regressions after the fact. Automated CI validation prevents them from merging.
+        A robust inference project runs perplexity checks on every PR that touches:
+      </p>
+      <ul style="list-style: none; padding: 0; margin: var(--space-3) 0;">
+        <li style="padding: var(--space-1) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          Kernel code (GEMM, GEMV, fused operators)
+        </li>
+        <li style="padding: var(--space-1) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          Weight loading or repacking logic
+        </li>
+        <li style="padding: var(--space-1) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          Quantization or dequantization routines
+        </li>
+        <li style="padding: var(--space-1) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          Graph builder changes that alter operation order or fusion
+        </li>
+      </ul>
+      <p>
+        The perplexity check takes minutes but prevents days of debugging regressions that only surface in production.
+        Many projects gate merging on perplexity staying within a project-specific tolerance on a standard test set.
+      </p>
+    </div>
+
+    <div class="lesson-section">
       <div class="section-label">Toy Example</div>
       <div class="toy-example">
         <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-bottom: var(--space-3);">
@@ -88,8 +179,8 @@ import GatePanel from '../../components/assessment/GatePanel';
       <p>Perplexity as a correctness metric:</p>
       <div style="font-family: var(--font-mono); font-size: var(--text-sm); background: var(--surface-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); margin: var(--space-3) 0;">
         <div style="color: var(--ink-primary);">PPL = exp(&minus;(1/N) &sum; log P(token<sub>i</sub> | context))</div>
-        <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">Lower PPL = better predictions. A correct optimization should not change PPL.</div>
-        <div style="color: var(--ink-tertiary);">Acceptable tolerance: PPL change &lt; 0.01 (implementation-dependent).</div>
+        <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">Lower PPL = better predictions. A lossless optimization (repack, threading) should produce identical PPL.</div>
+        <div style="color: var(--ink-tertiary);">Lossy changes (quantization): acceptable tolerance is project-specific, typically &lt; 0.1 PPL increase.</div>
       </div>
     </div>
 
