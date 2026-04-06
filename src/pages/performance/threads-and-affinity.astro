@@ -91,6 +91,32 @@ import GatePanel from '../../components/assessment/GatePanel';
     </div>
 
     <div class="lesson-section">
+      <div class="section-label">Why More Threads Can Be Slower</div>
+      <p>
+        This is counterintuitive but critical: for memory-bound operations, adding threads past a certain point
+        makes things <em>slower</em>. Why?
+      </p>
+      <ol style="list-style: decimal; padding-left: var(--space-5); margin: var(--space-3) 0;">
+        <li style="padding: var(--space-1) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          <strong>Memory bandwidth is shared.</strong> All threads share the same memory bus. If 4 threads already
+          saturate the bus, threads 5-16 just compete for the same bandwidth while adding synchronization overhead.
+        </li>
+        <li style="padding: var(--space-1) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          <strong>Thread synchronization costs.</strong> At the end of each matrix multiply, threads must synchronize
+          (barrier). More threads means more synchronization events, each adding latency.
+        </li>
+        <li style="padding: var(--space-1) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          <strong>Cache thrashing.</strong> Each thread works on a different portion of the weight matrix. More threads
+          means more concurrent memory regions competing for L2/L3 cache space.
+        </li>
+      </ol>
+      <p>
+        The practical rule: for decode (memory-bound), start at n_physical_cores / 2 and benchmark. For prefill
+        (compute-bound), start at n_physical_cores and benchmark. The optimal is always empirical, not theoretical.
+      </p>
+    </div>
+
+    <div class="lesson-section">
       <div class="section-label">Implementation Hook</div>
       <div class="impl-hook">
         <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
