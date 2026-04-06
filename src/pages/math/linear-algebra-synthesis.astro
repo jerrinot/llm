@@ -441,7 +441,7 @@ output = <span style="color: var(--sem-token);">ggml_add</span>(cur, sa_out);   
           <div style="margin-bottom: var(--space-1);">2. <code>build_lora_mm(wq, cur)</code> → <strong>Q projection</strong> — multiply hidden state by W<sub>Q</sub></div>
           <div style="margin-bottom: var(--space-1);">3. <code>build_attn</code> → <strong>Attention</strong> — Q&middot;K<sup>T</sup> scores, softmax, weighted V sum, output projection</div>
           <div style="margin-bottom: var(--space-1);">4. <code>ggml_add</code> → <strong>Residual connection</strong> — add attention output back to input</div>
-          <div>5. <code>build_ffn</code> → <strong>FFN</strong> — expand to d_ff, apply SiLU, contract back to d_model</div>
+          <div>5. <code>build_ffn</code> → <strong>FFN</strong> — expand to d_ff, apply activation, contract back to d_model</div>
         </div>
       </details>
     </div>
