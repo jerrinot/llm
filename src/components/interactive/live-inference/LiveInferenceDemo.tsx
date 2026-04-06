@@ -16,7 +16,7 @@ const PRESETS = [
 export default function LiveInferenceDemo() {
   const worker = useInferenceWorker();
   const [inputText, setInputText] = useState(PRESETS[0]);
-  const [temperature, setTemperature] = useState(1.0);
+  const [temperature, setTemperature] = useState(0.7);
   const [activeStage, setActiveStage] = useState<number>(0);
   const [isGenerating, setIsGenerating] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
