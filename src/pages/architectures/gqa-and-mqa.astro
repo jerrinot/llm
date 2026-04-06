@@ -31,6 +31,41 @@ import GatePanel from '../../components/assessment/GatePanel';
     </div>
 
     <div class="lesson-section">
+      <div class="section-label">Why GQA Works: The Asymmetry of Q vs K/V</div>
+      <p>
+        The key insight behind GQA is that Q and K/V play fundamentally different roles in attention.
+        <strong>Q (query)</strong> determines <em>what</em> each token is looking for — each head can ask a different question.
+        <strong>K/V (key/value)</strong> determines <em>what information</em> is available to be found.
+      </p>
+      <p>
+        It turns out that the "available information" can be shared across head groups without much quality loss —
+        multiple query heads can ask different questions of the same key/value data. But the queries need to stay
+        independent: if you reduce Q heads, each head loses its ability to attend to different aspects of the input.
+      </p>
+      <p>
+        This asymmetry is why GQA reduces K/V heads but keeps all Q heads. The memory savings come entirely from
+        the KV cache (which stores per-head entries) and the K/V weight matrices (which are smaller). Q heads
+        and the Q weight matrix stay at full size.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Concrete Memory Savings</div>
+      <p>
+        For a model with 32 layers, d_head = 128, and FP16 storage, the KV cache per token is:
+      </p>
+      <div class="toy-example" style="font-family: var(--font-mono); font-size: var(--text-sm); display: grid; gap: 4px;">
+        <div><span style="color: var(--sem-attention);">MHA (32 KV heads):</span> 2 &times; 32 &times; 32 &times; 128 &times; 2 bytes = <strong>512 KB/token</strong></div>
+        <div><span style="color: var(--sem-kvcache);">GQA (8 KV heads):</span> &nbsp;2 &times; 32 &times; &nbsp;8 &times; 128 &times; 2 bytes = <strong>128 KB/token</strong> &nbsp; (4&times; smaller)</div>
+        <div><span style="color: var(--sem-ffn);">MQA (1 KV head):</span> &nbsp;&nbsp;2 &times; 32 &times; &nbsp;1 &times; 128 &times; 2 bytes = <strong>&nbsp;16 KB/token</strong> (32&times; smaller)</div>
+      </div>
+      <p>
+        For a 4,096-token context: MHA uses ~2 GB of cache, GQA uses ~512 MB, MQA uses ~64 MB. The difference
+        determines whether the model fits in GPU memory and how fast decode runs (less cache = less data to read
+        per attention step).
+    </div>
+
+    <div class="lesson-section">
       <div class="section-label">Toy Example</div>
       <div class="toy-example">
         <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-bottom: var(--space-3);">
