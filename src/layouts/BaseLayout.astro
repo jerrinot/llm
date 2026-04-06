@@ -8,7 +8,7 @@ interface Props {
 
 const { title, description = 'A guided systems curriculum for understanding LLM inference' } = Astro.props;
 const fullTitle = `${title} — LLM From the Ground Up`;
-const siteUrl = 'https://llm.jerrinot.info';
+const pageUrl = new URL(Astro.url.pathname, Astro.site || 'https://llm.jerrinot.info').href;
 ---
 
 <!DOCTYPE html>
@@ -24,7 +24,7 @@ const siteUrl = 'https://llm.jerrinot.info';
   <meta property="og:type" content="website" />
   <meta property="og:title" content={fullTitle} />
   <meta property="og:description" content={description} />
-  <meta property="og:url" content={siteUrl} />
+  <meta property="og:url" content={pageUrl} />
   <meta property="og:site_name" content="LLM From the Ground Up" />
 
   <!-- Twitter -->
