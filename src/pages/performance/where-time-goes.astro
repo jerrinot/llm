@@ -141,7 +141,7 @@ import GatePanel from '../../components/assessment/GatePanel';
         <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
           In <code>llama.cpp</code>, each layer's operators are built in <code>src/llama-graph.cpp</code> via functions like <code>build_attn()</code> and <code>build_ffn()</code>. Profiling with <code>GGML_PERF</code> or external tools reveals that <code>ggml_mul_mat</code> calls dominate the trace in both prefill and decode.
         </p>
-        <div class="file-path">src/llama-graph.cpp &mdash; build_attn(), build_ffn()</div>
+        <div class="file-path"><a href="https://github.com/ggml-org/llama.cpp/blob/94ca829b6001019622c0f67fcd48e9ec6bd7dce8/src/llama-graph.cpp#L1990" target="_blank" rel="noopener">src/llama-graph.cpp — build_attn() (L1990), build_ffn() (L1046)</a></div>
       </div>
     </div>
 
