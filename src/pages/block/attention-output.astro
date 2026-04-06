@@ -23,7 +23,15 @@ import GatePanel from '../../components/assessment/GatePanel';
         This is where cross-token information actually moves. The score computation (Q &sdot; K&#x1D40;) decided <em>where</em> to look. The output computation (weights &times; V) determines <em>what information arrives</em>. These are two distinct steps — and it is important not to conflate them.
       </p>
       <p>
-        After the weighted sum of V, the result passes through one more linear projection (W_O) that maps it back to d_model dimensions. This projected result is what gets added to the residual stream.
+        After the weighted sum of V, the result passes through one more linear projection — the <strong>output projection</strong>
+        W<sub>O</sub>. Why is this needed? The weighted sum lives in d_head-dimensional space (or h&times;d_head for multi-head
+        attention after concatenation). The residual stream expects d_model dimensions. W<sub>O</sub> maps the concatenated
+        multi-head output back to d_model, and in doing so, it learns how to <em>combine</em> the information from different heads.
+        Without W<sub>O</sub>, the heads could not interact — their outputs would just be stacked, not integrated.
+      </p>
+      <p>
+        The projected result is what gets added to the residual stream. This is the complete attention sub-layer:
+        project to Q/K/V &rarr; compute scores &rarr; mask &rarr; softmax &rarr; weighted V sum &rarr; project with W<sub>O</sub> &rarr; add residual.
       </p>
     </div>
 
