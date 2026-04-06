@@ -89,11 +89,17 @@ import '../../styles/global.css';
           <div class="glossary-entry"><dt>SWA</dt><dd>Sliding-Window Attention. Each layer attends only to a local window of tokens.</dd></div>
           <div class="glossary-entry"><dt>MoE</dt><dd>Mixture of Experts. Replaces the FFN with multiple expert FFNs, only a few activated per token.</dd></div>
           <div class="glossary-entry"><dt>Router</dt><dd>In MoE, the network that scores which experts to activate for each token.</dd></div>
+          <div class="glossary-entry"><dt>Shared-KV layers</dt><dd>Layers that skip K/V projections and reuse K/V from an earlier layer's cache.</dd></div>
           <div class="glossary-entry"><dt>KV cache</dt><dd>Stored K/V tensors from previous tokens, reused during decode to avoid recomputation.</dd></div>
+          <div class="glossary-entry"><dt>Continuous batching</dt><dd>Server scheduling that inserts new requests into a running batch as slots free up, instead of waiting for all requests to finish.</dd></div>
           <div class="glossary-entry"><dt>Prefill</dt><dd>Processing the full prompt through the model. Involves large matrix multiplies.</dd></div>
           <div class="glossary-entry"><dt>Decode</dt><dd>Generating tokens one at a time, reusing cached K/V from previous steps.</dd></div>
           <div class="glossary-entry"><dt>Ubatch</dt><dd>Microbatch / physical batch. Operational setting that affects execution without changing math.</dd></div>
-          <div class="glossary-entry"><dt>Perplexity</dt><dd>A metric of how surprised the model is by the data. Lower = model predicts better.</dd></div>
+          <div class="glossary-entry"><dt>GEMM</dt><dd>General Matrix Multiply. Matrix &times; matrix. Dominates prefill compute.</dd></div>
+          <div class="glossary-entry"><dt>GEMV</dt><dd>General Matrix-Vector Multiply. Matrix &times; vector. Dominates decode — memory-bound.</dd></div>
+          <div class="glossary-entry"><dt>Arithmetic intensity</dt><dd>FLOPs per byte of memory traffic. Determines whether an operation is compute-bound or memory-bound.</dd></div>
+          <div class="glossary-entry"><dt>Machine balance</dt><dd>Peak FLOP/s &divide; peak bytes/s for a given hardware. The threshold between compute-bound and memory-bound.</dd></div>
+          <div class="glossary-entry"><dt>Perplexity</dt><dd>A metric of how surprised the model is by the data. Lower = model predicts better. Typical LLM scores: 5&ndash;8 on wikitext-2.</dd></div>
           <div class="glossary-entry"><dt>Quantization</dt><dd>Reducing numerical precision of weights (e.g. FP16 &rarr; Q8_0) to save memory and speed up inference.</dd></div>
           <div class="glossary-entry"><dt>Repack</dt><dd>Rearranging weight memory layout for faster kernel access patterns.</dd></div>
         </dl>
