@@ -31,6 +31,42 @@ import GatePanel from '../../components/assessment/GatePanel';
     </div>
 
     <div class="lesson-section">
+      <div class="section-label">What a Shared Layer Saves</div>
+      <p>
+        A shared-KV layer skips two expensive operations compared to a normal layer:
+      </p>
+      <ol style="list-style: decimal; padding-left: var(--space-5); margin: var(--space-3) 0;">
+        <li style="padding: var(--space-1) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          <strong>No K/V projection compute.</strong> The W<sub>K</sub> and W<sub>V</sub> matrix multiplies are skipped entirely.
+          For a layer with d_model = 4096 and 8 KV heads with d_head = 128, that is 2 &times; 4096 &times; 1024 &times; 2 = ~16.8M FLOPs
+          saved per token per layer.
+        </li>
+        <li style="padding: var(--space-1) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          <strong>No KV cache write.</strong> The layer does not add new K/V entries to the cache — it reads from an existing
+          cache slot. During decode, this means fewer bytes written to memory per step, which matters when memory bandwidth
+          is the bottleneck.
+        </li>
+      </ol>
+      <p>
+        The Q projection and the attention computation itself still run at full cost. Shared-KV is not "skipping attention" —
+        it is skipping the <em>key/value preparation</em> while keeping the attention mechanism intact.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">How Shared-KV Interacts with GQA and SWA</div>
+      <p>
+        In real architectures like Gemma 4, shared-KV layers are combined with GQA and SWA. A typical pattern:
+        SWA layers with shared KV (cheap, local), alternating with full-attention layers with fresh KV (expensive, global).
+        The combination stacks three savings: fewer KV heads (GQA), bounded cache (SWA), and no K/V projection in shared layers.
+      </p>
+      <p>
+        When reading model configs, look for which layers have K/V weights and which do not. A layer without <code>wk</code>
+        and <code>wv</code> entries is a shared-KV layer — it reads from another layer's cache.
+      </p>
+    </div>
+
+    <div class="lesson-section">
       <div class="section-label">Toy Example</div>
       <div class="toy-example">
         <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-bottom: var(--space-3);">

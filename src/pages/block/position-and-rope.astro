@@ -71,8 +71,48 @@ import GatePanel from '../../components/assessment/GatePanel';
     </div>
 
     <div class="lesson-section">
+      <div class="section-label">How RoPE Works: The Key Insight</div>
+      <p>
+        RoPE's cleverness lies in one mathematical property: when you rotate Q at position m and K at position n by
+        position-dependent angles, their dot product depends only on the <strong>relative distance</strong> (m - n),
+        not on the absolute positions. This means the attention score between "word A at position 5" and "word B at
+        position 3" is the same as between "word A at position 105" and "word B at position 103" — a distance of 2
+        produces the same rotational effect regardless of where in the sequence you are.
+      </p>
+      <p>
+        This relative-position property is extremely valuable for language. Whether "the cat" appears at the beginning
+        or middle of a sentence, the model should attend to "cat" from "the" in the same way. Absolute position
+        embeddings (an older technique) cannot guarantee this; RoPE provides it by construction.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">The Rotation, Pair by Pair</div>
+      <p>
+        RoPE processes the d_head dimensions <strong>in pairs</strong>. Dimensions (0, 1) form one pair,
+        (2, 3) form another, and so on. Each pair is rotated by an angle that depends on both the token position
+        and a base frequency for that pair:
+      </p>
+      <ul style="list-style: none; padding: 0; margin: var(--space-3) 0;">
+        <li style="padding: var(--space-1) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          <strong>Low-index pairs</strong> (dimensions 0-1, 2-3) use high-frequency rotations — they encode fine-grained,
+          nearby positional differences.
+        </li>
+        <li style="padding: var(--space-1) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          <strong>High-index pairs</strong> (dimensions 126-127) use very low-frequency rotations — they encode
+          long-range positional structure.
+        </li>
+      </ul>
+      <p>
+        This multi-frequency structure is analogous to how different digits of a number encode different scales: the
+        ones digit changes fast, the tens digit changes slower, and the hundreds digit changes slowest. The model
+        can read position at multiple granularities simultaneously.
+      </p>
+    </div>
+
+    <div class="lesson-section">
       <div class="section-label">Math</div>
-      <p>RoPE applies a rotation matrix to pairs of dimensions in Q and K:</p>
+      <p>For each dimension pair (2i, 2i+1) at position m:</p>
       <div style="font-family: var(--font-mono); font-size: var(--text-sm); background: var(--surface-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); margin: var(--space-3) 0;">
         <div style="color: var(--sem-attention);">q'&#x2082;&#x1D62;   = q&#x2082;&#x1D62; &sdot; cos(m&theta;&#x1D62;) - q&#x2082;&#x1D62;&#x208A;&#x2081; &sdot; sin(m&theta;&#x1D62;)</div>
         <div style="color: var(--sem-attention);">q'&#x2082;&#x1D62;&#x208A;&#x2081; = q&#x2082;&#x1D62; &sdot; sin(m&theta;&#x1D62;) + q&#x2082;&#x1D62;&#x208A;&#x2081; &sdot; cos(m&theta;&#x1D62;)</div>
