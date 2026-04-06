@@ -65,6 +65,14 @@ import DiscreteInputFlowDiagram from '../../components/course/DiscreteInputFlowD
       <p>
         That rewrite is already operationally meaningful. Sequence length, later cost, and eventual context fit all depend on the tokenized sequence, not on the original character string.
       </p>
+      <div style="background: var(--surface-3); border: 1px solid var(--surface-4); border-radius: var(--radius-md); padding: var(--space-4); margin-top: var(--space-4);">
+        <p style="font-family: var(--font-mono); font-size: var(--text-xs); color: var(--ink-ghost); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: var(--space-2);">In the wild: when tokenization surprises you</p>
+        <div style="font-size: var(--text-sm); color: var(--ink-secondary); display: grid; gap: var(--space-2);">
+          <div><strong>Leading space matters:</strong> <code>"cat"</code> at the start of a prompt may tokenize differently from <code>" cat"</code> mid-sentence because the leading space is part of the token piece.</div>
+          <div><strong>Unicode splits:</strong> Emoji or CJK characters can fragment into multiple tokens. A single emoji may cost 2-4 tokens, consuming more budget than expected.</div>
+          <div><strong>Code is expensive:</strong> Source code often fragments heavily — variable names, operators, and whitespace each become separate tokens, so a short code snippet can consume far more tokens than the same character count in prose.</div>
+        </div>
+      </div>
     </div>
 
     <div class="lesson-section">
