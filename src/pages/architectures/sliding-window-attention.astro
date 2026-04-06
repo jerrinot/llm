@@ -31,6 +31,31 @@ import GatePanel from '../../components/assessment/GatePanel';
     </div>
 
     <div class="lesson-section">
+      <div class="section-label">Why SWA Saves Memory and Compute</div>
+      <p>
+        SWA provides two distinct savings, and understanding both is important:
+      </p>
+      <div style="margin: var(--space-4) 0;">
+        <p style="font-weight: 600; color: var(--ink-primary);">1. Attention compute: O(n &times; w) instead of O(n&sup2;)</p>
+        <p>
+          Full causal attention computes scores for every pair of positions up to position i: roughly n&sup2;/2 total scores.
+          SWA computes scores for at most w positions per query: roughly n &times; w total scores. When w &lt;&lt; n
+          (e.g., w = 4,096 and n = 100,000), this is a massive reduction. For a 100K-token sequence, full attention
+          computes ~5 billion score entries; SWA with w = 4K computes ~400 million — a 12.5&times; reduction.
+        </p>
+      </div>
+      <div style="margin: var(--space-4) 0;">
+        <p style="font-weight: 600; color: var(--ink-primary);">2. KV cache: bounded by w instead of growing with n</p>
+        <p>
+          For full attention, the KV cache must store entries for all past tokens — it grows linearly with context.
+          For an SWA layer, entries older than w positions back are never read again and can be evicted. The cache
+          is bounded: at most w entries per head per layer, regardless of how long the sequence becomes. This is why
+          SWA layers are particularly valuable for long-context serving — they cap memory growth.
+        </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
       <div class="section-label">Toy Example</div>
       <div class="toy-example">
         <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-bottom: var(--space-3);">
