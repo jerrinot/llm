@@ -1,0 +1,159 @@
+<div class="la-flow">
+  <div class="la-stage token">
+    <div class="la-stage-label">Discrete Input</div>
+    <div class="la-stage-title">Token IDs</div>
+    <div class="la-stage-shape">[3]</div>
+    <div class="la-stage-note">three token positions</div>
+  </div>
+
+  <div class="la-arrow">
+    <span>embedding lookup</span>
+  </div>
+
+  <div class="la-stage embed">
+    <div class="la-stage-label">Numeric State</div>
+    <div class="la-stage-title">Hidden Matrix</div>
+    <div class="la-stage-shape">[3, 4]</div>
+    <div class="la-stage-note">three rows, four features each</div>
+  </div>
+
+  <div class="la-arrow">
+    <span>projection</span>
+  </div>
+
+  <div class="la-stage proj">
+    <div class="la-stage-label">Role Space</div>
+    <div class="la-stage-title">Q and K</div>
+    <div class="la-stage-pair">
+      <div class="la-stage-shape">Q [3, 2]</div>
+      <div class="la-stage-shape">K [3, 2]</div>
+    </div>
+    <div class="la-stage-note">two separate projected tensors built from the same three token rows</div>
+  </div>
+
+  <div class="la-arrow">
+    <span>pairwise compare</span>
+  </div>
+
+  <div class="la-stage score">
+    <div class="la-stage-label">Token Relations</div>
+    <div class="la-stage-title">Scores</div>
+    <div class="la-stage-shape">[3, 3]</div>
+    <div class="la-stage-note">every token against every token</div>
+  </div>
+</div>
+
+<style>
+  .la-flow {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(0, 1fr);
+    gap: var(--space-3);
+    align-items: stretch;
+    margin: var(--space-4) 0;
+  }
+
+  .la-stage {
+    background: var(--surface-2);
+    border: var(--border-default);
+    border-radius: var(--radius-md);
+    padding: var(--space-4);
+    min-height: 156px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+
+  .la-stage.token {
+    border-top: 3px solid var(--sem-token);
+  }
+
+  .la-stage.embed {
+    border-top: 3px solid var(--sem-attention);
+  }
+
+  .la-stage.proj {
+    border-top: 3px solid var(--sem-ffn);
+  }
+
+  .la-stage.score {
+    border-top: 3px solid var(--sem-logits);
+  }
+
+  .la-stage-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink-ghost);
+    margin-bottom: var(--space-2);
+  }
+
+  .la-stage-title {
+    font-family: var(--font-display);
+    font-size: var(--text-lg);
+    color: var(--ink-primary);
+    line-height: var(--leading-snug);
+  }
+
+  .la-stage-shape {
+    font-family: var(--font-mono);
+    font-size: var(--text-base);
+    color: var(--ink-primary);
+    background: var(--surface-3);
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-sm);
+    align-self: start;
+  }
+
+  .la-stage-pair {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+
+  .la-stage-note {
+    font-size: var(--text-sm);
+    color: var(--ink-secondary);
+    line-height: var(--leading-normal);
+  }
+
+  .la-arrow {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-width: 74px;
+    color: var(--ink-ghost);
+    gap: var(--space-2);
+  }
+
+  .la-arrow::before {
+    content: '→';
+    font-family: var(--font-mono);
+    font-size: var(--text-xl);
+    color: var(--ink-ghost);
+  }
+
+  .la-arrow span {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    text-align: center;
+  }
+
+  @media (max-width: 1100px) {
+    .la-flow {
+      grid-template-columns: 1fr;
+    }
+
+    .la-arrow {
+      min-width: 0;
+      flex-direction: row;
+    }
+
+    .la-arrow::before {
+      content: '↓';
+    }
+  }
+</style>

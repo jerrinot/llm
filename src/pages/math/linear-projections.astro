@@ -4,6 +4,7 @@ import '../../styles/global.css';
 import '../../styles/course.css';
 import LessonPage from '../../components/course/LessonPage';
 import GatePanel from '../../components/assessment/GatePanel';
+import ProjectionColumnsDiagram from '../../components/course/ProjectionColumnsDiagram.astro';
 ---
 
 <BaseLayout title="Linear Projections Change Representation Size">
@@ -92,6 +93,7 @@ import GatePanel from '../../components/assessment/GatePanel';
         This is why columns of the projection matrix are such a useful mental object.
         Each column is one learned feature extractor for the new representation space.
       </p>
+      <ProjectionColumnsDiagram />
     </div>
 
     <div class="lesson-section">
@@ -148,6 +150,50 @@ import GatePanel from '../../components/assessment/GatePanel';
         <code>[n_tokens, d_out]</code>. Each token row is remapped into the new space, and all rows share the same learned matrix.
         This "one matrix, many token rows" pattern is one of the most important repeated structures in the entire model.
       </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Running Example: Project the Whole Tiny Sequence</div>
+      <p>
+        Now combine the running example from the embeddings page with the projection idea from this page.
+        Start from the hidden matrix:
+      </p>
+      <div class="toy-example" style="font-family: var(--font-mono); font-size: var(--text-sm); display: grid; gap: 4px;">
+        <div>X = [</div>
+        <div>&nbsp;&nbsp;[0.12, -0.34, 0.56, 0.78],</div>
+        <div>&nbsp;&nbsp;[0.91, 0.23, -0.67, 0.45],</div>
+        <div>&nbsp;&nbsp;[-0.11, 0.89, 0.33, -0.55]</div>
+        <div>]</div>
+      </div>
+      <p>
+        Using the toy matrix <code>W_q</code> from above, the whole sequence projects to:
+      </p>
+      <div class="toy-example" style="font-family: var(--font-mono); font-size: var(--text-sm); display: grid; gap: 4px;">
+        <div>Q = XW_q = [</div>
+        <div>&nbsp;&nbsp;[0.68, 0.66],</div>
+        <div>&nbsp;&nbsp;[0.24, 1.80],</div>
+        <div>&nbsp;&nbsp;[0.22, -0.54]</div>
+        <div>]</div>
+      </div>
+      <p>
+        The exact numbers are not the main point. The shape and interpretation are.
+        Three token rows came in, and three token rows came out. What changed is the feature space: each row is now a query vector instead of a generic hidden-state vector.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Do It Yourself</div>
+      <div class="toy-example">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          When you see a projection in code, ask these questions in order:
+        </p>
+        <div style="display: grid; gap: var(--space-2); font-size: var(--text-sm); color: var(--ink-secondary);">
+          <div>1. What is the input tensor shape?</div>
+          <div>2. What is the weight matrix shape?</div>
+          <div>3. What output shape follows from the multiply?</div>
+          <div>4. What semantic role does the new space have: Q, K, V, FFN-up, output logits?</div>
+        </div>
+      </div>
     </div>
 
     <div class="lesson-section">
@@ -213,6 +259,14 @@ import GatePanel from '../../components/assessment/GatePanel';
               { id: 'c', text: 'Because one comes from attention and one from the tokenizer', isCorrect: false },
             ],
             explanation: 'The input hidden state is the same, but different learned matrices define different output spaces. That is why Q, K, and V can serve different roles.',
+          },
+          {
+            id: 'L09-q3',
+            type: 'numeric',
+            prompt: 'If X has shape [3, 4] and W has shape [4, 2], how many output features does each token row have after projection?',
+            tag: 'math',
+            correctAnswer: '2',
+            explanation: 'The output shape is [3, 2], so each token row has 2 output features.',
           },
         ]}
       />

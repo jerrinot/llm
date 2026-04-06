@@ -149,6 +149,24 @@ import GatePanel from '../../components/assessment/GatePanel';
     </div>
 
     <div class="lesson-section">
+      <div class="section-label">Running Example: One Full Mini Trace</div>
+      <p>
+        Put the whole mini sequence together one last time:
+      </p>
+      <div class="toy-example" style="font-family: var(--font-mono); font-size: var(--text-sm); display: grid; gap: 4px;">
+        <div>token_ids: [3]</div>
+        <div>embedding lookup → hidden: [3, 4]</div>
+        <div>hidden × W_q [4, 2] → Q: [3, 2]</div>
+        <div>hidden × W_k [4, 2] → K: [3, 2]</div>
+        <div>Q K^T → scores: [3, 3]</div>
+      </div>
+      <p>
+        If you can read those five lines comfortably, you have crossed the main threshold this module is trying to teach.
+        You no longer need to see the actual floating-point values to understand what the code is doing structurally.
+      </p>
+    </div>
+
+    <div class="lesson-section">
       <div class="section-label">Common Shape Mistakes</div>
       <p>
         The most common beginner error is to track numbers but not meanings. A learner memorizes that
@@ -163,6 +181,20 @@ import GatePanel from '../../components/assessment/GatePanel';
         The final common mistake is to ignore reshapes and transposes. In real implementations, a tensor may carry the same numeric contents while
         changing layout or axis meaning. When a reshape happens, stop and restate the axes before continuing.
       </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Do It Yourself</div>
+      <div class="toy-example">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          Practice translating these into English:
+        </p>
+        <div style="display: grid; gap: var(--space-2); font-size: var(--text-sm); color: var(--ink-secondary);">
+          <div><code>[3, 4]</code>: three token positions, each with four features.</div>
+          <div><code>[3, 2]</code>: the same three token positions, now in a two-feature projected space.</div>
+          <div><code>[3, 3]</code>: every token position compared against every token position.</div>
+        </div>
+      </div>
     </div>
 
     <div class="lesson-section">
@@ -229,6 +261,14 @@ import GatePanel from '../../components/assessment/GatePanel';
               { id: 'c', text: '[32, 32]', isCorrect: true },
             ],
             explanation: 'Q K^T compares every token position against every token position, so the result is [n_tokens, n_tokens] = [32, 32].',
+          },
+          {
+            id: 'L10-q3',
+            type: 'numeric',
+            prompt: 'If the score matrix shape is [32, 32], how many pairwise token scores does it contain?',
+            tag: 'math',
+            correctAnswer: '1024',
+            explanation: 'A [32, 32] matrix contains 32 × 32 = 1024 pairwise scores.',
           },
         ]}
       />

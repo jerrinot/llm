@@ -120,6 +120,29 @@ import MatrixMultiplyBuilder from '../../components/interactive/MatrixMultiplyBu
     </div>
 
     <div class="lesson-section">
+      <div class="section-label">Running Example as a Matrix Multiply</div>
+      <p>
+        Carry forward the tiny hidden-state matrix from the embeddings lesson:
+      </p>
+      <div class="toy-example" style="font-family: var(--font-mono); font-size: var(--text-sm); display: grid; gap: 4px;">
+        <div>X = [</div>
+        <div>&nbsp;&nbsp;[0.12, -0.34, 0.56, 0.78],</div>
+        <div>&nbsp;&nbsp;[0.91, 0.23, -0.67, 0.45],</div>
+        <div>&nbsp;&nbsp;[-0.11, 0.89, 0.33, -0.55]</div>
+        <div>]</div>
+      </div>
+      <p>
+        This matrix has shape <code>[3, 4]</code>: three token rows, four features per row.
+        If we multiply it by a projection matrix <code>W</code> of shape <code>[4, 2]</code>, the result has shape <code>[3, 2]</code>.
+        That means every token row gets remapped into a 2-dimensional output space.
+      </p>
+      <p>
+        The important thing is not just the formula. It is the batch interpretation:
+        one learned matrix is applied to every token row in the sequence.
+      </p>
+    </div>
+
+    <div class="lesson-section">
       <div class="section-label">Math</div>
       <div style="font-family: var(--font-mono); font-size: var(--text-sm); background: var(--surface-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); margin: var(--space-3) 0;">
         <div style="color: var(--sem-token);">C[i,j] = &sum;&#x2096; A[i,k] &times; B[k,j]</div>
@@ -143,6 +166,19 @@ import MatrixMultiplyBuilder from '../../components/interactive/MatrixMultiplyBu
         "I have <code>m</code> input rows. Each row has <code>k</code> features. I want <code>n</code> output features for each row."
         That verbal narration is what makes the operation useful rather than ceremonial.
       </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Do It Yourself</div>
+      <div class="toy-example">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          Practice the narration pattern:
+        </p>
+        <div style="display: grid; gap: var(--space-2); font-size: var(--text-sm); color: var(--ink-secondary);">
+          <div><code>[3, 4] × [4, 2] → [3, 2]</code> means: 3 input rows, 4 features each, projected into 2 output features each.</div>
+          <div><code>[32, 2048] × [2048, 256] → [32, 256]</code> means: 32 token states projected into a 256-dimensional space.</div>
+        </div>
+      </div>
     </div>
 
     <div class="lesson-section">
@@ -223,6 +259,14 @@ import MatrixMultiplyBuilder from '../../components/interactive/MatrixMultiplyBu
               { id: 'c', text: 'A copy of the matching value from A', isCorrect: false },
             ],
             explanation: 'Each output cell is one row-column dot product. That is the core mechanic of matrix multiplication.',
+          },
+          {
+            id: 'L08-q4',
+            type: 'numeric',
+            prompt: 'How many output cells are in the result of [3, 4] × [4, 2]?',
+            tag: 'math',
+            correctAnswer: '6',
+            explanation: 'The output shape is [3, 2], so it contains 3 × 2 = 6 cells.',
           },
         ]}
       />

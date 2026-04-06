@@ -1,11 +1,16 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import '../styles/landing.css';
-import { modules, lessons } from '../data/curriculum';
+import { modules, lessons, guidedPath } from '../data/curriculum';
 
 function countLessons(mod: typeof modules[0]): number {
   return mod.lessonIds.filter(id => lessons[id]?.kind === 'lesson').length;
 }
+
+const lessonCount = Object.values(lessons).filter(lesson => lesson.kind === 'lesson').length;
+const quizCount = Object.values(lessons).filter(lesson => lesson.kind === 'quiz').length;
+const capstoneCount = Object.values(lessons).filter(lesson => lesson.kind === 'capstone').length;
+const guidedStepCount = guidedPath.length;
 ---
 
 <BaseLayout title="LLM From the Ground Up">
@@ -102,7 +107,7 @@ function countLessons(mod: typeof modules[0]): number {
     <section class="curriculum-section">
       <div class="curriculum-inner">
         <h2 class="curriculum-title">The guided path</h2>
-        <p class="curriculum-subtitle">9 modules. 48 lessons. One strict, linear sequence.</p>
+        <p class="curriculum-subtitle">{modules.length} modules. {guidedStepCount} guided steps: {lessonCount} lessons, {quizCount} quizzes, {capstoneCount} capstone.</p>
 
         <div class="curriculum-modules">
           {modules.map((mod) => (

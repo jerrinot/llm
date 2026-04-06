@@ -1,0 +1,170 @@
+<div class="projection-diagram">
+  <div class="pd-card pd-input">
+    <div class="pd-label">Input Row</div>
+    <div class="pd-vector">
+      <span>h₀</span>
+      <span>h₁</span>
+      <span>h₂</span>
+      <span>h₃</span>
+    </div>
+    <p>one token state in the old space</p>
+  </div>
+
+  <div class="pd-mid">
+    <div class="pd-arrow multiply" aria-hidden="true">
+      <span class="pd-arrow-glyph desktop">×</span>
+      <span class="pd-arrow-glyph mobile">↓</span>
+    </div>
+    <div class="pd-card pd-weight">
+      <div class="pd-label">Weight Columns</div>
+      <div class="pd-matrix">
+        <div class="pd-col">
+          <span>w₀₀</span>
+          <span>w₁₀</span>
+          <span>w₂₀</span>
+          <span>w₃₀</span>
+        </div>
+        <div class="pd-col">
+          <span>w₀₁</span>
+          <span>w₁₁</span>
+          <span>w₂₁</span>
+          <span>w₃₁</span>
+        </div>
+      </div>
+      <p>each column defines one learned output feature</p>
+    </div>
+  </div>
+
+  <div class="pd-arrow flow" aria-hidden="true">
+    <span class="pd-arrow-glyph desktop">→</span>
+    <span class="pd-arrow-glyph mobile">↓</span>
+  </div>
+
+  <div class="pd-card pd-output">
+    <div class="pd-label">Output Row</div>
+    <div class="pd-vector compact">
+      <span>q₀</span>
+      <span>q₁</span>
+    </div>
+    <p>same token, new role-specific coordinates</p>
+  </div>
+</div>
+
+<style>
+  .projection-diagram {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto minmax(0, 1fr);
+    gap: var(--space-4);
+    align-items: center;
+    margin: var(--space-4) 0;
+  }
+
+  .pd-card {
+    background: var(--surface-2);
+    border: var(--border-default);
+    border-radius: var(--radius-md);
+    padding: var(--space-4);
+  }
+
+  .pd-input {
+    border-top: 3px solid var(--sem-token);
+  }
+
+  .pd-weight {
+    border-top: 3px solid var(--sem-attention);
+  }
+
+  .pd-output {
+    border-top: 3px solid var(--sem-ffn);
+  }
+
+  .pd-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink-ghost);
+    margin-bottom: var(--space-3);
+  }
+
+  .pd-vector {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
+    margin-bottom: var(--space-3);
+  }
+
+  .pd-vector.compact {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .pd-vector span,
+  .pd-col span {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 40px;
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    background: var(--surface-3);
+    border-radius: var(--radius-sm);
+    color: var(--ink-primary);
+  }
+
+  .pd-matrix {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    margin-bottom: var(--space-3);
+  }
+
+  .pd-col {
+    display: grid;
+    gap: 6px;
+  }
+
+  .pd-card p {
+    margin: 0;
+    font-size: var(--text-sm);
+    color: var(--ink-secondary);
+    line-height: var(--leading-normal);
+  }
+
+  .pd-mid {
+    display: grid;
+    gap: var(--space-3);
+    align-items: center;
+  }
+
+  .pd-arrow {
+    font-family: var(--font-mono);
+    font-size: var(--text-xl);
+    color: var(--ink-ghost);
+    text-align: center;
+  }
+
+  .pd-arrow-glyph.mobile {
+    display: none;
+  }
+
+  @media (max-width: 960px) {
+    .projection-diagram {
+      grid-template-columns: 1fr;
+    }
+
+    .pd-arrow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 32px;
+    }
+
+    .pd-arrow-glyph.desktop {
+      display: none;
+    }
+
+    .pd-arrow-glyph.mobile {
+      display: inline;
+    }
+  }
+</style>

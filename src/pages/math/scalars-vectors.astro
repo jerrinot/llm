@@ -135,6 +135,28 @@ import GatePanel from '../../components/assessment/GatePanel';
         The next page turns token IDs into those vectors. After that, we will compare vectors, batch them into matrix multiplies, and project
         them into new spaces.
       </p>
+      <p>
+        To make the sequence concrete, we will keep reusing this miniature prompt:
+        token IDs <code>[791, 2368, 3290]</code>.
+        Right now they are just three discrete symbols. Soon they will become three vectors and then a small sequence matrix.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Do It Yourself</div>
+      <div class="toy-example">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          Practice narrating, not just counting:
+        </p>
+        <div style="display: grid; gap: var(--space-2); font-size: var(--text-sm); color: var(--ink-secondary);">
+          <div><code>[4]</code> means: one vector with 4 coordinates.</div>
+          <div><code>[3, 4]</code> means: 3 vectors, each with 4 coordinates.</div>
+          <div><code>[32, 2048]</code> means: 32 token positions, each represented by a 2048-dimensional vector.</div>
+        </div>
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-top: var(--space-3);">
+          If that narration feels natural, you are already learning to read model code the right way.
+        </p>
+      </div>
     </div>
 
     <div class="lesson-section">
@@ -215,6 +237,14 @@ import GatePanel from '../../components/assessment/GatePanel';
               { id: 'c', text: 'They are the same vector written differently', isCorrect: false },
             ],
             explanation: 'Vectors are ordered lists. Changing the order changes which coordinate holds which value, so later operations will behave differently.',
+          },
+          {
+            id: 'L05-q4',
+            type: 'numeric',
+            prompt: 'A tensor with shape [3, 4] contains how many scalar values in total?',
+            tag: 'math',
+            correctAnswer: '12',
+            explanation: 'Three rows times four values per row = 12 total scalar entries.',
           },
         ]}
       />

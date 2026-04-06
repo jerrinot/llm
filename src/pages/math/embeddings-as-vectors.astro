@@ -66,6 +66,23 @@ import GatePanel from '../../components/assessment/GatePanel';
     </div>
 
     <div class="lesson-section">
+      <div class="section-label">Running Example Carried Forward</div>
+      <p>
+        We can now instantiate the tiny prompt introduced on the previous page.
+        The three token IDs <code>[791, 2368, 3290]</code> become three rows:
+      </p>
+      <div class="toy-example" style="font-family: var(--font-mono); font-size: var(--text-sm); display: grid; gap: 4px;">
+        <div>791 → [0.12, -0.34, 0.56, 0.78]</div>
+        <div>2368 → [0.91, 0.23, -0.67, 0.45]</div>
+        <div>3290 → [-0.11, 0.89, 0.33, -0.55]</div>
+      </div>
+      <p>
+        Stacked together, these become a hidden-state matrix of shape <code>[3, 4]</code>.
+        We will keep reusing this same tiny matrix when we talk about dot products, matrix multiplication, projections, and shape traces.
+      </p>
+    </div>
+
+    <div class="lesson-section">
       <div class="section-label">Shapes</div>
       <div class="shape-card">
         <div>Embedding table: [|V|, d_model] &nbsp; <span style="color: var(--ink-tertiary);">one row per vocab entry</span></div>
@@ -139,6 +156,20 @@ import GatePanel from '../../components/assessment/GatePanel';
     </div>
 
     <div class="lesson-section">
+      <div class="section-label">Do It Yourself</div>
+      <div class="toy-example">
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+          Try narrating the running example in plain English:
+        </p>
+        <div style="display: grid; gap: var(--space-2); font-size: var(--text-sm); color: var(--ink-secondary);">
+          <div><code>[791, 2368, 3290]</code> means: 3 token IDs.</div>
+          <div><code>[3, 4]</code> after embedding means: 3 token positions, each with a 4-dimensional representation.</div>
+          <div>The embedding table shape <code>[|V|, 4]</code> means: one learned 4-dimensional row for each vocabulary entry.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
       <div class="section-label">Implementation Hook</div>
       <div class="impl-hook">
         <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
@@ -200,6 +231,14 @@ import GatePanel from '../../components/assessment/GatePanel';
               { id: 'c', text: 'The token gets a different vector the second time', isCorrect: false },
             ],
             explanation: 'Embedding is a table lookup. The same token ID maps to the same row every time it appears.',
+          },
+          {
+            id: 'L06-q3',
+            type: 'numeric',
+            prompt: 'If 3 tokens are embedded with d_model = 4, how many scalar values are in the resulting matrix?',
+            tag: 'math',
+            correctAnswer: '12',
+            explanation: 'The output shape is [3, 4], so it contains 3 × 4 = 12 scalar values.',
           },
         ]}
       />
