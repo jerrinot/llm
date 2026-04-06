@@ -94,13 +94,22 @@ import GatePanel from '../../components/assessment/GatePanel';
       <div style="background: var(--surface-3); border-radius: var(--radius-md); padding: var(--space-4); margin: var(--space-4) 0; overflow-x: auto;">
         <pre style="font-family: var(--font-mono); font-size: var(--text-xs); line-height: 1.7; margin: 0; color: var(--ink-secondary);" set:html={`<code><span style="color: var(--ink-primary);">// self-attention: branch on whether this layer has its own K/V</span>
 <span style="color: var(--sem-attention);">if (hparams.has_kv(il))</span> {
-    <span style="color: var(--ink-ghost);">// Full-attention or SWA layer with dedicated K/V</span>
+    <span style="color: var(--ink-ghost);">// KV layer: project K and V from the normed hidden state</span>
     ggml_tensor * Kcur = build_lora_mm(model.layers[il].wk, cur);
     ggml_tensor * Vcur = model.layers[il].wv
                             ? build_lora_mm(model.layers[il].wv, cur)
                             : Kcur; <span style="color: var(--ink-ghost);">// if no v_proj, reuse K as V</span>
 
-    <span style="color: var(--ink-ghost);">// ... reshape, normalize, RoPE ...</span>
+    <span style="color: var(--ink-ghost);">// Reshape to [d_head, n_kv_heads, n_tokens]</span>
+    Kcur = ggml_reshape_3d(ctx0, Kcur, n_embd_head, n_head_kv, n_tokens);
+    Vcur = ggml_reshape_3d(ctx0, Vcur, n_embd_head, n_head_kv, n_tokens);
+
+    <span style="color: var(--sem-token);">// Gemma 4 normalizes K and V before RoPE — unusual!</span>
+    Kcur = <span style="color: var(--sem-token);">build_norm</span>(Kcur, model.layers[il].attn_k_norm, ...);
+    Vcur = <span style="color: var(--sem-token);">ggml_rms_norm</span>(ctx0, Vcur, hparams.f_norm_rms_eps);
+
+    <span style="color: var(--ink-ghost);">// Apply RoPE to K (Q was already rotated above)</span>
+    Kcur = ggml_rope_ext(ctx0, Kcur, inp_pos, freq_factors, ...);
 
     cur = <span style="color: var(--sem-attention);">build_attn</span>(inp_attn, model.layers[il].wo, nullptr,
             Qcur, Kcur, Vcur, nullptr, nullptr, nullptr,

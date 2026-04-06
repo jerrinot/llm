@@ -101,25 +101,28 @@ import GatePanel from '../../components/assessment/GatePanel';
         <pre style="font-family: var(--font-mono); font-size: var(--text-xs); line-height: 1.7; margin: 0; color: var(--ink-secondary);" set:html={`<code>const bool is_moe_layer = model.layers[il].ffn_gate_inp != nullptr;
 
 if (is_moe_layer) {
-    <span style="color: var(--ink-primary);">// 1. Shared expert (always runs, same FFN as a dense layer)</span>
+    <span style="color: var(--ink-primary);">// 1. Shared expert — always runs, same structure as a dense FFN</span>
     ggml_tensor * cur_mlp = <span style="color: var(--sem-ffn);">build_norm</span>(attn_out, model.layers[il].ffn_norm, ...);
     cur_mlp = <span style="color: var(--sem-ffn);">build_ffn</span>(cur_mlp,
-            model.layers[il].ffn_up,   ...,
-            model.layers[il].ffn_gate, ...,
-            model.layers[il].ffn_down, ...,
-            LLM_FFN_GELU, LLM_FFN_PAR, il);
+            model.layers[il].ffn_up, model.layers[il].ffn_gate,
+            model.layers[il].ffn_down, LLM_FFN_GELU, LLM_FFN_PAR, il);
+    cur_mlp = <span style="color: var(--sem-ffn);">build_norm</span>(cur_mlp, model.layers[il].ffn_post_norm_1, ...);
 
-    <span style="color: var(--ink-primary);">// 2. Router: score all experts, select top-k</span>
-    ggml_tensor * logits = <span style="color: var(--sem-router);">build_lora_mm</span>(model.layers[il].ffn_gate_inp, tmp);
+    <span style="color: var(--ink-primary);">// 2. Router — custom scoring: normalize, scale, then project to [n_expert, n_tokens]</span>
+    ggml_tensor * tmp = ggml_rms_norm(ctx0, attn_out, hparams.f_norm_rms_eps);
+    tmp = ggml_scale(ctx0, tmp, 1.0f / sqrtf((float) n_embd));
+    tmp = ggml_mul(ctx0, tmp, model.layers[il].ffn_gate_inp_s);
+    ggml_tensor * <span style="color: var(--sem-router);">logits</span> = build_lora_mm(model.layers[il].ffn_gate_inp, tmp);
 
-    <span style="color: var(--ink-primary);">// 3. Routed experts: run selected experts and combine</span>
-    ggml_tensor * cur_moe = <span style="color: var(--sem-router);">build_moe_ffn</span>(cur_moe, ...,
+    <span style="color: var(--ink-primary);">// 3. Routed experts — logits passed in so build_moe_ffn handles top-k + dispatch</span>
+    ggml_tensor * cur_moe = build_norm(attn_out, model.layers[il].ffn_pre_norm_2, ...);
+    cur_moe = <span style="color: var(--sem-router);">build_moe_ffn</span>(cur_moe,
             model.layers[il].ffn_down_exps,
-            n_expert, n_expert_used,
-            LLM_FFN_GELU, /*norm_w=*/true, /*scale=*/1.0f,
+            n_expert, n_expert_used, LLM_FFN_GELU,
             LLAMA_EXPERT_GATING_FUNC_TYPE_SOFTMAX,
-            il, logits,
+            il, <span style="color: var(--sem-router);">logits</span>,  <span style="color: var(--ink-ghost);">// ← router output drives expert selection</span>
             model.layers[il].ffn_gate_up_exps, ...);
+    cur_moe = <span style="color: var(--sem-router);">build_norm</span>(cur_moe, model.layers[il].ffn_post_norm_2, ...);
 
     <span style="color: var(--ink-primary);">// 4. Combine shared + routed</span>
     cur = <span style="color: var(--sem-token);">ggml_add</span>(ctx0, cur_mlp, cur_moe);
