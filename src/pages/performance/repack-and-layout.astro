@@ -57,6 +57,35 @@ import GatePanel from '../../components/assessment/GatePanel';
     </div>
 
     <div class="lesson-section">
+      <div class="section-label">Why Layout Matters: Cache Lines and SIMD</div>
+      <p>
+        Two hardware facts explain why layout matters more than you might expect:
+      </p>
+      <div style="margin: var(--space-4) 0;">
+        <p style="font-weight: 600; color: var(--ink-primary);">1. Memory loads come in cache lines (64-128 bytes)</p>
+        <p>
+          The CPU does not fetch individual floats from RAM. It fetches entire cache lines — typically 64 bytes (32 FP16 values)
+          or 128 bytes. If the next 32 values the kernel needs are contiguous in memory, one cache line load gets all of them.
+          If they are scattered (e.g., every 4096th element because you are traversing a column of a row-major matrix),
+          each value requires its own cache line load, wasting 31/32 of the bandwidth.
+        </p>
+      </div>
+      <div style="margin: var(--space-4) 0;">
+        <p style="font-weight: 600; color: var(--ink-primary);">2. SIMD registers process multiple values at once</p>
+        <p>
+          Modern CPUs have wide SIMD registers (256-bit AVX = 16 FP16 values, 512-bit AVX-512 = 32 values). Each multiply
+          instruction operates on the full register width simultaneously. But the register must be loaded from contiguous memory.
+          If the weight layout does not match the access pattern, the CPU must gather values from scattered addresses into the
+          register — which is much slower than a single aligned load.
+        </p>
+      </div>
+      <p>
+        Repacking arranges the weight matrix so that the values the kernel needs next are always contiguous. This turns
+        scattered gathers into sequential loads, often doubling or tripling the effective memory bandwidth utilization.
+      </p>
+    </div>
+
+    <div class="lesson-section">
       <div class="section-label">Shapes</div>
       <div class="shape-card">
         <div>Logical shape is unchanged: [d_in, d_out]</div>
