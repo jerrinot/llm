@@ -2,6 +2,12 @@
 
 Use this skill when reviewing or writing lesson content for this course. It codifies what makes excellent self-learning material.
 
+## The Standard
+
+This is an interactive textbook, not a blog post, not a cheat sheet, not annotated flashcards. Every page must have **textbook-like depth**: it must explain the theory (WHY something works, not just WHAT it is), walk through the math with intermediate steps, and ground everything in practical examples the reader can compute by hand. Long-form text is good. Depth is good. The reader should be able to learn the concept from this page alone, without any other reference.
+
+At the same time, this is not a dry textbook. Each concept must connect to concrete systems behavior: memory, compute, code, runtime performance. Theory and practice interleave on every page.
+
 ## Audience
 
 Engineers who code professionally but have zero exposure to LLM internals. They are comfortable with logic, abstraction, and structured reasoning. They are NOT comfortable with linear algebra, probability theory, or neural network architecture. They are motivated but will abandon material that hand-waves.

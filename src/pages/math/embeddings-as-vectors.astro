@@ -112,14 +112,111 @@ import GatePanel from '../../components/assessment/GatePanel';
     </div>
 
     <div class="lesson-section">
+      <div class="section-label">Why Not Use the Token ID Directly?</div>
+      <p>
+        You might think: why not just feed the integer ID into the model? The number 791 is already a number. But
+        integer IDs are <strong>categorical labels</strong>, not measurements. The model needs a representation where
+        arithmetic operations produce meaningful results. Consider three alternatives and why they fail:
+      </p>
+      <ol style="list-style: decimal; padding-left: var(--space-5); margin: var(--space-3) 0;">
+        <li style="padding: var(--space-1) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          <strong>Raw integers:</strong> If "cat" is ID 2368 and "dog" is ID 5765, the model would infer that
+          "dog" is 2.4&times; "cat" — meaningless. Arithmetic on IDs is nonsense.
+        </li>
+        <li style="padding: var(--space-1) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          <strong>One-hot vectors:</strong> A vector of length |V| with a 1 at the token's position and 0 elsewhere.
+          This avoids the ordering problem, but every token is equidistant from every other token — the model cannot
+          exploit the fact that "cat" and "dog" are more related than "cat" and "semicolon."
+        </li>
+        <li style="padding: var(--space-1) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          <strong>Random vectors:</strong> Assign each token a random d_model-dimensional vector. This gives
+          each token a unique representation, but the geometry is random — the model would have to learn to undo
+          the randomness before doing anything useful.
+        </li>
+      </ol>
+      <p>
+        <strong>Learned embeddings</strong> solve all three problems. Each token gets a d_model-dimensional vector
+        that is adjusted during training so that the geometry is useful: tokens that play similar roles end up
+        in similar regions of the space, and the model's later operations can exploit this structure directly.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">What "Learned" Means Concretely</div>
+      <p>
+        The embedding table starts with random values (or some initialization scheme). During training, every time the
+        model makes a wrong prediction, gradients flow back through the network — including back to the embedding table.
+        The gradient for token 791 says "this embedding vector should have been slightly different to make the prediction
+        better." Over billions of training examples, each row gets nudged into a position that helps the rest of the model.
+      </p>
+      <p>
+        The result: tokens that appear in similar contexts (like "cat" and "dog") develop similar embedding vectors,
+        because similar vectors lead to similar model behavior, which is what the training objective rewards. This is not
+        hand-designed — it emerges from the training signal.
+      </p>
+      <p>
+        At inference time, the embedding table is frozen. The values do not change. Embedding lookup is a pure table read.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">What "Nearby" Means in Embedding Space</div>
+      <p>
+        When we say tokens are "nearby" in embedding space, we mean their vectors have a small distance (or equivalently,
+        a high dot product / cosine similarity — concepts from the next lesson). For example, if "cat" has embedding
+        [0.12, -0.34, 0.56, 0.78] and "dog" has embedding [0.15, -0.31, 0.52, 0.81], these vectors are close:
+        every coordinate is similar. But "cat" and ";" might have very different vectors — say [0.12, -0.34, 0.56, 0.78]
+        versus [-0.88, 0.42, -0.15, 0.03] — they are far apart in the space.
+      </p>
+      <p>
+        This geometric structure is what makes the rest of the model work. When a later layer projects these vectors or
+        computes dot products between them, the similarity structure propagates: similar embeddings produce similar
+        projections and similar attention scores.
+      </p>
+    </div>
+
+    <div class="lesson-section">
       <div class="section-label">Math</div>
-      <p>Embedding is a table lookup, not a computation:</p>
+      <p>Embedding is a table lookup. Operationally:</p>
       <div style="font-family: var(--font-mono); font-size: var(--text-sm); background: var(--surface-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); margin: var(--space-3) 0;">
         <div style="color: var(--sem-token);">X = embedding_table[token_ids]</div>
-        <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">X has shape [n_tokens, d_model]</div>
+        <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">embedding_table has shape [|V|, d_model]</div>
+        <div style="color: var(--ink-tertiary);">token_ids has shape [n_tokens]</div>
+        <div style="color: var(--ink-tertiary);">X has shape [n_tokens, d_model]</div>
       </div>
       <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
-        Read that expression literally: "take the list of token IDs, and use them to index rows from the embedding table." This is why embedding is a lookup, not a weighted computation.
+        Read that expression literally: "take the list of token IDs, and use each ID to index one row from the embedding table."
+        If token_ids = [791, 2368, 3290], then X = [table[791], table[2368], table[3290]] — three rows stacked into a matrix.
+      </p>
+      <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-top: var(--space-2);">
+        Mathematically, this is equivalent to multiplying a one-hot matrix by the embedding table:
+        X = one_hot(token_ids) &times; embedding_table. The one-hot matrix has shape [n_tokens, |V|], and the multiply
+        selects the correct rows. But in practice, the lookup is implemented as array indexing — much faster than
+        materializing a sparse [n_tokens, 128000] matrix.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">What If d_model Were Different?</div>
+      <p>
+        The embedding dimension d_model is a design choice with direct consequences:
+      </p>
+      <ul style="list-style: none; padding: 0; margin: var(--space-3) 0;">
+        <li style="padding: var(--space-1) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          <strong>Larger d_model</strong> (e.g., 4096 → 8192): More capacity to encode token distinctions.
+          But the embedding table doubles in size (|V| &times; 8192 instead of |V| &times; 4096), and every
+          subsequent operation in the model also doubles in width. The model becomes more capable but significantly
+          more expensive.
+        </li>
+        <li style="padding: var(--space-1) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          <strong>Smaller d_model</strong> (e.g., 4096 → 1024): The embedding table is 4&times; smaller. But each token
+          has fewer dimensions to encode its identity, which means the model must compress more information into
+          fewer numbers. Quality degrades.
+        </li>
+      </ul>
+      <p>
+        For reference: GPT-2 Small uses d_model = 768. Llama 3 70B uses d_model = 8192. The choice cascades through
+        every layer of the model — it is one of the most consequential architecture decisions.
       </p>
     </div>
 

@@ -158,6 +158,67 @@ import DotProductPlayground from '../../components/interactive/DotProductPlaygro
     </div>
 
     <div class="lesson-section">
+      <div class="section-label">The Geometric Interpretation</div>
+      <p>
+        The dot product has a geometric meaning that is worth understanding deeply, because it is the reason this
+        operation is used in attention:
+      </p>
+      <div style="font-family: var(--font-mono); font-size: var(--text-sm); background: var(--surface-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); margin: var(--space-3) 0;">
+        <div style="color: var(--sem-token);">a &middot; b = ||a|| &times; ||b|| &times; cos(&theta;)</div>
+        <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">where &theta; is the angle between the two vectors</div>
+      </div>
+      <p>
+        This formula separates the dot product into three factors:
+      </p>
+      <ul style="list-style: none; padding: 0; margin: var(--space-3) 0;">
+        <li style="padding: var(--space-1) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          <strong>||a||</strong> — the magnitude of vector a. Larger vectors produce larger dot products.
+        </li>
+        <li style="padding: var(--space-1) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          <strong>||b||</strong> — the magnitude of vector b. Same effect.
+        </li>
+        <li style="padding: var(--space-1) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          <strong>cos(&theta;)</strong> — the cosine of the angle between them. This is the <em>alignment</em> factor.
+          It ranges from -1 (pointing in opposite directions) through 0 (perpendicular / no relationship) to +1
+          (pointing in the same direction).
+        </li>
+      </ul>
+      <p>
+        This explains everything:
+      </p>
+      <ul style="list-style: none; padding: 0; margin: var(--space-3) 0;">
+        <li style="padding: var(--space-1) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          <strong>Positive dot product:</strong> vectors point roughly the same way (angle &lt; 90&deg;).
+        </li>
+        <li style="padding: var(--space-1) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          <strong>Zero dot product:</strong> vectors are perpendicular / orthogonal (angle = 90&deg;). No relationship.
+        </li>
+        <li style="padding: var(--space-1) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          <strong>Negative dot product:</strong> vectors point roughly opposite (angle &gt; 90&deg;).
+        </li>
+      </ul>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Orthogonality: The Most Important Special Case</div>
+      <p>
+        When two vectors are <strong>orthogonal</strong> (perpendicular), their dot product is exactly 0. This is
+        a critical concept for understanding learned representations: orthogonal dimensions encode independent features.
+      </p>
+      <p>
+        In a d_model-dimensional space, you can have up to d_model mutually orthogonal directions. The embedding table
+        and learned projections exploit this: different features (syntax, semantics, position, topic) can live in
+        orthogonal subspaces, meaning they do not interfere with each other. When a later dot product computes a score,
+        orthogonal features contribute zero — they are invisible to that particular comparison.
+      </p>
+      <p>
+        This is why high-dimensional representations are powerful: 4096 dimensions can encode thousands of independent
+        features simultaneously. A 4-dimensional toy example cannot. Keep this in mind when the toy examples seem too
+        simple — the real power comes from dimensionality.
+      </p>
+    </div>
+
+    <div class="lesson-section">
       <div class="section-label">Vector Magnitude (Norm)</div>
       <p>
         The dot product of a vector with itself gives the squared length of that vector.
@@ -179,6 +240,19 @@ import DotProductPlayground from '../../components/interactive/DotProductPlaygro
       <div style="font-family: var(--font-mono); font-size: var(--text-sm); background: var(--surface-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); margin: var(--space-3) 0;">
         <div style="color: var(--sem-token);">cosine(a, b) = (a &middot; b) / (||a|| &times; ||b||)</div>
       </div>
+      <p>
+        <strong>Worked example:</strong> Take a = [3, 4] and b = [4, 3].
+      </p>
+      <div style="font-family: var(--font-mono); font-size: var(--text-sm); color: var(--ink-secondary); padding-left: var(--space-4); margin: var(--space-2) 0;">
+        a &middot; b = 3&times;4 + 4&times;3 = 24<br/>
+        ||a|| = &radic;(9 + 16) = 5<br/>
+        ||b|| = &radic;(16 + 9) = 5<br/>
+        cosine(a, b) = 24 / (5 &times; 5) = 24/25 = <strong>0.96</strong>
+      </div>
+      <p>
+        A cosine of 0.96 means the vectors are nearly aligned (perfect alignment = 1.0). Compare with
+        a = [3, 4] and c = [-4, 3]: a &middot; c = -12 + 12 = 0, so cosine = 0 — these vectors are orthogonal.
+      </p>
       <p>
         You will encounter cosine similarity in discussions about embedding comparisons. Inside the transformer itself,
         the model uses raw dot products and then controls magnitude through explicit scaling (dividing by <code>&radic;d</code>)
