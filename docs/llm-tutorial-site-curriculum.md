@@ -73,7 +73,7 @@ Every lesson page must have these sections in this order:
 10. `Unlock Requirement`
 11. `Next Step`
 
-The page must not reorder these sections.
+This order is the default for standard lessons. Synthesis pages, checkpoint pages, and prediction-first exercises may deviate when the instructional goal requires it. Deviations should be noted in the lesson metadata.
 
 ## Global Assessment Policy
 
@@ -98,9 +98,13 @@ Each module quiz must include:
 - 2 reasoning questions
 - 1 shape question
 
-Passing threshold:
+Passing threshold for module quizzes:
 
 - 80% or better
+
+Note: module quizzes use 80% even though they have `gateStrength: hard`.
+The all-correct rule applies to individual hard lesson gates (typically 2-3 questions on a single page).
+The 80% rule applies to module quizzes (5+ questions spanning a full module).
 
 ## Module Map
 
