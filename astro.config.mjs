@@ -19,5 +19,8 @@ export default defineConfig({
     server: {
       allowedHosts: true,
     },
+    optimizeDeps: {
+      exclude: ['@huggingface/transformers'],
+    },
   },
 });

@@ -1,0 +1,62 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import '../../styles/global.css';
+import LiveInferenceDemo from '../../components/interactive/live-inference/LiveInferenceDemo';
+---
+
+<BaseLayout title="Live Inference — DistilGPT-2 in Your Browser">
+  <div class="live-inference-page">
+    <header class="li-header">
+      <a href="/" class="back-link">&larr; Back to course</a>
+      <h1>Live Inference</h1>
+      <p class="li-subtitle">
+        Run DistilGPT-2 entirely in your browser. Watch every stage of the inference pipeline
+        you studied in the course &mdash; tokenization, forward pass, logits, softmax, and
+        autoregressive generation &mdash; on real model weights. No server, no API key.
+      </p>
+      <p class="li-note">
+        This is a tiny model (82M parameters, 6 layers) for demonstration purposes.
+        The predictions show the <em>mechanism</em>, not the capability of modern LLMs.
+        Everything you see here maps to the concepts from Modules 1&ndash;3.
+      </p>
+    </header>
+
+    <LiveInferenceDemo client:only="react" />
+  </div>
+</BaseLayout>
+
+<style>
+  .live-inference-page {
+    max-width: 52rem;
+    margin: 0 auto;
+    padding: var(--space-10) var(--space-6);
+    position: relative;
+    z-index: 1;
+  }
+  .li-header {
+    margin-bottom: var(--space-8);
+  }
+  .back-link {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    color: var(--ink-tertiary);
+    text-decoration: none;
+    display: inline-block;
+    margin-bottom: var(--space-4);
+  }
+  .back-link:hover { color: var(--accent); }
+  .li-header h1 {
+    font-family: var(--font-display);
+    font-size: var(--text-4xl);
+  }
+  .li-subtitle {
+    color: var(--ink-secondary);
+    margin-top: var(--space-2);
+  }
+  .li-note {
+    color: var(--ink-tertiary);
+    font-size: var(--text-sm);
+    margin-top: var(--space-3);
+    font-style: italic;
+  }
+</style>
