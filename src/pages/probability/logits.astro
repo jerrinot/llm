@@ -114,7 +114,9 @@ import SoftmaxInspector from '../../components/interactive/SoftmaxInspector';
         </div>
         <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-top: var(--space-3);">
           The token " on" has the highest logit (5.4), but that number alone is not a probability.
-          To know <em>how much more likely</em> " on" is than " the" or " a", you need to run softmax over all 128,000 logits.
+          To convert these logits into actual probabilities, you need to run softmax over all 128,000 logits.
+          (You can compare two logits pairwise — the odds ratio between " on" and " the" is e<sup>(5.4-2.1)</sup> &asymp; 27 —
+          but for absolute probabilities, the full distribution matters.)
           That computation is what the next lesson covers.
         </p>
       </div>

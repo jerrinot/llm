@@ -22,9 +22,10 @@ import GatePanel from '../../components/assessment/GatePanel';
       </p>
       <p>
         This choice is called the <strong>decoding strategy</strong>. It is not part of the model — it is a policy
-        applied <em>after</em> the model runs. The model produces the same logits and probabilities regardless of which
-        decoding strategy is used. This separation is fundamental: changing how you pick tokens changes the quality
-        and diversity of the output, not the model's computation.
+        applied <em>after</em> the model runs. The model produces the same <strong>logits</strong> regardless of which
+        decoding strategy is used. (The probabilities can change if temperature or filtering is applied, but the raw
+        logits — the model's output — are identical.) This separation is fundamental: changing how you pick tokens
+        changes the quality and diversity of the output, not the model's computation.
       </p>
     </div>
 
@@ -116,11 +117,11 @@ import GatePanel from '../../components/assessment/GatePanel';
           <div style="border-top: var(--border-subtle); padding-top: var(--space-3); display: grid; gap: var(--space-2);">
             <div><span style="color: var(--ink-ghost); min-width: 80px; display: inline-block;">Argmax:</span> Always picks <span style="color: var(--sem-logits); font-weight: 600;">" on"</span></div>
             <div><span style="color: var(--ink-ghost); min-width: 80px; display: inline-block;">Top-k=3:</span> Samples from (" on": 0.64, " in": 0.22, " down": 0.14) <span style="color: var(--ink-tertiary);">(renormalized)</span></div>
-            <div><span style="color: var(--ink-ghost); min-width: 80px; display: inline-block;">Top-p=0.9:</span> Samples from (" on", " in", " down", " on the") &mdash; cumulative = 0.88+0.07=0.95 &gt; 0.9</div>
+            <div><span style="color: var(--ink-ghost); min-width: 80px; display: inline-block;">Top-p=0.9:</span> Samples from (" on", " in", " down", " on the", " and") &mdash; cumulative = 0.52+0.18+0.11+0.07+0.04 = 0.92 &ge; 0.9</div>
           </div>
         </div>
         <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-top: var(--space-3);">
-          Notice how top-k always keeps exactly 3 tokens regardless of distribution shape, while top-p adapts — here it keeps 4 because the probability mass is spread more than the top-k cutoff assumes.
+          Notice how top-k always keeps exactly 3 tokens regardless of distribution shape, while top-p adapts — here it keeps 5 because the probability mass is spread across many tokens and the top 4 only sum to 0.88.
         </p>
       </div>
     </div>

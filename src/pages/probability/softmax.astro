@@ -118,7 +118,7 @@ import SoftmaxInspector from '../../components/interactive/SoftmaxInspector';
       <ul style="list-style: none; padding: 0; margin: var(--space-3) 0;">
         <li style="display: flex; gap: var(--space-3); padding: var(--space-2) 0; font-size: var(--text-sm);">
           <span style="color: var(--sem-logits); font-weight: 600; min-width: 120px;">Large spread</span>
-          <span style="color: var(--ink-secondary);">If the top logit is 10.0 and the rest are near 0, the top token gets almost all the probability. Softmax becomes nearly argmax. The distribution is "sharp" or "peaked."</span>
+          <span style="color: var(--ink-secondary);">If the top logit is much larger than the second-highest (e.g., top = 10.0, second = 2.0, rest near 0), the top token dominates the probability mass. How much depends on the gap <em>and</em> the number of competitors: with 3 classes and a gap of 10, the top token gets &gt;99%. With 128,000 classes all at 0, a top logit of 10 only gets ~15%. The key factor is the gap between the top logits, not the gap between the top and the average.</span>
         </li>
         <li style="display: flex; gap: var(--space-3); padding: var(--space-2) 0; font-size: var(--text-sm);">
           <span style="color: var(--sem-logits); font-weight: 600; min-width: 120px;">Small spread</span>
