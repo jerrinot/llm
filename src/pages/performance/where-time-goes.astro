@@ -62,6 +62,55 @@ import GatePanel from '../../components/assessment/GatePanel';
     </div>
 
     <div class="lesson-section">
+      <div class="section-label">Why Projections Dominate</div>
+      <p>
+        A projection is a matrix multiply: [n_tokens, d_in] &times; [d_in, d_out]. The number of multiply-add operations
+        is n_tokens &times; d_in &times; d_out. For a single FFN up-projection with d_model = 4096 and d_ff = 16384:
+      </p>
+      <div style="font-family: var(--font-mono); font-size: var(--text-sm); color: var(--ink-secondary); padding-left: var(--space-4); margin: var(--space-2) 0;">
+        1 token: 4096 &times; 16384 = 67M FLOPs<br/>
+        512 tokens: 512 &times; 4096 &times; 16384 = 34.4B FLOPs
+      </div>
+      <p>
+        One layer has multiple projections: Q, K, V, output (attention side) plus up, gate, down (FFN side). That is
+        7 large matrix multiplies per layer. A 32-layer model does 224 matrix multiplies per forward pass. The
+        normalization, residual adds, and activation functions are elementwise — they touch the same data but do far
+        fewer operations per element.
+      </p>
+      <p>
+        This is why performance optimization for LLMs is largely about optimizing matrix multiplies. If you can make
+        <code>ggml_mul_mat</code> 20% faster, you speed up the entire model by close to 20%.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">How to Read a Profile</div>
+      <p>
+        When you profile an LLM inference run, you will see a list of operators with their execution times. The right
+        way to read it:
+      </p>
+      <ol style="list-style: decimal; padding-left: var(--space-5); margin: var(--space-3) 0;">
+        <li style="padding: var(--space-1) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          <strong>Look at the distribution first.</strong> What fraction of time is in matrix multiplies vs everything else?
+          If matmuls are 90%, optimizing softmax (3%) is a waste of effort.
+        </li>
+        <li style="padding: var(--space-1) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          <strong>Classify the bottleneck.</strong> Is the time spent doing arithmetic (compute-bound) or waiting for
+          data (memory-bound)? The answer depends on whether this is prefill or decode and on the shapes involved.
+        </li>
+        <li style="padding: var(--space-1) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          <strong>Then drill into individual operators.</strong> Only after you know the bottleneck class does it make
+          sense to look at which specific matmul is slowest.
+        </li>
+      </ol>
+      <p>
+        The most common beginner mistake: looking at the single hottest function and assuming "that is the problem."
+        Often the hottest function is doing exactly what it should — it is just the largest operation. The real question
+        is whether it is running at the hardware's capability for that operation type.
+      </p>
+    </div>
+
+    <div class="lesson-section">
       <div class="section-label">Shapes</div>
       <div class="shape-card">
         <div>Each projection: [n_tokens, d_in] &times; [d_in, d_out]</div>

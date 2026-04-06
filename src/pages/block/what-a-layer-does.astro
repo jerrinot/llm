@@ -43,7 +43,52 @@ import GatePanel from '../../components/assessment/GatePanel';
         </li>
       </ul>
       <p>
-        That is the entire structure. Every layer does attention then FFN, with normalization and residual connections around each. A model with 32 layers repeats this pattern 32 times.
+        That is the entire structure. Every layer does attention then FFN, with normalization and residual connections
+        around each. A model with 32 layers repeats this pattern 32 times, each with its own learned weights.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Why Two Phases and Not One?</div>
+      <p>
+        Attention and FFN serve complementary roles, and neither can replace the other:
+      </p>
+      <ul style="list-style: none; padding: 0; margin: var(--space-3) 0;">
+        <li style="padding: var(--space-2) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          <strong>Attention alone is not enough.</strong> Attention can route information between token positions, but it
+          cannot apply complex nonlinear transformations. The weighted sum of V vectors is a linear operation — it blends
+          existing representations without adding new features. The FFN provides the nonlinear transformation capacity.
+        </li>
+        <li style="padding: var(--space-2) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          <strong>FFN alone is not enough.</strong> The FFN processes each token independently — it has no way to compare
+          one token to another. Without attention, the model would treat each word in isolation, as if it had no context.
+          Attention provides the cross-token communication.
+        </li>
+      </ul>
+      <p>
+        Together, they form a complete unit: attention decides what information to gather from the sequence,
+        and the FFN decides what to do with it. This alternating pattern — mix then transform, mix then transform —
+        is what builds increasingly rich representations over 32+ layers.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">What 32 Layers of This Actually Do</div>
+      <p>
+        In the early layers, the model builds basic features: which words are nearby, simple syntactic patterns, local
+        context. In the middle layers, it assembles these into more abstract features: sentence-level meaning, entity
+        tracking, argument structure. In the deep layers, it refines the final prediction: what token is most likely next,
+        given everything it has gathered.
+      </p>
+      <p>
+        Each layer reads the full hidden-state matrix produced by the previous layer and writes a new full hidden-state
+        matrix. The shape never changes — it is always [n_tokens, d_model] in and [n_tokens, d_model] out. What changes
+        is the <em>content</em> of those vectors: the information they encode becomes richer and more prediction-relevant
+        with each successive layer.
+      </p>
+      <p>
+        The remaining pages in this module will open the attention and FFN boxes. By the end of M4, you will know exactly
+        what happens inside both operations, including the math, shapes, and code.
       </p>
     </div>
 
