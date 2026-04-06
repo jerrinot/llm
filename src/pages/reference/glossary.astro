@@ -107,6 +107,13 @@ import '../../styles/global.css';
           <div class="glossary-entry"><dt>Prefill interference</dt><dd>When a large prefill operation stalls decode steps for other users in a serving scenario. Mitigated by chunking prefills.</dd></div>
           <div class="glossary-entry"><dt>Expert collapse</dt><dd>In MoE, when training causes most tokens to route to the same few experts while others are underused. Prevented by load-balancing loss.</dd></div>
           <div class="glossary-entry"><dt>Thread affinity</dt><dd>Pinning each thread to a specific CPU core to avoid cache eviction from thread migration.</dd></div>
+          <div class="glossary-entry"><dt>BPE</dt><dd>Byte Pair Encoding. The dominant tokenization algorithm. Iteratively merges frequent byte pairs into longer tokens.</dd></div>
+          <div class="glossary-entry"><dt>Weight tying</dt><dd>Sharing the same weight matrix for the embedding table and the output head. Saves parameters; used in models like Gemma.</dd></div>
+          <div class="glossary-entry"><dt>d_model</dt><dd>The hidden dimension — the width of the residual stream. Every token is a d_model-dimensional vector throughout the model.</dd></div>
+          <div class="glossary-entry"><dt>d_head</dt><dd>The per-head dimension. d_head = d_model / n_heads. Each attention head operates in this subspace.</dd></div>
+          <div class="glossary-entry"><dt>d_ff</dt><dd>The FFN intermediate dimension, typically 3&ndash;4&times; d_model. The FFN expands to d_ff then contracts back to d_model.</dd></div>
+          <div class="glossary-entry"><dt>SwiGLU / GELU / SiLU</dt><dd>Activation functions used in FFN layers. SwiGLU is a gated variant commonly used in modern LLMs (Llama, Gemma). GELU is used in GPT-2 and DistilGPT-2.</dd></div>
+          <div class="glossary-entry"><dt>Pre-norm</dt><dd>Applying RMSNorm before each sub-layer (attention, FFN) rather than after. Provides cleaner gradient flow for deep networks. Used by virtually all modern LLMs.</dd></div>
         </dl>
       </div>
 
