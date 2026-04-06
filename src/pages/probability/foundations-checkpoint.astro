@@ -1,0 +1,75 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import '../../styles/global.css';
+import '../../styles/course.css';
+import LessonPage from '../../components/course/LessonPage';
+---
+
+<BaseLayout title="Foundations Checkpoint">
+  <LessonPage lessonId="L13A" client:load>
+
+    <div class="lesson-section">
+      <div class="section-label">Checkpoint</div>
+      <div class="lesson-question">You have completed the foundations. Here is what you now know.</div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">What You Can Do Now</div>
+      <p>
+        You have covered three modules and built a complete vocabulary for the LLM data path:
+      </p>
+      <ul style="list-style: none; padding: 0; margin: var(--space-4) 0;">
+        <li style="display: flex; gap: var(--space-3); padding: var(--space-2) 0; font-size: var(--text-sm); align-items: flex-start;">
+          <span style="color: var(--sem-token); font-weight: 600; min-width: 24px;">M1</span>
+          <span style="color: var(--ink-secondary);"><strong>Tokenize text.</strong> You know that raw text becomes discrete token IDs via a fixed vocabulary, that the context budget is counted in tokens, and that token boundaries are not always word boundaries.</span>
+        </li>
+        <li style="display: flex; gap: var(--space-3); padding: var(--space-2) 0; font-size: var(--text-sm); align-items: flex-start;">
+          <span style="color: var(--sem-token); font-weight: 600; min-width: 24px;">M2</span>
+          <span style="color: var(--ink-secondary);"><strong>Follow the linear algebra.</strong> You can trace how token IDs become embeddings, how projections change representation size, how dot products compare vectors, how matrix multiplication batches those comparisons, and how to narrate tensor shapes in plain English.</span>
+        </li>
+        <li style="display: flex; gap: var(--space-3); padding: var(--space-2) 0; font-size: var(--text-sm); align-items: flex-start;">
+          <span style="color: var(--sem-logits); font-weight: 600; min-width: 24px;">M3</span>
+          <span style="color: var(--ink-secondary);"><strong>Understand the output.</strong> You know that the model produces one logit per vocabulary entry, that softmax turns logits into a probability distribution, and that the next token is chosen by argmax or sampling from that distribution.</span>
+        </li>
+      </ul>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">The Running Example So Far</div>
+      <div class="toy-example">
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-bottom: var(--space-3);">
+          The full data path for <code>"The cat sat"</code> — from text to next-token prediction:
+        </p>
+        <div style="font-family: var(--font-mono); font-size: var(--text-sm); display: grid; gap: 6px; color: var(--ink-secondary);">
+          <div><span style="color: var(--ink-primary);">"The cat sat"</span></div>
+          <div style="color: var(--ink-ghost); padding-left: var(--space-4);">&darr; tokenize</div>
+          <div><span style="color: var(--sem-token);">[791, 2368, 3290]</span> <span style="color: var(--ink-ghost);">&mdash; 3 discrete token IDs</span></div>
+          <div style="color: var(--ink-ghost); padding-left: var(--space-4);">&darr; embedding lookup</div>
+          <div><span style="color: var(--sem-token);">[3, d_model]</span> <span style="color: var(--ink-ghost);">&mdash; 3 token vectors</span></div>
+          <div style="color: var(--ink-ghost); padding-left: var(--space-4);">&darr; projections, attention, FFN (the parts you will learn next)</div>
+          <div><span style="color: var(--sem-attention);">[3, d_model]</span> <span style="color: var(--ink-ghost);">&mdash; transformed hidden states</span></div>
+          <div style="color: var(--ink-ghost); padding-left: var(--space-4);">&darr; output projection</div>
+          <div><span style="color: var(--sem-logits);">[|V|]</span> <span style="color: var(--ink-ghost);">&mdash; one logit per vocabulary entry (for the last token position)</span></div>
+          <div style="color: var(--ink-ghost); padding-left: var(--space-4);">&darr; softmax</div>
+          <div><span style="color: var(--sem-logits);">probabilities over vocabulary</span></div>
+          <div style="color: var(--ink-ghost); padding-left: var(--space-4);">&darr; argmax or sample</div>
+          <div><span style="color: var(--ink-primary);">" on"</span> <span style="color: var(--ink-ghost);">&mdash; the predicted next token</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">What Comes Next</div>
+      <p>
+        The box labeled "projections, attention, FFN" above is the <strong>transformer block</strong> — the engine that actually transforms token representations. This is what Module 4 teaches.
+      </p>
+      <p>
+        You will learn how tokens exchange information (attention), how each token is independently refined (FFN), how residual connections and normalization keep the signal stable, and how all of these compose into a single decoder block that repeats across layers.
+      </p>
+      <p>
+        The math gets denser. The shapes get more complex. But every operation is built from the tools you already have: projections, dot products, matrix multiplies, softmax. Nothing in M4 requires ideas you have not yet seen — only new combinations of familiar operations.
+      </p>
+    </div>
+
+  </LessonPage>
+</BaseLayout>
