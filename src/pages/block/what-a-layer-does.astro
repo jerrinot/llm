@@ -55,9 +55,10 @@ import GatePanel from '../../components/assessment/GatePanel';
       </p>
       <ul style="list-style: none; padding: 0; margin: var(--space-3) 0;">
         <li style="padding: var(--space-2) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
-          <strong>Attention alone is not enough.</strong> Attention can route information between token positions, but it
-          cannot apply complex nonlinear transformations. The weighted sum of V vectors is a linear operation — it blends
-          existing representations without adding new features. The FFN provides the nonlinear transformation capacity.
+          <strong>Attention alone is not enough.</strong> Attention routes information between token positions. While
+          the softmax makes the routing data-dependent and nonlinear, the final weighted sum of V vectors is linear
+          in V — it blends existing representations without creating new per-token features. The FFN adds per-token
+          nonlinear capacity (via activation functions like SiLU) that creates genuinely new features from the blended input.
         </li>
         <li style="padding: var(--space-2) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
           <strong>FFN alone is not enough.</strong> The FFN processes each token independently — it has no way to compare

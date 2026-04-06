@@ -102,10 +102,11 @@ import GatePanel from '../../components/assessment/GatePanel';
     <div class="lesson-section">
       <div class="section-label">Shapes</div>
       <div class="shape-card">
-        <div>Attention weights: [n_tokens, n_tokens] &nbsp; <span style="color: var(--ink-tertiary);">(from softmax)</span></div>
-        <div>V: [n_tokens, d_head]</div>
-        <div style="color: var(--sem-attention); margin-top: var(--space-2);">Weighted sum: weights &times; V &rarr; [n_tokens, d_head]</div>
-        <div>Output projection W_O: [d_head &times; n_heads, d_model]</div>
+        <div>Attention weights per head: [n_tokens, n_tokens] &nbsp; <span style="color: var(--ink-tertiary);">(from softmax)</span></div>
+        <div>V per head: [n_tokens, d_head]</div>
+        <div style="color: var(--sem-attention); margin-top: var(--space-2);">Weighted sum per head: weights &times; V &rarr; [n_tokens, d_head]</div>
+        <div style="color: var(--ink-tertiary);">Concatenate all n_heads outputs: [n_tokens, n_heads &times; d_head]</div>
+        <div>Output projection W_O: [n_heads &times; d_head, d_model]</div>
         <div style="color: var(--sem-attention);">Final attention output: [n_tokens, d_model]</div>
       </div>
     </div>

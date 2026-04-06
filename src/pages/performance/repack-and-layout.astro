@@ -73,8 +73,9 @@ import GatePanel from '../../components/assessment/GatePanel';
       <div style="margin: var(--space-4) 0;">
         <p style="font-weight: 600; color: var(--ink-primary);">2. SIMD registers process multiple values at once</p>
         <p>
-          Modern CPUs have wide SIMD registers (256-bit AVX = 16 FP16 values, 512-bit AVX-512 = 32 values). Each multiply
-          instruction operates on the full register width simultaneously. But the register must be loaded from contiguous memory.
+          Modern CPUs have wide SIMD registers (256-bit AVX2 can process 8 FP32 values or 16 INT16 values simultaneously;
+          512-bit AVX-512 doubles that). For quantized inference, the kernel loads blocks of quantized weights into SIMD
+          registers and processes multiple values per instruction. But the register must be loaded from contiguous memory.
           If the weight layout does not match the access pattern, the CPU must gather values from scattered addresses into the
           register — which is much slower than a single aligned load.
         </p>
