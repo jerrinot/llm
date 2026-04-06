@@ -115,14 +115,14 @@ import GatePanel from '../../components/assessment/GatePanel';
           {
             id: 'L30-q1',
             type: 'single_choice',
-            prompt: 'What is the difference between model behavior and execution policy?',
-            tag: 'conceptual',
+            prompt: 'You double n_ubatch from 256 to 512. Prefill now processes the same 1024-token prompt in 2 chunks instead of 4. What changes?',
+            tag: 'reasoning',
             choices: [
-              { id: 'a', text: 'Different batch sizes produce different logits, so it is a model behavior change', isCorrect: false },
-              { id: 'b', text: 'Batch size changes how work is chunked (execution policy) but the computed logits are identical (model behavior is unchanged)', isCorrect: true },
-              { id: 'c', text: 'Execution policy only matters for training, not inference', isCorrect: false },
+              { id: 'a', text: 'The output logits change because larger chunks see more context at once', isCorrect: false },
+              { id: 'b', text: 'Throughput may improve (larger matrices, better hardware utilization) but the output logits are identical', isCorrect: true },
+              { id: 'c', text: 'Memory usage stays the same because the total number of tokens is unchanged', isCorrect: false },
             ],
-            explanation: 'Batch and ubatch sizes are execution policy — they change throughput and memory usage but not the mathematical result. The model produces the same logits regardless of how the prompt is chunked.',
+            explanation: 'Larger ubatch size means larger matrix multiplies per chunk, which can improve GPU utilization. But the mathematical result is identical — attention masking ensures each token sees the same context regardless of chunking. Memory usage per chunk increases because each chunk holds more tokens in flight.',
           },
           {
             id: 'L30-q2',
