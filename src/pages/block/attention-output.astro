@@ -62,6 +62,44 @@ import GatePanel from '../../components/assessment/GatePanel';
     </div>
 
     <div class="lesson-section">
+      <div class="section-label">What the Output "Contains"</div>
+      <p>
+        After the weighted sum, each token's output vector is a mix of value vectors from the positions it attended to.
+        What does this mix actually represent?
+      </p>
+      <p>
+        Consider token 3 with weights [0.1, 0.6, 0.3]. Its output is 10% V<sub>1</sub> + 60% V<sub>2</sub> + 30% V<sub>3</sub>.
+        If V<sub>2</sub> encodes "subject of the sentence," then token 3's output carries mostly that information. The attention
+        mechanism has routed the subject information to token 3's representation — even though token 3 might be a verb
+        or preposition. This is how context gets built: tokens absorb information from the positions that matter.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Uniform vs Peaked Attention</div>
+      <p>
+        The shape of the attention weights determines the quality of information routing:
+      </p>
+      <ul style="list-style: none; padding: 0; margin: var(--space-3) 0;">
+        <li style="padding: var(--space-2) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          <strong>Peaked:</strong> weights like [0.01, 0.95, 0.04] — the token focuses almost entirely on one position.
+          The output is essentially a copy of that position's V vector. This happens when one position is overwhelmingly
+          relevant (e.g., a pronoun attending to its antecedent).
+        </li>
+        <li style="padding: var(--space-2) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          <strong>Uniform:</strong> weights like [0.33, 0.33, 0.34] — the token spreads attention evenly. The output
+          is an average of all V vectors. This can happen in early layers where the model has not yet learned fine-grained
+          attention patterns, or when all positions are equally relevant.
+        </li>
+        <li style="padding: var(--space-2) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          <strong>Sparse:</strong> weights like [0.0, 0.0, 0.5, 0.0, 0.5] — the token focuses on a few specific positions.
+          This is the typical pattern in well-trained models: each head learns to attend to specific grammatical or
+          semantic relationships.
+        </li>
+      </ul>
+    </div>
+
+    <div class="lesson-section">
       <div class="section-label">Shapes</div>
       <div class="shape-card">
         <div>Attention weights: [n_tokens, n_tokens] &nbsp; <span style="color: var(--ink-tertiary);">(from softmax)</span></div>
