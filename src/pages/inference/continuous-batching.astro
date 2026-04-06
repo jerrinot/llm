@@ -148,26 +148,26 @@ import GatePanel from '../../components/assessment/GatePanel';
           {
             id: 'L30A-q1',
             type: 'single_choice',
-            prompt: 'Why might the best single-run benchmark setting not be the best serving setting?',
-            tag: 'conceptual',
+            prompt: 'A server runs 8 requests in a static batch. Request 1 finishes after 20 tokens, but request 8 needs 500 tokens. What happens to request 1\'s GPU slot while request 8 is still generating?',
+            tag: 'reasoning',
             choices: [
-              { id: 'a', text: 'Because servers use different model weights than benchmarks', isCorrect: false },
-              { id: 'b', text: 'Because serving must balance throughput across many concurrent requests against per-request latency, while benchmarks only optimize one request at a time', isCorrect: true },
-              { id: 'c', text: 'Because benchmarks use GPU and servers use CPU', isCorrect: false },
+              { id: 'a', text: 'It is immediately filled by a new request', isCorrect: false },
+              { id: 'b', text: 'It sits idle until all 8 requests finish — the GPU wastes compute on empty slots', isCorrect: true },
+              { id: 'c', text: 'It is used to speed up request 8 by giving it extra compute', isCorrect: false },
             ],
-            explanation: 'Benchmarks measure single-request performance and can dedicate all resources to it. Servers handle many concurrent requests and must keep latency acceptable for all of them. Settings that maximize single-request throughput (e.g., large batch sizes) can cause latency spikes for other users in a serving scenario.',
+            explanation: 'In static batching, the batch runs until ALL requests are done. The slot for request 1 is wasted for the remaining 480 tokens of request 8. This is why static batching has poor GPU utilization when request lengths vary. Continuous batching solves this by filling empty slots immediately.',
           },
           {
             id: 'L30A-q2',
             type: 'single_choice',
-            prompt: 'What does continuous batching do that static batching does not?',
-            tag: 'conceptual',
+            prompt: 'A server chunks a 10,000-token prefill into 500-token pieces, interleaving decode steps for other users between chunks. Compared to prefilling all 10,000 tokens at once, what changes?',
+            tag: 'reasoning',
             choices: [
-              { id: 'a', text: 'It uses a different transformer architecture', isCorrect: false },
-              { id: 'b', text: 'It inserts new requests into available slots immediately, without waiting for the current batch to complete', isCorrect: true },
-              { id: 'c', text: 'It skips the prefill phase entirely', isCorrect: false },
+              { id: 'a', text: 'Total prefill compute decreases because smaller chunks are more efficient', isCorrect: false },
+              { id: 'b', text: 'Total prefill compute stays the same, but other users\' decode latency improves because they get GPU time between chunks', isCorrect: true },
+              { id: 'c', text: 'Total prefill compute increases, and other users\' decode latency also increases', isCorrect: false },
             ],
-            explanation: 'Continuous batching fills empty slots as soon as requests finish, rather than waiting for all requests in a batch to complete before accepting new ones. This improves GPU utilization and overall throughput.',
+            explanation: 'Chunking does not reduce the total work — the same 10,000 tokens must be processed regardless. But by yielding between chunks, the server lets decode steps for other users run, preventing latency spikes. The tradeoff is that the new user\'s time-to-first-token increases slightly (due to interleaving), but existing users maintain acceptable decode latency.',
           },
         ]}
       />

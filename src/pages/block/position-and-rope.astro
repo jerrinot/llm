@@ -149,26 +149,26 @@ import GatePanel from '../../components/assessment/GatePanel';
           {
             id: 'L16A-q1',
             type: 'single_choice',
-            prompt: 'Why can\'t attention model token order without positional information?',
-            tag: 'conceptual',
+            prompt: 'Token A is at position 10, token B at position 12. Later, the same tokens appear at positions 50 and 52. After RoPE, how do the Q_A·K_B scores compare between the two cases?',
+            tag: 'reasoning',
             choices: [
-              { id: 'a', text: 'Because attention uses matrix multiplication, which requires sorted inputs', isCorrect: false },
-              { id: 'b', text: 'Because dot products are symmetric — they only measure similarity, not position, so the model cannot distinguish different token orderings', isCorrect: true },
-              { id: 'c', text: 'Because the FFN erases position information before attention runs', isCorrect: false },
+              { id: 'a', text: 'The scores differ because the absolute positions changed (10/12 vs 50/52)', isCorrect: false },
+              { id: 'b', text: 'The scores are the same because the relative distance is 2 in both cases, and RoPE makes dot products depend on relative position, not absolute', isCorrect: true },
+              { id: 'c', text: 'The scores are zero in the second case because positions 50+ are beyond the model\'s context', isCorrect: false },
             ],
-            explanation: 'Dot products measure content similarity only. Without positional encoding, reordering tokens merely permutes the computation — the model cannot distinguish different orderings, making word order invisible.',
+            explanation: 'RoPE\'s key property is that the dot product Q_i · K_j after rotation depends on the relative distance (i-j), not on the absolute values of i and j. Since both cases have the same content and the same relative distance of 2, the scores are identical. This relative-position property is why RoPE generalizes to different sequence lengths.',
           },
           {
             id: 'L16A-q2',
             type: 'single_choice',
-            prompt: 'Which tensors receive positional treatment from RoPE?',
-            tag: 'shape',
+            prompt: 'A model uses RoPE. You swap two adjacent tokens in the input: "big red" becomes "red big". Which part of the attention computation changes, and which stays the same?',
+            tag: 'reasoning',
             choices: [
-              { id: 'a', text: 'Q, K, and V', isCorrect: false },
-              { id: 'b', text: 'Only Q and K', isCorrect: true },
-              { id: 'c', text: 'Only V', isCorrect: false },
+              { id: 'a', text: 'Q·K scores change (different position-content pairings after rotation), but each token\'s V vector stays the same (V depends on content, not position)', isCorrect: true },
+              { id: 'b', text: 'Both Q·K scores and V vectors change, because RoPE affects all three projections', isCorrect: false },
+              { id: 'c', text: 'Nothing changes — swapping adjacent tokens has no effect on attention', isCorrect: false },
             ],
-            explanation: 'RoPE rotates Q and K so that their dot product encodes relative position. V carries the content to be passed along and does not need positional modification.',
+            explanation: 'RoPE rotates Q and K by position-dependent angles. Swapping "big" and "red" gives each word a different rotation than before, changing the Q·K scores. But V is not rotated — "big" at either position produces the same V vector. So the model changes WHERE it attends (scores) but not WHAT information each token carries (V). This is how RoPE encodes order: through scoring, not through content.',
           },
         ]}
       />

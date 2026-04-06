@@ -162,14 +162,14 @@ import GatePanel from '../../components/assessment/GatePanel';
           {
             id: 'L35-q2',
             type: 'single_choice',
-            prompt: 'In Q8_0, what does the per-block scale factor do?',
-            tag: 'conceptual',
+            prompt: 'A Q8_0 block has scale = 0.02 and stores the int8 value 64 for one weight. What is the dequantized floating-point value? And if the original weight was 1.30, what is the quantization error?',
+            tag: 'math',
             choices: [
-              { id: 'a', text: 'It maps int8 values back to approximate floating-point values during dequantization', isCorrect: true },
-              { id: 'b', text: 'It controls the learning rate for that block during training', isCorrect: false },
-              { id: 'c', text: 'It selects which weights to prune from the block', isCorrect: false },
+              { id: 'a', text: 'Dequantized: 1.28, error: 0.02', isCorrect: true },
+              { id: 'b', text: 'Dequantized: 3.20, error: 1.90', isCorrect: false },
+              { id: 'c', text: 'Dequantized: 0.64, error: 0.66', isCorrect: false },
             ],
-            explanation: 'The scale factor is computed so that the largest weight in the block maps to the maximum int8 value. During inference, each int8 value is multiplied by this scale to reconstruct an approximation of the original floating-point weight.',
+            explanation: 'Dequantization multiplies int8 × scale: 64 × 0.02 = 1.28. The original was 1.30, so the error is |1.30 - 1.28| = 0.02. This small per-weight error is what accumulates across the model — manageable for int8 but potentially larger for int4.',
           },
         ]}
       />

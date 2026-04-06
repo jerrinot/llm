@@ -188,14 +188,14 @@ import AttentionSimulator from '../../components/interactive/AttentionSimulator'
           {
             id: 'L17-q1',
             type: 'single_choice',
-            prompt: 'Why is the causal mask required in autoregressive generation?',
-            tag: 'conceptual',
+            prompt: 'In a 5-token sequence (positions 0-4), the token at position 3 has pre-mask scores [2.1, 0.5, 1.8, 3.0, 0.9] over all 5 positions. After the causal mask, which positions can have non-zero attention weight?',
+            tag: 'reasoning',
             choices: [
-              { id: 'a', text: 'To reduce computation by making the score matrix smaller', isCorrect: false },
-              { id: 'b', text: 'To prevent tokens from attending to future positions, since those tokens have not been generated yet', isCorrect: true },
-              { id: 'c', text: 'To normalize the attention scores so they sum to 1', isCorrect: false },
+              { id: 'a', text: 'All 5 — the mask only reduces scores, it does not zero them', isCorrect: false },
+              { id: 'b', text: 'Positions 0, 1, 2, and 3 only — position 4 is masked to -∞ and gets zero weight after softmax', isCorrect: true },
+              { id: 'c', text: 'Only position 3 — a token can only attend to itself', isCorrect: false },
             ],
-            explanation: 'During generation, token N is produced before token N+1. Allowing token N to see token N+1 would leak future information. The causal mask sets future scores to -infinity so softmax gives them zero weight.',
+            explanation: 'The causal mask sets scores at positions j > i to -∞. For i=3, position 4 (j=4 > 3) gets -∞. After softmax, e^(-∞) = 0, so position 4 gets zero weight. Positions 0-3 retain non-zero weights.',
           },
           {
             id: 'L17-q2',

@@ -151,14 +151,14 @@ import GatePanel from '../../components/assessment/GatePanel';
           {
             id: 'L28-q1',
             type: 'single_choice',
-            prompt: 'Why is decode not simply "a smaller prefill"?',
-            tag: 'conceptual',
+            prompt: 'Consider a single projection weight matrix W of shape [4096, 4096] stored in FP16. During one decode step (1 token), how many bytes must be loaded and how many FLOPs are performed for this one matrix?',
+            tag: 'math',
             choices: [
-              { id: 'a', text: 'Decode uses a completely different computation graph', isCorrect: false },
-              { id: 'b', text: 'Decode processes one row, making it memory-bandwidth-bound instead of compute-bound, and it reuses cached K/V instead of computing them fresh', isCorrect: true },
-              { id: 'c', text: 'Decode skips the attention step to save time', isCorrect: false },
+              { id: 'a', text: '32 MB loaded, ~33M FLOPs — about 1 FLOP/byte, severely memory-bound', isCorrect: true },
+              { id: 'b', text: '32 MB loaded, ~33B FLOPs — about 1000 FLOP/byte, compute-bound', isCorrect: false },
+              { id: 'c', text: '32 KB loaded, ~33M FLOPs — about 1000 FLOP/byte, compute-bound', isCorrect: false },
             ],
-            explanation: 'Prefill and decode use the same computation graph, but decode has 1 row instead of n_prompt rows. This changes the bottleneck from compute to memory bandwidth. Additionally, decode reuses K and V from the cache rather than recomputing them. These differences make the performance profile fundamentally different, not just "smaller."',
+            explanation: 'One [4096, 4096] FP16 weight matrix is 4096 × 4096 × 2 bytes ≈ 32 MiB. With 1 token, FLOPs = 2 × 4096 × 4096 ≈ 33.6M. Arithmetic intensity = 33.6M / 32M ≈ 1 FLOP/byte. On hardware with machine balance of ~100 FLOP/byte, this is 100× below the ridge point — severely memory-bound.',
           },
           {
             id: 'L28-q2',
