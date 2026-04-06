@@ -68,6 +68,17 @@ import GatePanel from '../../components/assessment/GatePanel';
         </div>
 
         <div style="border-top: var(--border-subtle); margin-top: var(--space-4); padding-top: var(--space-4);">
+          <p style="font-family: var(--font-mono); font-size: var(--text-xs); color: var(--ink-ghost); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: var(--space-2);">Elementwise operation: add two vectors</p>
+          <div style="font-family: var(--font-mono); font-size: var(--text-sm); color: var(--ink-secondary);">
+            [0.5, -1.2, 3.0, 0.8] + [1.0, 0.4, -1.0, 0.2] = [1.5, -0.8, 2.0, 1.0]
+          </div>
+          <p style="font-size: var(--text-xs); color: var(--ink-tertiary); margin-top: var(--space-1);">
+            Add matching positions. Both vectors must have the same dimension. This operation is central to how transformers work:
+            every layer adds its result back to its input (a residual connection), so vector addition is one of the most frequent operations in the whole model.
+          </p>
+        </div>
+
+        <div style="border-top: var(--border-subtle); margin-top: var(--space-4); padding-top: var(--space-4);">
           <p style="font-family: var(--font-mono); font-size: var(--text-xs); color: var(--ink-ghost); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: var(--space-2);">Why order matters</p>
           <div style="font-family: var(--font-mono); font-size: var(--text-sm); color: var(--ink-secondary);">
             [1, 2, 3] &#x2260; [3, 2, 1]
@@ -240,6 +251,18 @@ import GatePanel from '../../components/assessment/GatePanel';
           },
           {
             id: 'L05-q4',
+            type: 'single_choice',
+            prompt: 'What is [1, 2, 3] + [10, 20, 30]?',
+            tag: 'math',
+            choices: [
+              { id: 'a', text: '[11, 22, 33]', isCorrect: true },
+              { id: 'b', text: '66', isCorrect: false },
+              { id: 'c', text: '[10, 40, 90]', isCorrect: false },
+            ],
+            explanation: 'Vector addition adds matching positions: [1+10, 2+20, 3+30] = [11, 22, 33]. The result is a vector, not a scalar. Choice C would be elementwise multiplication.',
+          },
+          {
+            id: 'L05-q5',
             type: 'numeric',
             prompt: 'A tensor with shape [3, 4] contains how many scalar values in total?',
             tag: 'math',

@@ -158,6 +158,36 @@ import DotProductPlayground from '../../components/interactive/DotProductPlaygro
     </div>
 
     <div class="lesson-section">
+      <div class="section-label">Vector Magnitude (Norm)</div>
+      <p>
+        The dot product of a vector with itself gives the squared length of that vector.
+        The <strong>magnitude</strong> (or norm) is the square root of that value:
+      </p>
+      <div style="font-family: var(--font-mono); font-size: var(--text-sm); background: var(--surface-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); margin: var(--space-3) 0;">
+        <div style="color: var(--sem-token);">||v|| = &radic;(v &middot; v) = &radic;(&sum;&#x1D62; v&#x1D62;&sup2;)</div>
+      </div>
+      <p>
+        For example: <code>||[3, 4]|| = &radic;(9 + 16) = &radic;25 = 5</code>.
+      </p>
+      <p>
+        Magnitude matters because a raw dot product conflates two things: how well-aligned the vectors are and how large they are.
+        Two huge vectors pointing roughly the same way can outscore two small vectors pointing exactly the same way.
+      </p>
+      <p>
+        <strong>Cosine similarity</strong> strips out magnitude and measures only alignment:
+      </p>
+      <div style="font-family: var(--font-mono); font-size: var(--text-sm); background: var(--surface-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); margin: var(--space-3) 0;">
+        <div style="color: var(--sem-token);">cosine(a, b) = (a &middot; b) / (||a|| &times; ||b||)</div>
+      </div>
+      <p>
+        You will encounter cosine similarity in discussions about embedding comparisons. Inside the transformer itself,
+        the model uses raw dot products and then controls magnitude through explicit scaling (dividing by <code>&radic;d</code>)
+        rather than normalizing to cosine. But the underlying concern is the same: magnitude can distort compatibility scores,
+        so something must be done about it.
+      </p>
+    </div>
+
+    <div class="lesson-section">
       <div class="section-label">Running Example: Compare Two Embedded Tokens</div>
       <p>
         Reuse the three 4-dimensional embeddings from the previous page. Take the first two rows:
@@ -277,6 +307,14 @@ import DotProductPlayground from '../../components/interactive/DotProductPlaygro
             tag: 'math',
             correctAnswer: '11',
             explanation: '(1×3) + (2×4) = 3 + 8 = 11.',
+          },
+          {
+            id: 'L07-q5',
+            type: 'numeric',
+            prompt: 'What is the magnitude (norm) of the vector [5, 12]?',
+            tag: 'math',
+            correctAnswer: '13',
+            explanation: '||[5, 12]|| = √(25 + 144) = √169 = 13.',
           },
         ]}
       />

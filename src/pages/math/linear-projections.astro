@@ -137,6 +137,11 @@ import ProjectionColumnsDiagram from '../../components/course/ProjectionColumnsD
         For a whole token sequence, the same projection matrix is applied to every token row. That shared learned map is exactly what gives
         transformer layers their strong regular structure.
       </p>
+      <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+        Some models also add a <strong>bias vector</strong> after the multiply: <code>Y = XW + b</code>, where <code>b</code> has shape
+        <code>[d_out]</code> and is added to every row. Other models (including LLaMA) skip the bias entirely.
+        When reading real code, check whether a bias is present; the core shape logic stays the same either way.
+      </p>
     </div>
 
     <div class="lesson-section">

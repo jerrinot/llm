@@ -189,6 +189,45 @@ import WorkedSolution from '../../components/course/WorkedSolution.astro';
     </div>
 
     <div class="lesson-section">
+      <div class="section-label">Step 6: Value Projection and Weighted Combination</div>
+      <p>
+        The score matrix tells the model how strongly each token position should attend to every other position.
+        But the scores alone do not carry content — they are just weights. The actual content comes from a third projection: the <strong>value</strong> projection.
+      </p>
+      <div class="toy-example" style="font-family: var(--font-mono); font-size: var(--text-sm); display: grid; gap: 4px;">
+        <div>W_v = [</div>
+        <div>&nbsp;&nbsp;[ 1, -1],</div>
+        <div>&nbsp;&nbsp;[ 0,  1],</div>
+        <div>&nbsp;&nbsp;[ 1,  0],</div>
+        <div>&nbsp;&nbsp;[-1,  1]</div>
+        <div>]</div>
+        <div style="margin-top: var(--space-2);">V = XW_v = [</div>
+        <div>&nbsp;&nbsp;[-0.10,  0.32],</div>
+        <div>&nbsp;&nbsp;[-0.21, -0.23],</div>
+        <div>&nbsp;&nbsp;[ 0.77,  0.45]</div>
+        <div>]</div>
+        <div>shape(V) = [3, 2]</div>
+      </div>
+      <p>
+        Now the attention mechanism normalizes the scores into weights (softmax, covered in the next module) and uses them to
+        take a weighted combination of value rows:
+      </p>
+      <div class="toy-example" style="font-family: var(--font-mono); font-size: var(--text-sm); display: grid; gap: 4px;">
+        <div>weights = softmax(S)&nbsp;&nbsp;&nbsp;&nbsp;shape [3, 3]</div>
+        <div>output = weights &times; V&nbsp;&nbsp;&nbsp;shape [3, 3] &times; [3, 2] &rarr; [3, 2]</div>
+      </div>
+      <p>
+        Read that shape trace carefully. Each output row is a weighted mix of all three value rows, where the weights come
+        from that row's attention scores. The result has the same token count (3) and the same feature width as V (2).
+      </p>
+      <p>
+        This closes the attention loop with pure linear algebra:
+        project to Q and K, compute pairwise scores, normalize, then use those weights to mix the V rows.
+        Every step is a matrix multiply or an elementwise operation — nothing beyond what this module has taught.
+      </p>
+    </div>
+
+    <div class="lesson-section">
       <div class="section-label">What Stayed the Same, What Changed</div>
       <div class="toy-example">
         <table style="width: 100%; border-collapse: collapse; font-size: var(--text-sm);">
@@ -210,10 +249,15 @@ import WorkedSolution from '../../components/course/WorkedSolution.astro';
               <td style="padding: var(--space-2); color: var(--ink-secondary);">same 3 token rows</td>
               <td style="padding: var(--space-2); color: var(--ink-secondary);">feature width changes from 4 to 2</td>
             </tr>
-            <tr>
+            <tr style="border-bottom: var(--border-subtle);">
               <td style="padding: var(--space-2); font-family: var(--font-mono);">score matrix</td>
               <td style="padding: var(--space-2); color: var(--ink-secondary);">still about the same 3 token positions</td>
               <td style="padding: var(--space-2); color: var(--ink-secondary);">representation becomes token-by-token comparisons [3,3]</td>
+            </tr>
+            <tr>
+              <td style="padding: var(--space-2); font-family: var(--font-mono);">weighted combination</td>
+              <td style="padding: var(--space-2); color: var(--ink-secondary);">still 3 token positions</td>
+              <td style="padding: var(--space-2); color: var(--ink-secondary);">each row is now a mix of value content, weighted by attention [3,2]</td>
             </tr>
           </tbody>
         </table>
@@ -231,7 +275,8 @@ import WorkedSolution from '../../components/course/WorkedSolution.astro';
             <div style="font-family: var(--font-mono); font-size: var(--text-xs); color: var(--ink-ghost); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: var(--space-1);">Memorize</div>
             <div style="font-size: var(--text-sm); color: var(--ink-secondary);">
               vectors are ordered; embeddings are row lookups; matrix multiply applies one learned map to many rows;
-              projections change feature space; attention scores compare token positions against token positions.
+              projections change feature space; attention scores compare token positions against token positions;
+              attention weights mix value rows to produce each token's output.
             </div>
           </div>
           <div>
@@ -240,6 +285,7 @@ import WorkedSolution from '../../components/course/WorkedSolution.astro';
               <code>[3, 4]</code> = three token rows, four features each.
               <code>[3, 2]</code> = the same rows in a new projected space.
               <code>[3, 3]</code> = every token compared against every token.
+              <code>[3, 2]</code> after weighted mix = each token's attended summary in the value space.
             </div>
           </div>
         </div>
@@ -302,6 +348,20 @@ import WorkedSolution from '../../components/course/WorkedSolution.astro';
           <p>
             That means the token positions are being re-expressed in a different learned feature space.
             The operational role changes because the projection changes, not because the original token rows suddenly became different objects.
+          </p>
+        </WorkedSolution>
+
+        <WorkedSolution
+          title="Exercise 5"
+          prompt="If weights (from softmax) have shape [3, 3] and V has shape [3, 2], what is the output shape and what does each row mean?"
+          accent="var(--sem-attention)"
+        >
+          <p>
+            The output shape is <code>[3, 2]</code>: three token positions, each with 2 features.
+          </p>
+          <p>
+            Each output row is a weighted combination of all three value rows. The weights come from one row of the
+            attention weight matrix — so output row 0 is the mix of V rows that token position 0 decided to attend to.
           </p>
         </WorkedSolution>
       </div>
@@ -372,6 +432,18 @@ import WorkedSolution from '../../components/course/WorkedSolution.astro';
               { id: 'c', text: 'Because the tokenizer emits both at once', isCorrect: false },
             ],
             explanation: 'The input rows can be the same while the learned projection changes the semantic role of the output.',
+          },
+          {
+            id: 'L10A-q5',
+            type: 'single_choice',
+            prompt: 'If attention weights have shape [3, 3] and V has shape [3, 2], what is the output shape?',
+            tag: 'shape',
+            choices: [
+              { id: 'a', text: '[3, 3]', isCorrect: false },
+              { id: 'b', text: '[3, 2]', isCorrect: true },
+              { id: 'c', text: '[2, 3]', isCorrect: false },
+            ],
+            explanation: '[3, 3] × [3, 2] → [3, 2]. The inner dimension (3) cancels, leaving one output row per token with the same feature width as V.',
           },
         ]}
       />

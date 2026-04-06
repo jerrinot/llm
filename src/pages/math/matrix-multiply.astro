@@ -103,6 +103,60 @@ import MatrixMultiplyBuilder from '../../components/interactive/MatrixMultiplyBu
     </div>
 
     <div class="lesson-section">
+      <div class="section-label">Transpose: Flipping Rows and Columns</div>
+      <p>
+        The <strong>transpose</strong> of a matrix flips it along its diagonal: rows become columns and columns become rows.
+        If A has shape [m, n], then A<sup>T</sup> has shape [n, m].
+      </p>
+      <div class="toy-example">
+        <div style="font-family: var(--font-mono); font-size: var(--text-sm); display: grid; gap: 4px;">
+          <div>A = [[1, 2, 3],</div>
+          <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[4, 5, 6]]&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;shape [2, 3]</div>
+          <div style="margin-top: var(--space-2);">A<sup>T</sup> = [[1, 4],</div>
+          <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[2, 5],</div>
+          <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[3, 6]]&nbsp;&nbsp;&nbsp;&nbsp;shape [3, 2]</div>
+        </div>
+      </div>
+      <p>
+        Row 0 of A became column 0 of A<sup>T</sup>. Row 1 of A became column 1 of A<sup>T</sup>. That is all a transpose does.
+      </p>
+      <p>
+        Why this matters: later you will see <code>Q K<sup>T</sup></code> in attention. If Q has shape [n, d] and K has shape [n, d],
+        then K<sup>T</sup> has shape [d, n]. Now the multiply <code>[n, d] &times; [d, n] &rarr; [n, n]</code> is valid, and the result
+        is a token-by-token comparison matrix. Without the transpose, the inner dimensions would not match.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Matrix-Vector Multiply: The Single-Row Case</div>
+      <p>
+        The full toy example above multiplied two multi-row matrices. But a common special case is multiplying
+        a single vector (one row) by a weight matrix. The math is identical — just with <code>m = 1</code>.
+      </p>
+      <div class="toy-example">
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-bottom: var(--space-3);">
+          One hidden-state vector times a weight matrix:
+        </p>
+        <div style="font-family: var(--font-mono); font-size: var(--text-sm); display: grid; gap: 4px;">
+          <div>x = [2, -1, 3]&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;shape [1, 3] (one row)</div>
+          <div>W = [[1, 0],</div>
+          <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[0, 1],</div>
+          <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[1, -1]]&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;shape [3, 2]</div>
+          <div style="margin-top: var(--space-2);">x &times; W = [5, -4]&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;shape [1, 2]</div>
+        </div>
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-top: var(--space-2);">
+          Each output value is one dot product between the input row and one column of W.
+        </p>
+      </div>
+      <p>
+        This matters because during autoregressive decode, the model processes one new token at a time. That means the
+        "matrix" of hidden states is a single row. The math is the same as the full matrix case, but the runtime
+        profile is very different: one row times a wide weight matrix is memory-bound rather than compute-bound,
+        because you read many weight values but reuse each only once.
+      </p>
+    </div>
+
+    <div class="lesson-section">
       <div class="section-label">From One Dot Product to a Whole Token Batch</div>
       <p>
         The previous lesson taught you how one vector compares to another. Matrix multiplication simply scales that up.
@@ -267,6 +321,30 @@ import MatrixMultiplyBuilder from '../../components/interactive/MatrixMultiplyBu
             tag: 'math',
             correctAnswer: '6',
             explanation: 'The output shape is [3, 2], so it contains 3 × 2 = 6 cells.',
+          },
+          {
+            id: 'L08-q5',
+            type: 'single_choice',
+            prompt: 'If K has shape [3, 2], what is the shape of K transpose (K^T)?',
+            tag: 'shape',
+            choices: [
+              { id: 'a', text: '[3, 2]', isCorrect: false },
+              { id: 'b', text: '[2, 3]', isCorrect: true },
+              { id: 'c', text: '[6]', isCorrect: false },
+            ],
+            explanation: 'Transpose flips rows and columns. [3, 2] becomes [2, 3].',
+          },
+          {
+            id: 'L08-q6',
+            type: 'single_choice',
+            prompt: 'During autoregressive decode, the model processes one new token. Which best describes the projection step?',
+            tag: 'conceptual',
+            choices: [
+              { id: 'a', text: 'A single row times a weight matrix — matrix-vector multiply', isCorrect: true },
+              { id: 'b', text: 'A full matrix-matrix multiply with many token rows', isCorrect: false },
+              { id: 'c', text: 'No projection is needed for single tokens', isCorrect: false },
+            ],
+            explanation: 'With one new token, the hidden state is a single row. Multiplying it by the weight matrix is a matrix-vector multiply (or GEMV), which is memory-bound rather than compute-bound.',
           },
         ]}
       />

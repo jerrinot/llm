@@ -108,6 +108,54 @@ import GatePanel from '../../components/assessment/GatePanel';
     </div>
 
     <div class="lesson-section">
+      <div class="section-label">3D Tensors and Multi-Head Shapes</div>
+      <p>
+        So far every tensor has been 2D: rows and columns. Real model code adds a third dimension almost immediately,
+        because attention uses multiple heads.
+      </p>
+      <p>
+        A 3D tensor <code>[a, b, c]</code> is <em>a</em> groups of <code>[b, c]</code> matrices. In multi-head attention,
+        the common shape is:
+      </p>
+      <div class="shape-card">
+        <div style="color: var(--sem-attention); font-weight: 600;">[n_heads, n_tokens, d_head]</div>
+        <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">Each head has its own [n_tokens, d_head] matrix of projected token vectors.</div>
+      </div>
+      <div class="toy-example">
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-bottom: var(--space-3);">Worked example: 2 heads, 3 tokens, head dimension 2</p>
+        <div style="font-family: var(--font-mono); font-size: var(--text-sm); display: grid; gap: 4px;">
+          <div>Q has shape [2, 3, 2]</div>
+          <div style="margin-top: var(--space-2);">Head 0:&nbsp;&nbsp;[[0.68, 0.66], [0.24, 1.80], [0.22, -0.54]]</div>
+          <div>Head 1:&nbsp;&nbsp;[[0.41, -0.12], [0.55, 0.90], [-0.33, 0.71]]</div>
+        </div>
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-top: var(--space-3);">
+          Each head sees the same token positions but in a different learned subspace. Head 0 and Head 1 run the same
+          dot-product attention logic independently, then their results are concatenated and projected back.
+        </p>
+      </div>
+      <p>
+        The reshape from 2D to 3D is where many learners first get confused. Concretely, the model computes Q with shape
+        <code>[n_tokens, n_heads &times; d_head]</code> and then reshapes it to <code>[n_heads, n_tokens, d_head]</code>.
+        No numbers change — only the layout's interpretation changes. When you see a reshape like this in code, stop and
+        restate each axis before continuing.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Broadcasting: A Brief Heads-Up</div>
+      <p>
+        In real model code you will sometimes see operations between tensors that do not have identical shapes — for example,
+        adding a bias vector of shape <code>[d_out]</code> to a matrix of shape <code>[n_tokens, d_out]</code>. The framework
+        automatically "broadcasts" the smaller tensor, repeating it along the missing axis so the shapes align.
+      </p>
+      <p>
+        This course does not rely on broadcasting for any core explanation, but recognizing it in code prevents a common source
+        of shape confusion. The rule of thumb: when an axis is missing from one operand, the framework repeats that operand along
+        that axis. If shapes still do not align after that, the operation is invalid.
+      </p>
+    </div>
+
+    <div class="lesson-section">
       <div class="section-label">Three Progressive Shape Traces</div>
       <div class="toy-example">
         <div style="display: grid; gap: var(--space-4);">
@@ -269,6 +317,18 @@ import GatePanel from '../../components/assessment/GatePanel';
             tag: 'math',
             correctAnswer: '1024',
             explanation: 'A [32, 32] matrix contains 32 × 32 = 1024 pairwise scores.',
+          },
+          {
+            id: 'L10-q4',
+            type: 'single_choice',
+            prompt: 'A tensor with shape [8, 32, 64] represents multi-head Q vectors. What does each axis mean?',
+            tag: 'conceptual',
+            choices: [
+              { id: 'a', text: '8 heads, 32 token positions, 64 features per head', isCorrect: true },
+              { id: 'b', text: '8 tokens, 32 heads, 64 features per head', isCorrect: false },
+              { id: 'c', text: '8 batches, 32 features, 64 tokens', isCorrect: false },
+            ],
+            explanation: 'In multi-head attention, the shape [n_heads, n_tokens, d_head] means each head has its own [n_tokens, d_head] matrix of projected token vectors.',
           },
         ]}
       />
