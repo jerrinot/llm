@@ -98,8 +98,8 @@ import GatePanel from '../../components/assessment/GatePanel';
         </li>
         <li style="padding: var(--space-2) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
           <strong>Softmax-heavy prefill:</strong> &gt;15% in softmax. This usually means very long sequences — the
-          softmax cost scales with n_tokens&sup2; while GEMM scales with n_tokens &times; d_model. At extreme sequence
-          lengths, attention score computation and softmax can rival the projection GEMMs.
+          softmax cost scales with n_tokens&sup2; while projection GEMMs are linear in n_tokens (for fixed model
+          width). At extreme sequence lengths, attention score computation and softmax can rival the projection GEMMs.
         </li>
       </ul>
     </div>

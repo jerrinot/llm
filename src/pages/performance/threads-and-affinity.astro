@@ -20,10 +20,10 @@ import GatePanel from '../../components/assessment/GatePanel';
         Inference workloads can be split across multiple CPU threads. Each thread processes a portion of the matrix multiply, attention computation, or FFN. More threads means more parallelism &mdash; up to a point.
       </p>
       <p>
-        The ideal thread count depends on the hardware and the workload. A machine has a fixed number of <strong>physical cores</strong>, each with its own execution units and L1/L2 caches. Many machines also support <strong>SMT</strong> (Simultaneous Multi-Threading, also called Hyper-Threading on Intel), which exposes two <em>logical</em> cores per physical core. For memory-bound workloads, using SMT threads rarely helps because both logical cores share the same cache and memory port &mdash; you get more threads competing for the same bandwidth.
+        The ideal thread count depends on the hardware and the workload. A machine has a fixed number of <strong>physical cores</strong>, each with its own execution resources and private L1 cache (L2/L3 may be private or shared depending on the CPU). Many machines also support <strong>SMT</strong> (Simultaneous Multi-Threading, also called Hyper-Threading on Intel), which exposes two <em>logical</em> cores per physical core. For memory-bound workloads, using SMT threads rarely helps because both logical cores share the same execution resources and memory port &mdash; you get more threads competing for the same bandwidth.
       </p>
       <p>
-        <strong>Thread affinity</strong> pins each thread to a specific core. Without affinity, the operating system may migrate threads between cores, evicting warm caches. With affinity, each thread stays on its core and its working data stays in cache.
+        <strong>Thread affinity</strong> pins each thread to a specific core. Without affinity, the operating system may migrate threads between cores, evicting warm caches. With affinity, each thread stays on its core, improving cache locality — though data can still be evicted by capacity misses or other work on that core.
       </p>
       <p>
         Different inference phases benefit from different thread counts. <strong>Prefill</strong> is compute-bound (large GEMM), so using all physical cores helps. <strong>Decode</strong> is memory-bound (GEMV), so adding more threads beyond the number needed to saturate memory bandwidth can actually slow things down due to synchronization overhead.
