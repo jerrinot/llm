@@ -125,8 +125,10 @@ import GatePanel from '../../components/assessment/GatePanel';
         </li>
         <li style="padding: var(--space-1) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
           <strong>One-hot vectors:</strong> A vector of length |V| with a 1 at the token's position and 0 elsewhere.
-          This avoids the ordering problem, but every token is equidistant from every other token — the model cannot
-          exploit the fact that "cat" and "dog" are more related than "cat" and "semicolon."
+          This avoids the ordering problem, but the vectors are all the same distance apart — and the dimension is
+          |V| (e.g. 128,000), making every subsequent matrix multiply enormous. (Mathematically, multiplying a one-hot
+          by a weight matrix is equivalent to looking up a row — which is exactly what an embedding table does. But
+          one-hot makes the representation |V|-dimensional instead of d_model-dimensional.)
         </li>
         <li style="padding: var(--space-1) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
           <strong>Random vectors:</strong> Assign each token a random d_model-dimensional vector. This gives
@@ -162,8 +164,8 @@ import GatePanel from '../../components/assessment/GatePanel';
     <div class="lesson-section">
       <div class="section-label">What "Nearby" Means in Embedding Space</div>
       <p>
-        When we say tokens are "nearby" in embedding space, we mean their vectors have a small distance (or equivalently,
-        a high dot product / cosine similarity — concepts from the next lesson). For example, if "cat" has embedding
+        When we say tokens are "nearby" in embedding space, we mean their vectors have similar coordinates — they point
+        in roughly the same direction. (The next lesson will introduce tools to measure this precisely.) For example, if "cat" has embedding
         [0.12, -0.34, 0.56, 0.78] and "dog" has embedding [0.15, -0.31, 0.52, 0.81], these vectors are close:
         every coordinate is similar. But "cat" and ";" might have very different vectors — say [0.12, -0.34, 0.56, 0.78]
         versus [-0.88, 0.42, -0.15, 0.03] — they are far apart in the space.

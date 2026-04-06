@@ -203,16 +203,16 @@ import DotProductPlayground from '../../components/interactive/DotProductPlaygro
       <div class="section-label">Orthogonality: The Most Important Special Case</div>
       <p>
         When two vectors are <strong>orthogonal</strong> (perpendicular), their dot product is exactly 0. This is
-        a critical concept for understanding learned representations: orthogonal dimensions encode independent features.
+        a critical concept for understanding learned representations: orthogonal vectors contribute zero to each other's dot products.
       </p>
       <p>
         In a d_model-dimensional space, you can have up to d_model mutually orthogonal directions. The embedding table
         and learned projections exploit this: different features (syntax, semantics, position, topic) can live in
-        orthogonal subspaces, meaning they do not interfere with each other. When a later dot product computes a score,
-        orthogonal features contribute zero — they are invisible to that particular comparison.
+        orthogonal subspaces, meaning they do not interact in dot-product computations. When a later dot product computes a score,
+        features in orthogonal subspaces contribute zero — they are invisible to that particular comparison.
       </p>
       <p>
-        This is why high-dimensional representations are powerful: 4096 dimensions can encode thousands of independent
+        This is why high-dimensional representations are powerful: 4096 dimensions can encode many non-interfering
         features simultaneously. A 4-dimensional toy example cannot. Keep this in mind when the toy examples seem too
         simple — the real power comes from dimensionality.
       </p>

@@ -68,8 +68,8 @@ import GatePanel from '../../components/assessment/GatePanel';
         is n_tokens &times; d_in &times; d_out. For a single FFN up-projection with d_model = 4096 and d_ff = 16384:
       </p>
       <div style="font-family: var(--font-mono); font-size: var(--text-sm); color: var(--ink-secondary); padding-left: var(--space-4); margin: var(--space-2) 0;">
-        1 token: 4096 &times; 16384 = 67M FLOPs<br/>
-        512 tokens: 512 &times; 4096 &times; 16384 = 34.4B FLOPs
+        1 token: 2 &times; 4096 &times; 16384 = 134M FLOPs &nbsp;<span style="color: var(--ink-tertiary);">(2 for multiply-add)</span><br/>
+        512 tokens: 512 &times; 2 &times; 4096 &times; 16384 = 68.7B FLOPs
       </div>
       <p>
         One layer has multiple projections: Q, K, V, output (attention side) plus up, gate, down (FFN side). That is

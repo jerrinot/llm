@@ -79,14 +79,13 @@ import GatePanel from '../../components/assessment/GatePanel';
         MoE lets you scale the model's <strong>total knowledge</strong> (parameter count) independently from its
         <strong>per-token cost</strong> (active compute). A dense 7B-parameter model activates all 7B parameters for
         every token. A MoE model with 64 experts of 1B each has 64B total parameters but only activates ~2B per token
-        (with top-2 routing). The per-token compute is similar to a 2B dense model, but the total knowledge is similar
-        to a 64B dense model.
+        (with top-2 routing), plus shared non-expert layers. The per-token compute is similar to a small dense model, but the total parameter count — and the capacity to specialize — is much larger.
       </p>
       <p>
         The catch: all 64B parameters must fit in memory, even though only 2B are computed per token. MoE models are
         memory-heavy and bandwidth-heavy (loading expert weights), even if they are not compute-heavy. This is why
-        MoE models are often memory-bandwidth-bound during decode — the exact same bottleneck you learned about in L28,
-        but amplified by the large total parameter count.
+        MoE models are often memory-bandwidth-bound during decode — a bottleneck you will see in detail in the inference module,
+        amplified here by the large total parameter count.
       </div>
     </div>
 
