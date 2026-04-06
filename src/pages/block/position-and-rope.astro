@@ -125,8 +125,9 @@ import GatePanel from '../../components/assessment/GatePanel';
       <div class="section-label">Implementation Hook</div>
       <div class="impl-hook">
         <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
-          In <code>llama.cpp</code>, RoPE is applied via the <code>ggml_rope</code> operation. It runs on Q and K right after the Q/K projections and before the attention score computation. The base frequency and scaling parameters are loaded from the model config.
+          In <code>llama.cpp</code>, RoPE is applied via the <code>ggml_rope_ext</code> operation. It runs on Q and K right after the Q/K projections and before the attention score computation. The base frequency and scaling parameters are loaded from the model config.
         </p>
+        <div class="file-path"><a href="https://github.com/ggml-org/llama.cpp/blob/94ca829b6001019622c0f67fcd48e9ec6bd7dce8/src/models/gemma.cpp#L49" target="_blank" rel="noopener">src/models/gemma.cpp — ggml_rope_ext() (L49)</a></div>
       </div>
     </div>
 

@@ -121,6 +121,7 @@ import GatePanel from '../../components/assessment/GatePanel';
         <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
           In practice, multi-head attention is often implemented as a single large Q/K/V projection followed by a reshape into [n_tokens, n_heads, d_head]. The attention computation then runs per-head (often batched across heads for parallelism). The final concatenation is just a reshape back.
         </p>
+        <div class="file-path"><a href="https://github.com/ggml-org/llama.cpp/blob/94ca829b6001019622c0f67fcd48e9ec6bd7dce8/src/llama-graph.cpp#L1990" target="_blank" rel="noopener">src/llama-graph.cpp — build_attn() (L1990)</a></div>
       </div>
     </div>
 
