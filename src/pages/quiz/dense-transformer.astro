@@ -30,14 +30,14 @@ import GatePanel from '../../components/assessment/GatePanel';
           {
             id: 'QM4-q1',
             type: 'single_choice',
-            prompt: 'What is the purpose of a residual connection in a transformer layer?',
-            tag: 'conceptual',
+            prompt: 'A 32-layer model processes a token. After all layers, the final hidden state still contains information from the original embedding. What mechanism makes this possible?',
+            tag: 'reasoning',
             choices: [
-              { id: 'a', text: 'It doubles the output dimensionality', isCorrect: false },
-              { id: 'b', text: 'It adds the sublayer input back to the sublayer output, preserving information', isCorrect: true },
-              { id: 'c', text: 'It removes noise from the hidden states', isCorrect: false },
+              { id: 'a', text: 'RMSNorm preserves the original values by normalizing scale', isCorrect: false },
+              { id: 'b', text: 'Residual connections — each layer adds its transform to the running sum, so original information carries through', isCorrect: true },
+              { id: 'c', text: 'The embedding is re-read at every layer from a separate cache', isCorrect: false },
             ],
-            explanation: 'The residual connection adds the input back to the output: output = sublayer(input) + input. This ensures information from earlier layers can flow through without being lost.',
+            explanation: 'Residual connections form a running sum: each layer adds its output to the input. Over 32 layers, the original embedding signal can survive because it is never overwritten — only added to. Without residuals, the original information would be repeatedly transformed and likely degraded.',
           },
           {
             id: 'QM4-q2',
@@ -66,14 +66,14 @@ import GatePanel from '../../components/assessment/GatePanel';
           {
             id: 'QM4-q4',
             type: 'single_choice',
-            prompt: 'Which operation in a transformer layer mixes information between tokens?',
-            tag: 'conceptual',
+            prompt: 'If you removed all attention layers but kept the FFN layers and residual connections, what would the model lose?',
+            tag: 'reasoning',
             choices: [
-              { id: 'a', text: 'RMSNorm', isCorrect: false },
-              { id: 'b', text: 'FFN', isCorrect: false },
-              { id: 'c', text: 'Attention', isCorrect: true },
+              { id: 'a', text: 'The ability to change the dimension of hidden states', isCorrect: false },
+              { id: 'b', text: 'The ability for tokens to influence each other — each token would be processed in isolation', isCorrect: true },
+              { id: 'c', text: 'The ability to apply nonlinear transformations', isCorrect: false },
             ],
-            explanation: 'Attention computes token-to-token interactions. FFN and RMSNorm operate on each token independently.',
+            explanation: 'Attention is the only operation that mixes information between token positions. FFN operates per-token independently. Without attention, the model would process each token as if it were alone — no context, no word relationships, no sentence understanding.',
           },
           {
             id: 'QM4-q5',

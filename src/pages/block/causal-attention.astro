@@ -43,11 +43,11 @@ import AttentionSimulator from '../../components/interactive/AttentionSimulator'
       <div class="section-label">Toy Example</div>
       <div class="toy-example">
         <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-bottom: var(--space-3);">
-          3 tokens — raw scores, masking, and softmax:
+          3 tokens — scaled scores, masking, and softmax:
         </p>
         <div style="font-family: var(--font-mono); font-size: var(--text-sm);">
           <div style="margin-bottom: var(--space-2);">
-            <span style="color: var(--ink-ghost);">Q &sdot; K&#x1D40; scores:</span>
+            <span style="color: var(--ink-ghost);">Q &sdot; K&#x1D40; / &radic;d_head scores (after scaling):</span>
           </div>
           <div style="display: grid; grid-template-columns: repeat(3, 48px); gap: 2px; margin-bottom: var(--space-3);">
             <span style="background: var(--sem-attention-bg); padding: 4px; text-align: center; border-radius: 2px; color: var(--sem-attention);">2.0</span>
