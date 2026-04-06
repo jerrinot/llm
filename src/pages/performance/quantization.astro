@@ -59,6 +59,11 @@ import GatePanel from '../../components/assessment/GatePanel';
         <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-top: var(--space-3);">
           Values are close but not identical to the originals. Lower-bit formats (Q4) lose more precision.
         </p>
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-top: var(--space-3);">
+          For a realistic block of 32 weights: 1 FP16 scale (2 bytes) + 32 int8 values (32 bytes) = 34 bytes.
+          Compared to 64 bytes in FP16, this is a 47% savings. At Q4_0 (4-bit), 32 weights fit in
+          2 + 16 = 18 bytes — a 72% savings.
+        </p>
       </div>
     </div>
 
@@ -74,6 +79,33 @@ import GatePanel from '../../components/assessment/GatePanel';
           Q4_0: 32 values in 4 bits + 1 FP16 scale per block = 18 bytes per 32 weights (0.5625 bytes/weight).
         </div>
       </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Why Quantization Helps Decode More Than Prefill</div>
+      <p>
+        Recall from L28 and L33 that decode is memory-bound: the bottleneck is loading weight data, not computing
+        with it. Quantization directly attacks this bottleneck by reducing the bytes per weight:
+      </p>
+      <ul style="list-style: none; padding: 0; margin: var(--space-3) 0;">
+        <li style="padding: var(--space-1) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          <strong>FP16 → Q8_0:</strong> Weights are ~2&times; smaller. Memory traffic for loading weights drops ~2&times;.
+          Decode speed improves roughly proportionally.
+        </li>
+        <li style="padding: var(--space-1) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          <strong>FP16 → Q4_0:</strong> Weights are ~4&times; smaller. Decode speed can improve up to ~4&times;
+          (with some overhead for dequantization arithmetic).
+        </li>
+      </ul>
+      <p>
+        Prefill benefits less because it is compute-bound — the weights are reused across many token rows, so
+        loading them is not the bottleneck. Quantization still helps prefill by reducing cache pressure and allowing
+        larger models to fit in memory, but the speedup is smaller than for decode.
+      </p>
+      <p>
+        This asymmetry is why many practitioners quantize aggressively: the decode phase (which determines token
+        generation speed that users directly experience) benefits the most.
+      </p>
     </div>
 
     <div class="lesson-section">
