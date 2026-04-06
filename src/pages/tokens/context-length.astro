@@ -123,6 +123,12 @@ import WorkedSolution from '../../components/course/WorkedSolution.astro';
       <p>
         This is the systems distinction to keep: <strong>trained capability</strong> describes what the model was built for, while <strong>runtime context</strong> describes what this process will actually allocate and accept.
       </p>
+      <div class="toy-example" style="font-family: var(--font-mono); font-size: var(--text-sm); display: grid; gap: 4px; margin-top: var(--space-3);">
+        <div><span style="color: var(--ink-ghost);">Trained context:</span> 8,192 tokens</div>
+        <div><span style="color: var(--ink-ghost);">Runtime at deploy A:</span> n_ctx = 4,096 <span style="color: var(--ink-tertiary);">&mdash; saves memory, limits user prompts</span></div>
+        <div><span style="color: var(--ink-ghost);">Runtime at deploy B:</span> n_ctx = 8,192 <span style="color: var(--ink-tertiary);">&mdash; uses full trained range</span></div>
+        <div><span style="color: var(--ink-ghost);">Runtime at deploy C:</span> n_ctx = 16,384 <span style="color: var(--ink-tertiary);">&mdash; extended via RoPE scaling, quality may degrade</span></div>
+      </div>
     </div>
 
     <div class="lesson-section">
