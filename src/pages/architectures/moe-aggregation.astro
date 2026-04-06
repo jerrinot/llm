@@ -28,6 +28,43 @@ import GatePanel from '../../components/assessment/GatePanel';
     </div>
 
     <div class="lesson-section">
+      <div class="section-label">Why Soft Blending Instead of Hard Selection</div>
+      <p>
+        You might wonder: why blend two experts at all? Why not just pick the single best expert?
+      </p>
+      <p>
+        Hard selection (top-1 routing) makes the choice discrete: one expert is fully on, the rest are fully off.
+        This has a gradient problem — the router logits for the second-best expert receive no gradient, because that
+        expert contributed nothing to the output. The model cannot learn to improve its routing decisions gradually.
+      </p>
+      <p>
+        Soft blending (top-k with weighted combination) makes the choice <em>almost</em> discrete but with smooth
+        gradients. Even the weaker expert contributes a little to the output, so its router weight receives gradient.
+        The model can gradually shift routing decisions as it learns which expert handles which kinds of tokens better.
+      </p>
+      <p>
+        Top-2 is the most common choice: enough blending for smooth gradients, few enough experts to keep compute low.
+        Some architectures use top-1 with specialized gradient estimators, but top-2 softmax is the dominant pattern.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">The Memory Access Pattern</div>
+      <p>
+        MoE aggregation has a distinctive memory access pattern that matters for performance. In a dense FFN, every
+        token uses the same weight matrices — the hardware loads them once and reuses them across all tokens in the batch.
+        In MoE, <strong>different tokens may use different experts</strong>. If token 1 selects experts A and B, and
+        token 2 selects experts C and D, the hardware must load four different sets of weights.
+      </p>
+      <p>
+        In the worst case (no overlap between tokens' expert selections), the memory traffic can be n_experts_used times
+        higher than a dense layer. In practice, popular experts are shared across tokens, which helps. But MoE layers are
+        generally more memory-intensive than dense layers of the same per-token compute, which is why MoE models are
+        especially sensitive to memory bandwidth during decode.
+      </p>
+    </div>
+
+    <div class="lesson-section">
       <div class="section-label">Toy Example</div>
       <div class="toy-example">
         <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-bottom: var(--space-3);">
