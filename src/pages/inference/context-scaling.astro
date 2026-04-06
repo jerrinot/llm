@@ -108,7 +108,7 @@ import GatePanel from '../../components/assessment/GatePanel';
         <li style="padding: var(--space-2) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
           <strong>KV cache is the memory gate.</strong> A 32-layer model with 32 KV heads, d_head=128, and FP16 stores
           ~512 KB per token in KV cache. At 128K context, that is ~64 GB of cache alone — potentially exceeding GPU memory.
-          This is why architectures like GQA and SWA exist: they reduce the per-token cache cost.
+          This is why architectures like GQA and SWA exist: GQA reduces the per-token cache size (fewer KV heads), while SWA bounds the total cache by evicting entries beyond the window.
         </li>
         <li style="padding: var(--space-2) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
           <strong>Attention compute is the prefill gate.</strong> At 128K context, the attention score matrices are
@@ -116,8 +116,9 @@ import GatePanel from '../../components/assessment/GatePanel';
           for a long document. Flash attention reduces memory but not this compute cost.
         </li>
         <li style="padding: var(--space-2) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
-          <strong>The bottleneck shifts with context length.</strong> Short contexts are weight-bound (FFN dominates).
-          Long contexts are compute-bound in attention during prefill and memory-bound in KV cache reads during decode.
+          <strong>The bottleneck shifts with context length.</strong> At short contexts, FFN projections dominate
+          the per-layer cost. As context grows, attention's O(n&sup2;) cost overtakes FFN and becomes the bottleneck
+          during prefill. During decode, KV cache reads dominate regardless of context length.
           Knowing which regime you are in determines which optimizations matter.
         </li>
       </ul>
@@ -127,7 +128,7 @@ import GatePanel from '../../components/assessment/GatePanel';
       <div class="section-label">Performance Hook</div>
       <div class="perf-hook">
         <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
-          For short contexts (under ~2k), FFN typically dominates compute and the model is weight-bound. For long contexts (32k+), attention dominates prefill time and the model becomes compute-bound in the attention kernels. This means the optimization strategy changes: short-context performance improves with memory bandwidth; long-context performance improves with faster compute and efficient attention kernels.
+          At short contexts (under ~2K), FFN projections dominate per-layer cost during prefill, and with enough tokens the GEMMs are still compute-bound on GPUs. As context grows past ~8K, attention's quadratic cost overtakes FFN and becomes the main compute bottleneck during prefill. During decode, the workload is memory-bandwidth-bound at any context length. The optimization strategy depends on which regime dominates your workload.
         </p>
       </div>
     </div>
