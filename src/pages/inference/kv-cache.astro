@@ -104,26 +104,26 @@ import GatePanel from '../../components/assessment/GatePanel';
           {
             id: 'L29-q1',
             type: 'single_choice',
-            prompt: 'What is reused from the KV cache across decoding steps?',
-            tag: 'conceptual',
+            prompt: 'A model has 32 layers, 8 KV heads per layer, and d_head = 128. A user sends a 1,000-token prompt. Roughly how many float values does the KV cache hold after prefill?',
+            tag: 'math',
             choices: [
-              { id: 'a', text: 'The Q (query) vectors from all previous tokens', isCorrect: false },
-              { id: 'b', text: 'The K (key) and V (value) vectors from all previous tokens', isCorrect: true },
-              { id: 'c', text: 'The full hidden states from all previous tokens', isCorrect: false },
+              { id: 'a', text: '1,000 × 32 × 8 × 128 × 2 ≈ 65.5M (one K + one V per head per layer per token)', isCorrect: true },
+              { id: 'b', text: '1,000 × 32 × 128 ≈ 4.1M (one vector per layer per token)', isCorrect: false },
+              { id: 'c', text: '32 × 8 × 128 × 2 ≈ 65K (cache size is independent of token count)', isCorrect: false },
             ],
-            explanation: 'The KV cache stores the K and V projections from all previously processed tokens. Q is only needed for the current token and is not cached. Full hidden states are not stored — only the attention-specific K and V projections.',
+            explanation: 'Each token adds one K and one V vector (both of size d_head) per KV head per layer. Total: n_tokens × n_layers × n_kv_heads × d_head × 2 = 1000 × 32 × 8 × 128 × 2 = 65,536,000 values. The cache grows linearly with token count — this is why long contexts are expensive.',
           },
           {
             id: 'L29-q2',
             type: 'single_choice',
-            prompt: 'Why does the KV cache consume more memory as the conversation gets longer?',
+            prompt: 'If you switch from full multi-head attention (32 KV heads) to GQA with 8 KV heads, what happens to the KV cache size?',
             tag: 'conceptual',
             choices: [
-              { id: 'a', text: 'Because the model weights grow with context length', isCorrect: false },
-              { id: 'b', text: 'Because each new token adds a K and V entry per layer per KV head', isCorrect: true },
-              { id: 'c', text: 'Because the FFN intermediate size scales with sequence length', isCorrect: false },
+              { id: 'a', text: 'It becomes 4× smaller (8/32 = 1/4)', isCorrect: true },
+              { id: 'b', text: 'It stays the same because Q still has 32 heads', isCorrect: false },
+              { id: 'c', text: 'It doubles because the shared heads need more capacity', isCorrect: false },
             ],
-            explanation: 'Each token that enters the cache adds one K vector and one V vector per layer per KV head. Model weights do not change. FFN cost is per-token and independent of sequence length. Only the KV cache grows with the number of tokens processed.',
+            explanation: 'The KV cache stores entries per KV head, not per Q head. Reducing KV heads from 32 to 8 reduces cache size by 4×. Q heads are not cached — only K and V are. This is the main inference motivation for GQA.',
           },
         ]}
       />

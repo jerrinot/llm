@@ -109,14 +109,14 @@ import GatePanel from '../../components/assessment/GatePanel';
           {
             id: 'L15-q1',
             type: 'single_choice',
-            prompt: 'What does a residual connection do in plain language?',
+            prompt: 'Suppose you remove all residual connections from a 32-layer transformer. What would you expect to happen to the hidden states in the deepest layers?',
             tag: 'conceptual',
             choices: [
-              { id: 'a', text: 'It replaces the input with the layer output', isCorrect: false },
-              { id: 'b', text: 'It adds the layer output to the original input, so the layer only needs to learn the difference', isCorrect: true },
-              { id: 'c', text: 'It normalizes the input before passing it to the next layer', isCorrect: false },
+              { id: 'a', text: 'No change — the layers would still learn the same representations', isCorrect: false },
+              { id: 'b', text: 'Information from the input would degrade, because each layer must reconstruct the full representation from scratch rather than refining it', isCorrect: true },
+              { id: 'c', text: 'The model would become faster because it skips the addition step', isCorrect: false },
             ],
-            explanation: 'A residual connection adds the sub-layer output to its input. The layer learns a delta — the change — rather than an entirely new representation. This preserves information and stabilizes training.',
+            explanation: 'Without residuals, each layer must produce a complete new representation rather than learning a small change (delta) on top of the previous one. Over 32 layers, information from the original input tends to vanish. Residual connections solve this by letting each layer only learn what to add.',
           },
           {
             id: 'L15-q2',

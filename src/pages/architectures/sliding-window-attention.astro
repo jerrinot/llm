@@ -96,14 +96,14 @@ import GatePanel from '../../components/assessment/GatePanel';
           {
             id: 'L22-q1',
             type: 'single_choice',
-            prompt: 'What information does a single SWA layer lose compared to full causal attention?',
-            tag: 'conceptual',
+            prompt: 'A model alternates SWA layers (w=4096) with full-attention layers. In a 20,000-token sequence, can an SWA layer at position 18,000 attend to position 1,000?',
+            tag: 'reasoning',
             choices: [
-              { id: 'a', text: 'It cannot see tokens beyond the window boundary', isCorrect: true },
-              { id: 'b', text: 'It cannot see the current token', isCorrect: false },
-              { id: 'c', text: 'It loses all positional information', isCorrect: false },
+              { id: 'a', text: 'No — position 1,000 is 17,000 tokens back, far outside the window of 4,096', isCorrect: true },
+              { id: 'b', text: 'Yes — the alternating full-attention layers propagate that information into the hidden state', isCorrect: false },
+              { id: 'c', text: 'Yes — the window wraps around for very long sequences', isCorrect: false },
             ],
-            explanation: 'A sliding-window layer masks out all tokens beyond w positions back. That information is invisible to this layer. Stacking layers can recover long-range reach indirectly.',
+            explanation: 'A single SWA layer can only attend to positions within w tokens back. Position 1,000 is 17,000 tokens away, well outside the window. Choice B describes how information can reach distant positions indirectly (via hidden states transformed by full-attention layers), but the SWA layer itself does not attend to position 1,000. The question asks about direct attention, not indirect information flow.',
           },
           {
             id: 'L22-q2',

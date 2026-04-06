@@ -104,26 +104,26 @@ import GatePanel from '../../components/assessment/GatePanel';
           {
             id: 'L21-q1',
             type: 'single_choice',
-            prompt: 'In GQA with 32 Q heads and 8 KV heads, what is the shape of the K projection per token?',
-            tag: 'shape',
+            prompt: 'A model has 32 Q heads and 8 KV heads (GQA). How many Q heads share each KV head?',
+            tag: 'math',
             choices: [
-              { id: 'a', text: '[32, d_head] — one K per Q head', isCorrect: false },
-              { id: 'b', text: '[8, d_head] — one K per KV head', isCorrect: true },
-              { id: 'c', text: '[1, d_head] — a single shared K', isCorrect: false },
+              { id: 'a', text: '2 (32 / 16)', isCorrect: false },
+              { id: 'b', text: '4 (32 / 8)', isCorrect: true },
+              { id: 'c', text: '8 (one group per KV head)', isCorrect: false },
             ],
-            explanation: 'GQA produces one K vector per KV head. With 8 KV heads, K has shape [8, d_head]. Each KV head serves a group of 4 Q heads.',
+            explanation: 'In GQA, Q heads are divided into groups, and each group shares one KV head. With 32 Q heads and 8 KV heads: 32 / 8 = 4 Q heads per group. Each group reads from the same K and V during attention.',
           },
           {
             id: 'L21-q2',
             type: 'single_choice',
-            prompt: 'Why does reducing the number of KV heads save memory during inference?',
+            prompt: 'If you change from GQA (8 KV heads) to MQA (1 KV head) while keeping 32 Q heads, what happens?',
             tag: 'conceptual',
             choices: [
-              { id: 'a', text: 'The Q projections become smaller', isCorrect: false },
-              { id: 'b', text: 'The KV cache stores fewer key and value vectors per token per layer', isCorrect: true },
-              { id: 'c', text: 'The model uses fewer layers overall', isCorrect: false },
+              { id: 'a', text: 'KV cache shrinks 8×, but all 32 Q heads now read from the same single K/V — less expressive but much cheaper', isCorrect: true },
+              { id: 'b', text: 'KV cache stays the same size because Q head count did not change', isCorrect: false },
+              { id: 'c', text: 'The model can no longer run multi-head attention at all', isCorrect: false },
             ],
-            explanation: 'The KV cache stores one K and one V vector per KV head per token per layer. Fewer KV heads means fewer vectors stored, directly reducing memory.',
+            explanation: 'MQA is the extreme of GQA: one KV head serves all Q heads. Cache shrinks from 8 KV entries to 1 per token per layer (8× reduction). All 32 Q heads still compute different attention patterns, but they all read from the same K and V. The trade-off is between memory savings and the diversity of attention patterns.',
           },
         ]}
       />
