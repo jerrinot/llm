@@ -127,11 +127,12 @@ import GatePanel from '../../components/assessment/GatePanel';
       <div class="section-label">Embedding State vs Hidden State</div>
       <p>
         It is important not to over-interpret embeddings. They are the <strong>initial</strong> representation of each token, not the final one.
-        Later layers will add positional information, compare tokens with one another, and repeatedly transform these vectors.
+        In most transformer architectures, positional information is added immediately after the token embedding — before the first attention block even runs.
+        From there, layers compare tokens with one another and repeatedly transform these vectors.
         By the time the model is deep into the network, the hidden state for a token carries much more than the original embedding row.
       </p>
       <p>
-        That distinction matters when reading code. The embedding table is static model data. The hidden states are dynamic per-request tensors.
+        That distinction matters when reading code. The embedding table is static model data — its values are fixed once training is complete. The hidden states are dynamic per-request tensors.
         Confusing those two leads to a lot of conceptual bugs when people first read transformer implementations.
       </p>
       <p>
@@ -189,7 +190,7 @@ import GatePanel from '../../components/assessment/GatePanel';
       <div class="section-label">Performance Hook</div>
       <div class="perf-hook">
         <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
-          The embedding table size is <code>|V| &times; d_model</code> floats. For a 128K vocabulary with d_model=4096, that is 500M+ numbers. This table must fit in memory. The lookup itself is fast — the cost is in storing it.
+          The embedding table size is <code>|V| &times; d_model</code> parameters. For a 128K vocabulary with d_model=4096, that is 500M+ numbers. At FP16 (2 bytes each) that is roughly 1 GB; at FP32 it doubles. This table must fit in memory, and its footprint depends directly on the numerical precision the runtime uses. The lookup itself is fast — the cost is in storing it.
         </p>
         <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-top: var(--space-3);">
           This is an important systems pattern: the embedding lookup is not compute-heavy like matrix multiply. It is more about memory footprint and memory access.

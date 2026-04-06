@@ -74,7 +74,7 @@ import GatePanel from '../../components/assessment/GatePanel';
           </div>
           <p style="font-size: var(--text-xs); color: var(--ink-tertiary); margin-top: var(--space-1);">
             Add matching positions. Both vectors must have the same dimension. This operation is central to how transformers work:
-            every layer adds its result back to its input (a residual connection), so vector addition is one of the most frequent operations in the whole model.
+            every attention and FFN sublayer adds its result back to its input (a residual connection), so vector addition is one of the most frequent operations in the whole model.
           </p>
         </div>
 
