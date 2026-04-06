@@ -31,6 +31,41 @@ import GatePanel from '../../components/assessment/GatePanel';
     </div>
 
     <div class="lesson-section">
+      <div class="section-label">What RMSNorm Actually Computes</div>
+      <p>
+        RMSNorm rescales a vector so that its root-mean-square is 1. Given a vector x of dimension d:
+      </p>
+      <div style="font-family: var(--font-mono); font-size: var(--text-sm); background: var(--surface-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); margin: var(--space-3) 0;">
+        <div style="color: var(--ink-primary);">RMS(x) = &radic;((1/d) &times; &sum; x<sub>i</sub>&sup2;)</div>
+        <div style="color: var(--sem-attention); margin-top: var(--space-1);">RMSNorm(x) = (x / RMS(x)) &times; &gamma;</div>
+      </div>
+      <p>
+        The division by RMS(x) normalizes the vector magnitude. The learned scale parameter &gamma; (one per dimension)
+        lets the model adjust the normalized output — it can re-amplify dimensions that matter and suppress ones that do not.
+      </p>
+      <p>
+        Why RMSNorm instead of the more common LayerNorm? LayerNorm also subtracts the mean before normalizing, which
+        requires computing both mean and variance. RMSNorm skips the mean subtraction. In practice, this is slightly
+        faster (one fewer pass over the data) and works equally well for transformer hidden states, which is why most
+        modern LLMs use it.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Why Pre-Norm, Not Post-Norm?</div>
+      <p>
+        The original transformer paper applied normalization <em>after</em> the sub-layer: <code>transform → add residual → norm</code>.
+        Most modern LLMs use <em>pre-norm</em>: <code>norm → transform → add residual</code>.
+      </p>
+      <p>
+        The reason is training stability. With post-norm, the residual path goes through the normalization, which
+        can distort the residual signal. With pre-norm, the residual path is a clean addition — the normalized
+        version is only used inside the transform, and the original input flows through the addition untouched.
+        This makes gradients flow more smoothly through deep networks.
+      </p>
+    </div>
+
+    <div class="lesson-section">
       <div class="section-label">Toy Example</div>
       <div class="toy-example">
         <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-bottom: var(--space-3);">
