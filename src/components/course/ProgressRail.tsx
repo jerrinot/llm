@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { modules, lessons, guidedPath, type Module } from '../../data/curriculum';
-import { loadProgress, isLessonUnlocked, type ProgressState } from '../../data/progress';
+import { loadProgress, type ProgressState } from '../../data/progress';
 
 export default function ProgressRail({ currentLessonId }: { currentLessonId: string }) {
   const [progress, setProgress] = useState<ProgressState | null>(null);
@@ -53,16 +53,14 @@ export default function ProgressRail({ currentLessonId }: { currentLessonId: str
               <ul className="rail-lessons">
                 {modLessons.map((lesson) => {
                   const isCompleted = completedSet.has(lesson.id);
-                  const isUnlocked = isLessonUnlocked(lesson.id, progress);
                   const isCurrent = lesson.id === currentLessonId;
 
                   return (
                     <li key={lesson.id} className="rail-lesson-item">
                       <a
-                        href={isUnlocked ? lesson.slug : undefined}
-                        className={`rail-lesson-link ${isCurrent ? 'current' : ''} ${isCompleted ? 'completed' : ''} ${!isUnlocked ? 'locked' : ''}`}
+                        href={lesson.slug}
+                        className={`rail-lesson-link ${isCurrent ? 'current' : ''} ${isCompleted ? 'completed' : ''}`}
                         aria-current={isCurrent ? 'page' : undefined}
-                        tabIndex={isUnlocked ? 0 : -1}
                       >
                         <span className="rail-lesson-status">
                           {isCompleted ? (
@@ -71,11 +69,6 @@ export default function ProgressRail({ currentLessonId }: { currentLessonId: str
                             </svg>
                           ) : isCurrent ? (
                             <span className="rail-dot current-dot" />
-                          ) : !isUnlocked ? (
-                            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                              <rect x="3.5" y="5" width="5" height="4" rx="0.5" stroke="currentColor" strokeWidth="1"/>
-                              <path d="M4.5 5V3.5C4.5 2.67 5.17 2 6 2C6.83 2 7.5 2.67 7.5 3.5V5" stroke="currentColor" strokeWidth="1" strokeLinecap="round"/>
-                            </svg>
                           ) : (
                             <span className="rail-dot" />
                           )}
@@ -182,7 +175,7 @@ export default function ProgressRail({ currentLessonId }: { currentLessonId: str
           transition: all var(--duration-fast) var(--ease-out);
           border-left: 2px solid transparent;
         }
-        .rail-lesson-link:hover:not(.locked) {
+        .rail-lesson-link:hover {
           color: var(--ink-secondary);
           background: rgba(255,255,255,0.02);
         }
@@ -193,10 +186,6 @@ export default function ProgressRail({ currentLessonId }: { currentLessonId: str
         }
         .rail-lesson-link.completed {
           color: var(--ink-secondary);
-        }
-        .rail-lesson-link.locked {
-          opacity: 0.35;
-          cursor: not-allowed;
         }
         .rail-lesson-status {
           width: 14px;

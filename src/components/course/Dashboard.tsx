@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { modules, lessons, guidedPath } from '../../data/curriculum';
-import { loadProgress, isLessonUnlocked, getProgressPercent, getNextUncompletedLesson, resetProgress, type ProgressState } from '../../data/progress';
+import { loadProgress, getProgressPercent, getNextUncompletedLesson, resetProgress, type ProgressState } from '../../data/progress';
 
 export default function Dashboard() {
   const [progress, setProgress] = useState<ProgressState | null>(null);

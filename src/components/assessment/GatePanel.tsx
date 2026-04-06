@@ -18,22 +18,24 @@ interface GateQuestion {
 
 interface Props {
   lessonId: string;
-  gateStrength: 'soft' | 'hard';
+  gateStrength?: 'soft' | 'hard';
   questions: GateQuestion[];
   children?: ReactNode;
 }
 
-export default function GatePanel({ lessonId, gateStrength, questions }: Props) {
+export default function GatePanel({ lessonId, questions }: Props) {
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [submitted, setSubmitted] = useState(false);
   const [showExplanations, setShowExplanations] = useState<Record<string, boolean>>({});
 
-  const allCorrect = questions.every(q => {
+  const correctCount = questions.filter(q => {
     if (q.type === 'single_choice') {
       return q.choices?.find(c => c.id === answers[q.id])?.isCorrect;
     }
     return answers[q.id]?.trim().toLowerCase() === q.correctAnswer?.toLowerCase();
-  });
+  }).length;
+
+  const allCorrect = correctCount === questions.length;
 
   const handleSubmit = () => {
     setSubmitted(true);
@@ -41,12 +43,10 @@ export default function GatePanel({ lessonId, gateStrength, questions }: Props) 
     questions.forEach(q => { exps[q.id] = true; });
     setShowExplanations(exps);
 
-    if (allCorrect || gateStrength === 'soft') {
-      setTimeout(() => {
-        const gatePass = (window as any).__gatePass;
-        if (typeof gatePass === 'function') gatePass();
-      }, 800);
-    }
+    setTimeout(() => {
+      const gatePass = (window as any).__gatePass;
+      if (typeof gatePass === 'function') gatePass();
+    }, 800);
   };
 
   const handleRetry = () => {
@@ -65,7 +65,6 @@ export default function GatePanel({ lessonId, gateStrength, questions }: Props) 
           <circle cx="7" cy="7" r="1.5" fill="currentColor"/>
         </svg>
         Check Yourself
-        <span className="gate-strength-tag">{gateStrength}</span>
       </div>
 
       {questions.map((q, i) => (
@@ -129,19 +128,22 @@ export default function GatePanel({ lessonId, gateStrength, questions }: Props) 
           >
             Check Answers
           </button>
-        ) : allCorrect ? (
-          <div className="gate-passed">
-            <span className="gate-passed-icon">&#x2713;</span>
-            Gate passed — continue to next lesson
-          </div>
-        ) : gateStrength === 'soft' ? (
-          <div className="gate-soft-pass">
-            Review the explanations above. You may continue.
-          </div>
         ) : (
-          <button className="gate-retry-btn" onClick={handleRetry}>
-            Try Again
-          </button>
+          <div className="gate-result-row">
+            <div className={allCorrect ? 'gate-passed' : 'gate-score'}>
+              {allCorrect ? (
+                <>
+                  <span className="gate-passed-icon">&#x2713;</span>
+                  All correct
+                </>
+              ) : (
+                <>{correctCount}/{questions.length} correct</>
+              )}
+            </div>
+            <button className="gate-retry-btn" onClick={handleRetry}>
+              Try Again
+            </button>
+          </div>
         )}
       </div>
 
@@ -163,14 +165,10 @@ export default function GatePanel({ lessonId, gateStrength, questions }: Props) 
           display: flex;
           align-items: center;
         }
-        .gate-strength-tag {
-          margin-left: auto;
-          font-size: 10px;
-          padding: 2px 8px;
-          border-radius: var(--radius-sm);
-          background: var(--surface-4);
-          color: var(--ink-tertiary);
-          text-transform: uppercase;
+        .gate-result-row {
+          display: flex;
+          align-items: center;
+          gap: var(--space-4);
         }
         .gate-question {
           padding: var(--space-4) 0;
@@ -356,10 +354,10 @@ export default function GatePanel({ lessonId, gateStrength, questions }: Props) 
         .gate-passed-icon {
           font-size: var(--text-lg);
         }
-        .gate-soft-pass {
+        .gate-score {
+          font-family: var(--font-mono);
           font-size: var(--text-sm);
           color: var(--ink-secondary);
-          font-style: italic;
         }
       `}</style>
     </div>

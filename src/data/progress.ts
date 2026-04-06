@@ -42,13 +42,8 @@ export function saveProgress(state: ProgressState): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
 
-export function isLessonUnlocked(lessonId: string, state: ProgressState): boolean {
-  const lesson = lessons[lessonId];
-  if (!lesson) return false;
-  if (lesson.prerequisites.length === 0) return true;
-  return lesson.prerequisites.every(
-    prereq => state.completedLessons.includes(prereq) || state.passedQuizzes.includes(prereq)
-  );
+export function isLessonUnlocked(_lessonId: string, _state: ProgressState): boolean {
+  return true;
 }
 
 export function completeLesson(lessonId: string, state: ProgressState): ProgressState {

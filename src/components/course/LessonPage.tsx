@@ -1,6 +1,6 @@
 import { useState, useEffect, type ReactNode } from 'react';
 import { lessons, getModuleForLesson, getNextLesson, getPrevLesson } from '../../data/curriculum';
-import { loadProgress, saveProgress, completeLesson, isLessonUnlocked } from '../../data/progress';
+import { loadProgress, saveProgress, completeLesson } from '../../data/progress';
 import ProgressRail from './ProgressRail';
 
 interface Props {
@@ -9,7 +9,6 @@ interface Props {
 }
 
 export default function LessonPage({ lessonId, children }: Props) {
-  const [gatePassed, setGatePassed] = useState(false);
   const [progress, setProgress] = useState(loadProgress());
 
   const lesson = lessons[lessonId];
@@ -27,7 +26,6 @@ export default function LessonPage({ lessonId, children }: Props) {
   }, [lessonId]);
 
   const handleGatePass = () => {
-    setGatePassed(true);
     const updated = completeLesson(lessonId, loadProgress());
     saveProgress(updated);
     setProgress(updated);
@@ -86,9 +84,6 @@ export default function LessonPage({ lessonId, children }: Props) {
                 </svg>
                 {lesson.estimatedMinutes} min
               </span>
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)', color: 'var(--ink-ghost)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                {lesson.gateStrength} gate
-              </span>
             </div>
           </div>
 
@@ -103,15 +98,9 @@ export default function LessonPage({ lessonId, children }: Props) {
               </a>
             ) : <div />}
             {next ? (
-              gatePassed || isCompleted ? (
-                <a href={next.slug} className="nav-btn primary">
-                  {next.title} &#x2192;
-                </a>
-              ) : (
-                <span className="nav-btn locked">
-                  Complete the gate to continue
-                </span>
-              )
+              <a href={next.slug} className="nav-btn primary">
+                {next.title} &#x2192;
+              </a>
             ) : (
               lessonId === 'CAPSTONE' ? (
                 <span className="nav-btn primary" style={{ cursor: 'default' }}>

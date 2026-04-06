@@ -281,8 +281,7 @@
   background: var(--accent-hover);
 }
 
-.nav-btn:disabled,
-.nav-btn.locked {
+.nav-btn:disabled {
   opacity: 0.3;
   cursor: not-allowed;
 }
