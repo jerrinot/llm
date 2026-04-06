@@ -71,6 +71,28 @@ import GatePanel from '../../components/assessment/GatePanel';
     </div>
 
     <div class="lesson-section">
+      <div class="section-label">Different Problems Need Different Optimizations</div>
+      <p>
+        This GEMM/GEMV distinction has direct consequences for optimization strategy:
+      </p>
+      <ul style="list-style: none; padding: 0; margin: var(--space-3) 0;">
+        <li style="display: flex; gap: var(--space-3); padding: var(--space-2) 0; font-size: var(--text-sm); align-items: flex-start;">
+          <span style="color: var(--sem-attention); font-weight: 600; min-width: 100px;">Prefill (GEMM)</span>
+          <span style="color: var(--ink-secondary);">Compute-bound. Better tiling, vectorization, and SIMD utilization directly reduce wall-clock time. Hardware accelerators (GPU tensor cores, AMX instructions) help substantially. Memory bandwidth matters less because weights are heavily reused.</span>
+        </li>
+        <li style="display: flex; gap: var(--space-3); padding: var(--space-2) 0; font-size: var(--text-sm); align-items: flex-start;">
+          <span style="color: var(--sem-kvcache); font-weight: 600; min-width: 100px;">Decode (GEMV)</span>
+          <span style="color: var(--ink-secondary);">Memory-bound. Better compute kernels help very little because the hardware is idle waiting for data. The effective optimization is to <strong>reduce bytes moved</strong>: quantize weights from FP16 to INT8 or INT4, use fewer KV heads (GQA), or batch multiple decode requests together (increasing m from 1 to batch_size, turning GEMV back into a small GEMM).</span>
+        </li>
+      </ul>
+      <p>
+        This is why a single optimization can have wildly different impact on prefill vs decode. An engineer who
+        understands the GEMM/GEMV distinction can predict <em>before benchmarking</em> whether a given optimization
+        will help prefill, decode, both, or neither.
+      </p>
+    </div>
+
+    <div class="lesson-section">
       <div class="section-label">Math</div>
       <div style="font-family: var(--font-mono); font-size: var(--text-sm); background: var(--surface-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); margin: var(--space-3) 0;">
         <div style="color: var(--sem-token);">Arithmetic intensity = FLOPs / bytes_moved</div>

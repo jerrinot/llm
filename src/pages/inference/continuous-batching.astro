@@ -57,6 +57,48 @@ import GatePanel from '../../components/assessment/GatePanel';
     </div>
 
     <div class="lesson-section">
+      <div class="section-label">The Prefill Interference Problem</div>
+      <p>
+        Mixing prefill and decode in the same batch creates a tension. Prefill involves large matrix multiplies that
+        keep the GPU busy for a long time. Decode tokens are tiny operations that complete quickly. When a new
+        request arrives and needs prefill, the ongoing decode tokens for existing requests are delayed until the
+        prefill computation finishes.
+      </p>
+      <p>
+        This is called <strong>prefill interference</strong>. From the user's perspective: they are mid-conversation,
+        tokens are streaming smoothly, then suddenly there is a pause — because someone else's long prompt just started
+        prefilling on the same GPU. The decode tokens had to wait.
+      </p>
+      <p>
+        Servers manage this by <strong>chunking prefill</strong> into smaller pieces (using the ubatch mechanism from L30).
+        Instead of prefilling a 4,000-token prompt in one shot, the server might process 512 tokens at a time, interleaving
+        decode steps for other requests between chunks. This caps the maximum stall time but extends total prefill duration.
+      </p>
+      <p>
+        The tradeoff is: <strong>throughput vs latency fairness</strong>. Large prefill chunks maximize GPU utilization.
+        Small chunks keep decode latency stable for all users. There is no single right answer — it depends on the
+        serving scenario.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Why Benchmark Settings Mislead</div>
+      <p>
+        A benchmark runs one request: the GPU processes only that one sequence, with no contention. The optimal setting
+        is maximum batch size, maximum ubatch, and all resources devoted to one computation.
+      </p>
+      <p>
+        In serving, the GPU handles many concurrent requests. If you use the benchmark-optimal settings, a single long
+        prefill blocks all decode slots, causing latency spikes. The "fastest" setting in a benchmark can be the
+        "most unfair" setting in production.
+      </p>
+      <p>
+        This is why performance reasoning requires knowing the <em>workload</em>, not just the model. The same model
+        on the same hardware behaves very differently depending on whether you are running one request or fifty.
+      </p>
+    </div>
+
+    <div class="lesson-section">
       <div class="section-label">Shapes</div>
       <div class="shape-card">
         <div>Mixed batch at time t: some tokens are prefill (many rows), some are decode (1 row each)</div>
