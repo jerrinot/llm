@@ -76,10 +76,39 @@ import GatePanel from '../../components/assessment/GatePanel';
     </div>
 
     <div class="lesson-section">
+      <div class="section-label">Why Cache and Not Recompute?</div>
+      <p>
+        Without the KV cache, generating the t-th token would require rerunning the K and V projections for all t tokens.
+        Over a 100-token generation, this means computing K/V for: 1 + 2 + 3 + ... + 100 = 5,050 token-projection operations.
+        With the cache, you compute K/V for exactly 100 tokens total (each once, then cached). The cache trades memory for
+        a ~50&times; reduction in redundant compute at this sequence length — and the savings grow linearly with generation length.
+      </p>
+      <p>
+        The tradeoff is clear: the cache uses memory that scales with context length, but it avoids re-doing work that
+        grows <em>quadratically</em> without it. For any non-trivial generation length, caching wins overwhelmingly.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Cache Management: Pre-allocation and Eviction</div>
+      <p>
+        In practice, the KV cache is <strong>pre-allocated</strong> for the maximum context length when the inference
+        context is created. A model configured with n_ctx = 8192 allocates cache for 8192 tokens upfront, even if
+        the first prompt is only 100 tokens. This avoids expensive reallocation during generation but means unused
+        cache slots consume memory.
+      </p>
+      <p>
+        For SWA layers, entries older than the window size can be <strong>evicted</strong> — their slots are reused for
+        new tokens. For full-attention layers, entries must be retained for the full context. Real implementations
+        track which slots are active and which can be reclaimed.
+      </p>
+    </div>
+
+    <div class="lesson-section">
       <div class="section-label">Implementation Hook</div>
       <div class="impl-hook">
         <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
-          In <code>llama.cpp</code>, the KV cache is allocated once when the context is created. During each decode step, new K and V entries are written into the cache at the current position. The cache memory is pre-allocated for the full context length, even if only a fraction is used so far.
+          In <code>llama.cpp</code>, the KV cache is allocated once when the context is created. During each decode step, new K and V entries are written into the cache at the current position. The cache memory is pre-allocated for the full context length, even if only a fraction is used so far. When a request finishes, its cache slots are freed for the next request.
         </p>
         <div class="file-path">src/llama-kv-cache.cpp &mdash; KV cache allocation and update</div>
       </div>
