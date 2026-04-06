@@ -383,6 +383,40 @@ import WorkedSolution from '../../components/course/WorkedSolution.astro';
     </div>
 
     <div class="lesson-section">
+      <div class="section-label">Code Preview: What This Looks Like in Practice</div>
+      <p>
+        You now know enough to read the structure of a real model builder. Here is a simplified view of how a Gemma transformer layer is constructed in llama.cpp. You do not need to understand every argument — just match the function calls to the concepts you have learned:
+      </p>
+      <div style="background: var(--surface-3); border-radius: var(--radius-md); padding: var(--space-4); margin: var(--space-4) 0; overflow-x: auto;">
+        <pre style="font-family: var(--font-mono); font-size: var(--text-xs); line-height: 1.7; margin: 0; color: var(--ink-secondary);" set:html={`<code><span style="color: var(--ink-ghost);">// For each layer in the model:</span>
+
+cur = <span style="color: var(--sem-attention);">build_norm</span>(inpL, ...);           <span style="color: var(--ink-ghost);">// normalize before attention</span>
+
+Q = <span style="color: var(--sem-attention);">build_lora_mm</span>(wq, cur);          <span style="color: var(--ink-ghost);">// projection: hidden → query space</span>
+K = <span style="color: var(--sem-attention);">build_lora_mm</span>(wk, cur);          <span style="color: var(--ink-ghost);">// projection: hidden → key space</span>
+V = <span style="color: var(--sem-attention);">build_lora_mm</span>(wv, cur);          <span style="color: var(--ink-ghost);">// projection: hidden → value space</span>
+
+cur = <span style="color: var(--sem-attention);">build_attn</span>(..., Q, K, V, ...);  <span style="color: var(--ink-ghost);">// Q·Kᵀ → scores → softmax → weighted V</span>
+
+sa_out = <span style="color: var(--sem-token);">ggml_add</span>(cur, inpL);        <span style="color: var(--ink-ghost);">// residual connection</span>
+
+cur = <span style="color: var(--sem-ffn);">build_norm</span>(sa_out, ...);         <span style="color: var(--ink-ghost);">// normalize before FFN</span>
+cur = <span style="color: var(--sem-ffn);">build_ffn</span>(cur, ...);              <span style="color: var(--ink-ghost);">// expand → activate → contract</span>
+
+output = <span style="color: var(--sem-token);">ggml_add</span>(cur, sa_out);     <span style="color: var(--ink-ghost);">// residual connection</span></code>`} />
+      </div>
+      <p style="font-size: var(--text-xs); color: var(--ink-ghost); margin-top: var(--space-2);">
+        Based on ggml-org/llama.cpp &mdash; <code>src/models/gemma.cpp</code>. Simplified for this preview.
+      </p>
+      <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-top: var(--space-3);">
+        Every line maps to something you have already learned: <code>build_lora_mm</code> is a matrix multiply (a learned projection). <code>ggml_add</code> is vector addition (a residual connection). <code>build_attn</code> chains together the Q&middot;K<sup>T</sup> scores, softmax, and V-weighted sum you just traced by hand.
+      </p>
+      <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-top: var(--space-2);">
+        You will read the full, unabridged version of this code in the M8 case studies. For now, the point is: <strong>model code is not alien</strong>. It is the operations you already know, called in the order you already understand.
+      </p>
+    </div>
+
+    <div class="lesson-section">
       <div class="section-label">Check Yourself</div>
       <GatePanel
         client:load
