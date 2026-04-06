@@ -6,6 +6,7 @@ import LessonPage from '../../components/course/LessonPage';
 import GatePanel from '../../components/assessment/GatePanel';
 import PipelineStepper from '../../components/interactive/PipelineStepper';
 import TokenizerExplorer from '../../components/interactive/TokenizerExplorer';
+import WorkedSolution from '../../components/course/WorkedSolution.astro';
 ---
 
 <BaseLayout title="Vocabulary and Token IDs">
@@ -37,6 +38,7 @@ import TokenizerExplorer from '../../components/interactive/TokenizerExplorer';
       <div class="section-label">Interactive — Tokenizer Explorer</div>
       <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-bottom: var(--space-3);">
         Look at the Token IDs section below. Each token piece maps to a specific integer, and those IDs are what the model actually consumes.
+        The widget is a teaching approximation, so the lesson is about the mapping pattern, not about exact production token counts.
       </p>
       <TokenizerExplorer
         client:visible
@@ -155,6 +157,11 @@ import TokenizerExplorer from '../../components/interactive/TokenizerExplorer';
         To a systems engineer, this is a reminder that the vocabulary is not just a dictionary of word pieces.
         It is part of the model's control surface.
       </p>
+      <p>
+        This is also the first place hidden prompt overhead appears. A chat runtime may wrap a user-visible message in extra structure such as BOS tokens,
+        role markers, separators, or assistant-prefix tokens before the model sees anything. The user may think they sent one short sentence, while the
+        actual tokenized request is larger because protocol tokens were added around it.
+      </p>
     </div>
 
     <div class="lesson-section">
@@ -185,15 +192,17 @@ import TokenizerExplorer from '../../components/interactive/TokenizerExplorer';
       <div class="section-label">Implementation Hook</div>
       <div class="impl-hook">
         <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
-          In <code>llama.cpp</code>, the vocabulary is loaded from the model file. The tokenizer uses it to convert text to IDs and IDs back to text.
-          The model weights include an embedding table that maps each ID to a learned vector.
+          Open <code>src/llama-vocab.cpp</code> and look for <code>llama_tokenize()</code> and <code>llama_detokenize()</code>.
+          What to notice: the vocabulary object owns both directions of the discrete interface. The same ID space is used to go from text pieces to integers and back again.
         </p>
         <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-top: var(--space-3);">
-          Concretely, an input token ID acts like a row selector into the embedding matrix. At the end of generation, the model produces one logit per vocabulary entry, then sampling picks one ID and detokenization turns it back into text.
+          Then open <code>src/llama-batch.cpp</code> and read the validation loop in <code>llama_batch_allocr::init()</code>.
+          What to notice: the runtime explicitly rejects any token ID outside <code>[0, vocab.n_tokens())</code>.
+          That is the discrete contract made visible in code: IDs are not arbitrary runtime data, they must belong to the model's fixed vocabulary.
         </p>
         <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-top: var(--space-3);">
-          This is also why model conversion and runtime integration have to preserve tokenizer metadata carefully.
-          If the vocabulary order, special-token IDs, or byte handling changes, the model may still run but speak a different discrete language than the one it was trained on.
+          Finally, notice how this connects to the model boundary you already learned: an input token ID acts like a row selector into the embedding matrix, and the output head later produces one score per vocabulary entry.
+          This is why model conversion and runtime integration have to preserve tokenizer metadata carefully. If vocabulary order or special-token IDs shift, the model may still run but speak a different discrete language than the one it was trained on.
         </p>
       </div>
     </div>
@@ -213,6 +222,39 @@ import TokenizerExplorer from '../../components/interactive/TokenizerExplorer';
           During decode, the output head produces one score per vocabulary entry for every generated position.
           That makes <code>|V|</code> a real systems number, not just a tokenizer fact hidden in metadata.
         </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Worked Practice with Solutions</div>
+      <div style="display: grid; gap: var(--space-3);">
+        <WorkedSolution
+          title="Exercise 1"
+          prompt="Why could a model behave the same if every vocabulary ID were permuted, but only if the embedding table and output head were permuted too?"
+          accent="var(--sem-token)"
+        >
+          <p>
+            Because the integer itself does not carry intrinsic meaning. The meaning comes from the global agreement between tokenizer, embedding lookup, and output vocabulary.
+            If you permute the IDs and permute every matching row and column consistently, the model is still speaking the same discrete language under renamed labels.
+          </p>
+          <p>
+            If you change only the tokenizer IDs and not the learned weights, the agreement breaks and the model reads the wrong symbols.
+          </p>
+        </WorkedSolution>
+
+        <WorkedSolution
+          title="Exercise 2"
+          prompt="A model has vocabulary size |V| = 32,000. What does that number influence at runtime besides tokenization?"
+          accent="var(--sem-logits)"
+        >
+          <p>
+            It determines the size of both the input-side embedding table and the output-side logits vector.
+            The embedding table has one learned row per vocabulary entry, and the output head produces one score per vocabulary entry for each predicted position.
+          </p>
+          <p>
+            That is why <code>|V|</code> is not just tokenizer metadata. It is also a memory and compute number.
+          </p>
+        </WorkedSolution>
       </div>
     </div>
 

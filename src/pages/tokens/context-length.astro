@@ -5,6 +5,7 @@ import '../../styles/course.css';
 import LessonPage from '../../components/course/LessonPage';
 import GatePanel from '../../components/assessment/GatePanel';
 import ContextBudgetPlanner from '../../components/interactive/ContextBudgetPlanner';
+import WorkedSolution from '../../components/course/WorkedSolution.astro';
 ---
 
 <BaseLayout title="Context Length Means Token Capacity">
@@ -28,6 +29,10 @@ import ContextBudgetPlanner from '../../components/interactive/ContextBudgetPlan
       </p>
       <p>
         In practice, context length is not just a spec-sheet number. It determines whether a prompt fits at all, how much room remains for the answer, and how expensive long prompts become at runtime.
+      </p>
+      <p>
+        For serving work, keep one extra distinction in mind from the start: there is the model's trained or advertised context capability, and there is the context size actually configured for a running process.
+        The deployed budget users experience is the runtime-configured one.
       </p>
     </div>
 
@@ -106,11 +111,26 @@ import ContextBudgetPlanner from '../../components/interactive/ContextBudgetPlan
     </div>
 
     <div class="lesson-section">
+      <div class="section-label">Architectural Context vs Runtime Context</div>
+      <p>
+        Engineers often say "the model has an 8K context" as if that were one number. In practice there are at least two related numbers.
+        The model metadata records what context length it was trained for or expects architecturally. The runtime then chooses a context size for this serving process.
+      </p>
+      <p>
+        Those can differ. A server may configure a smaller runtime context to save memory, or it may try a larger one with scaling tricks and warnings.
+        So the effective user-facing budget is not just a property of the checkpoint. It is also a deployment choice.
+      </p>
+      <p>
+        This is the systems distinction to keep: <strong>trained capability</strong> describes what the model was built for, while <strong>runtime context</strong> describes what this process will actually allocate and accept.
+      </p>
+    </div>
+
+    <div class="lesson-section">
       <div class="section-label">Shapes</div>
       <div class="shape-card">
-        <div>context_length: maximum number of tokens the model can process</div>
-        <div>n_prompt + n_generated &#x2264; context_length</div>
-        <div>remaining_budget = context_length - n_prompt</div>
+        <div>runtime context budget L (or n_ctx): maximum tokens this serving process is configured to handle</div>
+        <div>n_prompt + n_generated &#x2264; L</div>
+        <div>remaining_budget = L - n_prompt</div>
         <div>active sequence length grows from n_prompt to n_prompt + n_generated during generation</div>
       </div>
     </div>
@@ -170,17 +190,17 @@ import ContextBudgetPlanner from '../../components/interactive/ContextBudgetPlan
       <div class="section-label">Implementation Hook</div>
       <div class="impl-hook">
         <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
-          Context length is set in the model's metadata and enforced at runtime.
-          In <code>llama.cpp</code>, exceeding the context length results in an error or truncation, not a graceful degradation.
+          Open <code>src/llama-cparams.h</code> and notice the field <code>uint32_t n_ctx</code>.
+          That is the context size used during inference for a specific runtime instance. It is the deployment-side budget.
         </p>
         <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-top: var(--space-3);">
-          This is why inference servers expose knobs like context size and max generated tokens separately.
-          A serving system has to budget room for the answer instead of letting the prompt consume the whole window by accident.
+          Then open <code>tools/completion/completion.cpp</code> and look at two places.
+          First, the runtime compares <code>llama_model_n_ctx_train(model)</code> with <code>llama_n_ctx(ctx)</code> and warns if the configured runtime context exceeds training context.
+          Second, the code checks <code>if ((int) embd_inp.size() &gt; n_ctx - 4)</code> and rejects prompts that do not fit.
         </p>
         <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-top: var(--space-3);">
-          In practice, engineers often reserve generation budget explicitly.
-          Instead of asking "does the prompt fit?", they ask "does the prompt fit while still leaving enough room for the answer we promised the user?"
-          That is a much more useful production question.
+          What to notice: the code is modeling two different ideas at once. The checkpoint carries a training-time context expectation, but the runtime enforces the actual configured budget for this process.
+          That is why inference servers expose knobs like context size and max generated tokens separately, and why production systems reserve answer budget explicitly instead of letting the prompt consume the whole window by accident.
         </p>
       </div>
     </div>
@@ -199,6 +219,39 @@ import ContextBudgetPlanner from '../../components/interactive/ContextBudgetPlan
           The practical lesson is simple: context length is a budget you spend, not a badge you own.
           If you spend it carelessly on verbose prompts, oversized retrieval payloads, or raw logs, you will pay in latency, memory pressure, and reduced room for useful output.
         </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Worked Practice with Solutions</div>
+      <div style="display: grid; gap: var(--space-3);">
+        <WorkedSolution
+          title="Exercise 1"
+          prompt="A model was trained for 8,192 tokens, but your server is configured for n_ctx = 4,096. A prompt tokenizes to 3,500 tokens. How much room remains for the answer, and which number actually governs the request?"
+          accent="var(--sem-token)"
+        >
+          <p>
+            The remaining answer budget is <code>4,096 - 3,500 = 596</code> tokens.
+            The governing number for this request is the runtime-configured context, 4,096, because that is what the serving process actually allocates and enforces.
+          </p>
+          <p>
+            The training-time 8,192-token capability still matters as background model metadata, but it does not magically give this process a larger working budget.
+          </p>
+        </WorkedSolution>
+
+        <WorkedSolution
+          title="Exercise 2"
+          prompt="A model was trained for 8,192 tokens, but the runtime is configured for 16,384 and logs a warning. What changed, and what did not change?"
+          accent="var(--sem-kvcache)"
+        >
+          <p>
+            The deployment configuration changed: this process is attempting to run with a larger effective context than the model was originally trained for.
+            What did not change is the model's training history or architecture metadata.
+          </p>
+          <p>
+            This is why "supports 16K" and "was trained for 8K" are different claims. One is a runtime choice; the other is a property of the checkpoint and its training regime.
+          </p>
+        </WorkedSolution>
       </div>
     </div>
 

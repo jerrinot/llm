@@ -81,6 +81,11 @@ export default function TokenizerExplorer({
 
   return (
     <div className="tokenizer-explorer">
+      <div className="te-warning">
+        Teaching approximation only. This widget demonstrates how token pieces and IDs behave, but it is not the real tokenizer for any production model.
+        For cost, context, or accuracy work, always measure token counts with the exact tokenizer shipped with the model you serve.
+      </div>
+
       <div className="te-input-section">
         <label className="te-label">Enter text</label>
         {suggestions.length > 0 && (
@@ -169,6 +174,16 @@ export default function TokenizerExplorer({
           border-radius: var(--radius-lg);
           padding: var(--space-5);
           margin: var(--space-4) 0;
+        }
+        .te-warning {
+          font-size: var(--text-sm);
+          line-height: var(--leading-relaxed);
+          color: var(--ink-secondary);
+          background: color-mix(in srgb, var(--sem-token) 8%, var(--surface-3));
+          border: 1px solid color-mix(in srgb, var(--sem-token) 25%, transparent);
+          border-radius: var(--radius-md);
+          padding: var(--space-3) var(--space-4);
+          margin-bottom: var(--space-4);
         }
         .te-label {
           font-family: var(--font-mono);

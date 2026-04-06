@@ -1,0 +1,387 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import '../../styles/global.css';
+import '../../styles/course.css';
+import LessonPage from '../../components/course/LessonPage';
+import GatePanel from '../../components/assessment/GatePanel';
+import WorkedSolution from '../../components/course/WorkedSolution.astro';
+import DiscreteInputFlowDiagram from '../../components/course/DiscreteInputFlowDiagram.astro';
+---
+
+<BaseLayout title="Discrete Input Synthesis: Text, IDs, and Budget">
+  <LessonPage lessonId="L04A" client:load>
+
+    <div class="lesson-section">
+      <div class="section-label">Question</div>
+      <div class="lesson-question">Can you trace one prompt from raw text to token budget?</div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Why This Recap Exists</div>
+      <p>
+        The previous three lessons introduced the whole discrete interface one piece at a time: how text becomes tokens, how tokens become IDs,
+        and how those IDs consume a finite context budget. A self-learner also needs one place where those ideas are put back together before the
+        course moves into vectors and matrix math.
+      </p>
+      <p>
+        This page is that checkpoint. The goal is to make one durable sentence feel completely natural:
+        <strong>before the model does any linear algebra, the runtime has already committed to a specific token sequence drawn from a fixed vocabulary and a specific budget for how long that sequence may become.</strong>
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">The Running Prompt</div>
+      <div class="toy-example">
+        <div style="font-family: var(--font-mono); font-size: var(--text-sm); display: grid; gap: 4px;">
+          <div>raw text = "The cat sat"</div>
+          <div>token pieces = ["The", " cat", " sat"]</div>
+          <div>token IDs = [791, 2368, 3290]</div>
+          <div>predicted next token later = " on" (ID 373)</div>
+        </div>
+      </div>
+      <p>
+        This is intentionally small. A tiny running example makes it easier to see the contracts clearly before the math module starts talking
+        about embeddings and hidden states.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Diagram: The Discrete Interface</div>
+      <p>
+        Keep this picture in mind as you leave the token module. It is the whole front door of inference before any embedding lookup or transformer math begins.
+      </p>
+      <DiscreteInputFlowDiagram />
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Step 1: Raw Text Becomes Token Pieces</div>
+      <p>
+        The input begins as a string that humans can read. The tokenizer rewrites that string as pieces from a fixed vocabulary.
+        Those pieces do not have to align with words. Leading spaces may fuse into the next piece, punctuation may stand alone, and awkward text may fragment heavily.
+      </p>
+      <div class="toy-example" style="font-family: var(--font-mono); font-size: var(--text-sm); display: grid; gap: 4px;">
+        <div>"The cat sat" → ["The", " cat", " sat"]</div>
+      </div>
+      <p>
+        That rewrite is already operationally meaningful. Sequence length, later cost, and eventual context fit all depend on the tokenized sequence, not on the original character string.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Step 2: Token Pieces Become Token IDs</div>
+      <p>
+        Each token piece is then mapped to a vocabulary ID. The numbers themselves are arbitrary labels, but the mapping is not arbitrary:
+        the tokenizer, embedding table, and output vocabulary all have to agree on it.
+      </p>
+      <div class="toy-example" style="font-family: var(--font-mono); font-size: var(--text-sm); display: grid; gap: 4px;">
+        <div>"The"  → 791</div>
+        <div>" cat" → 2368</div>
+        <div>" sat" → 3290</div>
+      </div>
+      <p>
+        At this point the runtime already has the model's discrete input:
+      </p>
+      <div class="toy-example" style="font-family: var(--font-mono); font-size: var(--text-sm); display: inline-block;">
+        [791, 2368, 3290]
+      </div>
+      <p>
+        The model has still not "seen text" in any human sense. It will only see this ID sequence and whatever special tokens or system-formatting tokens the runtime added around it.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Step 3: The Runtime Checks Budget Before the Math Starts</div>
+      <p>
+        Suppose the serving process is configured with a runtime context of 8 tokens.
+        The prompt already costs 3 tokens, so only 5 remain for everything else: additional prompt formatting, generation, and any reserved answer budget.
+      </p>
+      <div class="toy-example" style="font-family: var(--font-mono); font-size: var(--text-sm); display: grid; gap: 4px;">
+        <div>L = 8</div>
+        <div>n_prompt = 3</div>
+        <div>remaining = L - n_prompt = 5</div>
+      </div>
+      <p>
+        If the product wants to guarantee up to 4 generated tokens, the request fits. If the product wants to guarantee up to 7 generated tokens, it does not fit.
+        This decision happens before any attention scores, FFN activations, or logits are computed.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Visible Prompt vs Actual Request</div>
+      <p>
+        In real systems, the text a user thinks they sent is often not the whole request the model sees.
+        A chat runtime may add a BOS token, role markers, separators, assistant-prefix tokens, or other control structure around the visible text.
+      </p>
+      <div class="toy-example" style="font-family: var(--font-mono); font-size: var(--text-sm); display: grid; gap: 6px;">
+        <div>visible user text = "Summarize this log"</div>
+        <div>actual request might look like:</div>
+        <div>[BOS] [SYSTEM] "You are concise." [USER] "Summarize this log" [ASSISTANT]</div>
+      </div>
+      <p>
+        The exact token pieces depend on the real tokenizer and chat template, but the systems lesson is stable:
+        <strong>budgeting based only on visible user text is often wrong.</strong>
+        Production token counts must include hidden formatting and control tokens as well as the text the user typed.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">One Table, Three Contracts</div>
+      <div class="toy-example">
+        <table style="width: 100%; border-collapse: collapse; font-size: var(--text-sm);">
+          <thead>
+            <tr style="border-bottom: var(--border-default);">
+              <th style="text-align: left; padding: var(--space-2); color: var(--ink-ghost); font-weight: 400; font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.08em;">Contract</th>
+              <th style="text-align: left; padding: var(--space-2); color: var(--ink-ghost); font-weight: 400; font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.08em;">What is fixed</th>
+              <th style="text-align: left; padding: var(--space-2); color: var(--ink-ghost); font-weight: 400; font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.08em;">What can vary per request or deployment</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr style="border-bottom: var(--border-subtle);">
+              <td style="padding: var(--space-2); font-family: var(--font-mono);">tokenization contract</td>
+              <td style="padding: var(--space-2); color: var(--ink-secondary);">the tokenizer vocabulary and merge rules</td>
+              <td style="padding: var(--space-2); color: var(--ink-secondary);">the input text that gets split</td>
+            </tr>
+            <tr style="border-bottom: var(--border-subtle);">
+              <td style="padding: var(--space-2); font-family: var(--font-mono);">ID contract</td>
+              <td style="padding: var(--space-2); color: var(--ink-secondary);">the mapping from token pieces to integer IDs</td>
+              <td style="padding: var(--space-2); color: var(--ink-secondary);">which specific IDs appear in this request</td>
+            </tr>
+            <tr>
+              <td style="padding: var(--space-2); font-family: var(--font-mono);">budget contract</td>
+              <td style="padding: var(--space-2); color: var(--ink-secondary);">the runtime context configured for this process</td>
+              <td style="padding: var(--space-2); color: var(--ink-secondary);">prompt length, reserved output, and truncation policy</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Code Reading Map</div>
+      <p>
+        If you want to see the three contracts in real code, use this map:
+      </p>
+      <div class="toy-example" style="display: grid; gap: var(--space-3);">
+        <div>
+          <div style="font-family: var(--font-mono); font-size: var(--text-xs); color: var(--ink-ghost); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: var(--space-1);">Tokenization</div>
+          <div style="font-size: var(--text-sm); color: var(--ink-secondary);">
+            Open <code>common/common.cpp</code> and look at <code>common_tokenize()</code>. What to notice: user-visible text is converted into a vector of token IDs before model evaluation begins.
+          </div>
+        </div>
+        <div>
+          <div style="font-family: var(--font-mono); font-size: var(--text-xs); color: var(--ink-ghost); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: var(--space-1);">Vocabulary / ID validity</div>
+          <div style="font-size: var(--text-sm); color: var(--ink-secondary);">
+            Open <code>src/llama-batch.cpp</code> and read <code>llama_batch_allocr::init()</code>. What to notice: the runtime validates that every token ID actually belongs to the vocabulary range.
+          </div>
+        </div>
+        <div>
+          <div style="font-family: var(--font-mono); font-size: var(--text-xs); color: var(--ink-ghost); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: var(--space-1);">Context budget</div>
+          <div style="font-size: var(--text-sm); color: var(--ink-secondary);">
+            Open <code>tools/completion/completion.cpp</code>. What to notice: the runtime tokenizes the prompt, compares prompt length against <code>n_ctx</code>, and refuses or trims requests that do not fit the configured budget.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">How to Measure with the Real Tokenizer</div>
+      <p>
+        The teaching widget in this module is for intuition, not for production counting. When you need the real number, measure with the exact tokenizer that ships with the model.
+      </p>
+      <div class="toy-example" style="display: grid; gap: var(--space-3);">
+        <div>
+          <div style="font-family: var(--font-mono); font-size: var(--text-xs); color: var(--ink-ghost); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: var(--space-1);">Concrete example</div>
+          <div style="font-size: var(--text-sm); color: var(--ink-secondary);">
+            Open <code>examples/simple/simple.cpp</code>. It first calls <code>llama_tokenize(..., NULL, 0, ...)</code> to ask how many tokens the prompt will require, then allocates exactly that much space and tokenizes again.
+          </div>
+        </div>
+        <div>
+          <div style="font-family: var(--font-mono); font-size: var(--text-xs); color: var(--ink-ghost); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: var(--space-1);">Operational rule</div>
+          <div style="font-size: var(--text-sm); color: var(--ink-secondary);">
+            If latency, context fit, or cost matters, never estimate from words and never trust a toy tokenizer. Run the real tokenizer against the real formatted prompt.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Worked Practice with Solutions</div>
+      <div style="display: grid; gap: var(--space-3);">
+        <WorkedSolution
+          title="Exercise 1"
+          prompt="A prompt tokenizes to 2,800 tokens. The runtime context is 4,096, and the product wants to reserve 512 tokens for the answer. Does the request fit?"
+          accent="var(--sem-token)"
+        >
+          <p>
+            Yes. The request fits because <code>2,800 + 512 = 3,312</code>, which is below the runtime budget of 4,096.
+            There are <code>4,096 - 3,312 = 784</code> tokens of slack left.
+          </p>
+          <p>
+            This is the production-style question you want to get used to asking: not "does the prompt fit?" but "does the prompt fit while preserving the answer budget we promised?"
+          </p>
+        </WorkedSolution>
+
+        <WorkedSolution
+          title="Exercise 2"
+          prompt="Why can't the runtime simply invent a new token ID for a novel string it has never seen before?"
+          accent="var(--sem-attention)"
+        >
+          <p>
+            Because the model's discrete interface is fixed. The embedding table only has learned rows for the vocabulary IDs that already exist, and the output head only produces logits over that same fixed ID set.
+          </p>
+          <p>
+            A brand-new runtime ID would have no trained embedding row, no learned meaning, and no matching output vocabulary entry. The tokenizer has to decompose novel strings into known pieces instead.
+          </p>
+        </WorkedSolution>
+
+        <WorkedSolution
+          title="Exercise 3"
+          prompt="Why are words the wrong unit for capacity planning?"
+          accent="var(--sem-kvcache)"
+        >
+          <p>
+            Because the runtime pays for tokenized sequence length, not for visual word count.
+            The same number of words can produce very different token counts depending on punctuation, whitespace, code fragments, Unicode, or unusual text.
+          </p>
+          <p>
+            This is why tokenization is the real front door to inference cost. Words are what users see; tokens are what the model budgets.
+          </p>
+        </WorkedSolution>
+
+        <WorkedSolution
+          title="Exercise 4"
+          prompt="A chat request has these real token counts after formatting: system prompt 180, user message 920, hidden role/control tokens 64, retrieved context 1,900, reserved answer budget 512. The runtime context is 4,096. Does the request fit, and how much slack remains?"
+          accent="var(--sem-logits)"
+        >
+          <p>
+            First compute the full budget, not just the visible user text:
+            <code>180 + 920 + 64 + 1,900 + 512 = 3,576</code>.
+          </p>
+          <p>
+            The request fits because <code>3,576 &lt; 4,096</code>. The slack is <code>4,096 - 3,576 = 520</code> tokens.
+          </p>
+          <p>
+            This is the production habit the module wants to teach: always count the formatted request, including hidden protocol tokens and reserved output budget, not just the text the user can see.
+          </p>
+        </WorkedSolution>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">What to Memorize vs What to Measure</div>
+      <div class="toy-example">
+        <div style="display: grid; gap: var(--space-3);">
+          <div>
+            <div style="font-family: var(--font-mono); font-size: var(--text-xs); color: var(--ink-ghost); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: var(--space-1);">Memorize</div>
+            <div style="font-size: var(--text-sm); color: var(--ink-secondary);">
+              text becomes token pieces, token pieces become IDs, IDs come from a fixed vocabulary, and prompt plus output share one runtime token budget.
+            </div>
+          </div>
+          <div>
+            <div style="font-family: var(--font-mono); font-size: var(--text-xs); color: var(--ink-ghost); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: var(--space-1);">Measure</div>
+            <div style="font-size: var(--text-sm); color: var(--ink-secondary);">
+              the exact token count of any real prompt, especially when chat formatting, system prompts, RAG context, or special tokens may add hidden overhead.
+            </div>
+          </div>
+          <div>
+            <div style="font-family: var(--font-mono); font-size: var(--text-xs); color: var(--ink-ghost); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: var(--space-1);">Do not assume</div>
+            <div style="font-size: var(--text-sm); color: var(--ink-secondary);">
+              that words predict token count, that visible user text equals the full request, or that a model's advertised context automatically matches the runtime budget of a deployed process.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">What Stayed Fixed, What Varied</div>
+      <div class="toy-example">
+        <table style="width: 100%; border-collapse: collapse; font-size: var(--text-sm);">
+          <thead>
+            <tr style="border-bottom: var(--border-default);">
+              <th style="text-align: left; padding: var(--space-2); color: var(--ink-ghost); font-weight: 400; font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.08em;">Aspect</th>
+              <th style="text-align: left; padding: var(--space-2); color: var(--ink-ghost); font-weight: 400; font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.08em;">Stable for a given model/runtime</th>
+              <th style="text-align: left; padding: var(--space-2); color: var(--ink-ghost); font-weight: 400; font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.08em;">Varies per request or deployment</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr style="border-bottom: var(--border-subtle);">
+              <td style="padding: var(--space-2); font-family: var(--font-mono);">tokenizer / vocabulary</td>
+              <td style="padding: var(--space-2); color: var(--ink-secondary);">piece-to-ID mapping, special-token meanings</td>
+              <td style="padding: var(--space-2); color: var(--ink-secondary);">which pieces and IDs appear in this prompt</td>
+            </tr>
+            <tr style="border-bottom: var(--border-subtle);">
+              <td style="padding: var(--space-2); font-family: var(--font-mono);">request formatting</td>
+              <td style="padding: var(--space-2); color: var(--ink-secondary);">chat template / protocol used by this runtime</td>
+              <td style="padding: var(--space-2); color: var(--ink-secondary);">actual system prompt, user content, retrieved context, hidden control tokens</td>
+            </tr>
+            <tr>
+              <td style="padding: var(--space-2); font-family: var(--font-mono);">context budget</td>
+              <td style="padding: var(--space-2); color: var(--ink-secondary);">configured n_ctx for this process</td>
+              <td style="padding: var(--space-2); color: var(--ink-secondary);">prompt length, reserved output, truncation or rejection outcome</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Bridge to Linear Algebra</div>
+      <p>
+        At the end of this module, the runtime has done three crucial things:
+      </p>
+      <div class="toy-example" style="font-family: var(--font-mono); font-size: var(--text-sm); display: grid; gap: 4px;">
+        <div>1. rewrote text as token pieces</div>
+        <div>2. rewrote token pieces as token IDs</div>
+        <div>3. checked that the ID sequence fits the deployed token budget</div>
+      </div>
+      <p>
+        The next module finally answers the natural next question: once the runtime has a valid token-ID sequence, how do those integers become vectors the model can compute on?
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Check Yourself</div>
+      <GatePanel
+        client:load
+        lessonId="L04A"
+        gateStrength="soft"
+        questions={[
+          {
+            id: 'L04A-q1',
+            type: 'single_choice',
+            prompt: 'What is the most accurate summary of the discrete-input stage?',
+            tag: 'conceptual',
+            choices: [
+              { id: 'a', text: 'The runtime turns text into token IDs and checks that the resulting sequence fits the configured token budget before model math begins', isCorrect: true },
+              { id: 'b', text: 'The runtime turns text directly into embeddings and then counts how many words were used', isCorrect: false },
+              { id: 'c', text: 'The runtime lets the model invent new token IDs if the prompt is unusual', isCorrect: false },
+            ],
+            explanation: 'The discrete-input stage is about converting text into a valid ID sequence from a fixed vocabulary and enforcing the runtime context budget.',
+          },
+          {
+            id: 'L04A-q2',
+            type: 'numeric',
+            prompt: 'A runtime has context 8,192 tokens. Your prompt tokenizes to 7,500 tokens. How many tokens remain for generation if you do no truncation?',
+            tag: 'math',
+            correctAnswer: '692',
+            explanation: 'The remaining budget is 8,192 - 7,500 = 692 tokens.',
+          },
+          {
+            id: 'L04A-q3',
+            type: 'single_choice',
+            prompt: 'Why is a tokenizer mismatch catastrophic rather than mildly inconvenient?',
+            tag: 'shape',
+            choices: [
+              { id: 'a', text: 'Because the model will immediately refuse to run whenever the wrong tokenizer is used', isCorrect: false },
+              { id: 'b', text: 'Because the wrong tokenizer changes the discrete ID sequence, so the embedding lookup and downstream computation start from the wrong symbols', isCorrect: true },
+              { id: 'c', text: 'Because it only affects the final detokenization step after generation', isCorrect: false },
+            ],
+            explanation: 'A tokenizer mismatch changes the IDs from the very start, which means the model is conditioning on the wrong discrete sequence before any transformer layer runs.',
+          },
+        ]}
+      />
+    </div>
+
+  </LessonPage>
+</BaseLayout>

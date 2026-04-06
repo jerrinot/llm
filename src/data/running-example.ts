@@ -33,7 +33,7 @@ export const runningExample = {
     'next_token_selection',
   ],
   revisitedInLessons: [
-    'L00', 'L01', 'L01A', 'L02', 'L03', 'L05', 'L06', 'L07', 'L08', 'L09', 'L10', 'L10A',
+    'L00', 'L01', 'L01A', 'L02', 'L03', 'L04', 'L04A', 'L05', 'L06', 'L07', 'L08', 'L09', 'L10', 'L10A',
     'L11', 'L12', 'L14', 'L17', 'L20', 'L27', 'L28', 'L29',
   ],
   primaryCodeAnchor: {
@@ -51,6 +51,7 @@ export const runningExampleFocus: Record<string, string> = {
   L02: 'tokenization_of_the_cat_sat',
   L03: 'token_ids_791_2368_3290',
   L04: 'token_count_vs_context_budget',
+  L04A: 'raw_text_to_ids_to_budget',
   L05: 'three_token_running_example_seed',
   L06: 'embedding_lookup_for_3_tokens',
   L07: 'dot_product_in_attention_preview',

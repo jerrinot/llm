@@ -1,0 +1,100 @@
+<div class="difd-wrap" aria-label="Discrete input flow diagram">
+  <div class="difd-stage difd-text">
+    <div class="difd-label">Raw Text</div>
+    <div class="difd-body">"The cat sat"</div>
+  </div>
+
+  <div class="difd-arrow">→</div>
+
+  <div class="difd-stage difd-tokens">
+    <div class="difd-label">Token Pieces</div>
+    <div class="difd-body">["The", " cat", " sat"]</div>
+  </div>
+
+  <div class="difd-arrow">→</div>
+
+  <div class="difd-stage difd-ids">
+    <div class="difd-label">Token IDs</div>
+    <div class="difd-body">[791, 2368, 3290]</div>
+  </div>
+
+  <div class="difd-arrow">→</div>
+
+  <div class="difd-stage difd-budget">
+    <div class="difd-label">Budget Check</div>
+    <div class="difd-body">n_prompt + n_generated ≤ L</div>
+  </div>
+</div>
+
+<style>
+  .difd-wrap {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(0, 1fr);
+    gap: var(--space-3);
+    align-items: stretch;
+    margin: var(--space-4) 0;
+  }
+
+  .difd-stage {
+    background: var(--surface-2);
+    border: var(--border-default);
+    border-radius: var(--radius-md);
+    padding: var(--space-4);
+    min-width: 0;
+    display: grid;
+    gap: var(--space-2);
+  }
+
+  .difd-label {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-ghost);
+  }
+
+  .difd-body {
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    line-height: var(--leading-relaxed);
+    color: var(--ink-primary);
+    overflow-wrap: anywhere;
+  }
+
+  .difd-arrow {
+    align-self: center;
+    font-family: var(--font-mono);
+    font-size: var(--text-base);
+    color: var(--ink-ghost);
+  }
+
+  .difd-text {
+    border-color: var(--ink-ghost);
+  }
+
+  .difd-tokens {
+    border-color: var(--sem-token-dim);
+    background: var(--sem-token-bg);
+  }
+
+  .difd-ids {
+    border-color: var(--sem-attention-dim);
+    background: var(--sem-attention-bg);
+  }
+
+  .difd-budget {
+    border-color: var(--sem-kvcache-dim);
+    background: var(--sem-kvcache-bg);
+  }
+
+  @media (max-width: 900px) {
+    .difd-wrap {
+      grid-template-columns: 1fr;
+    }
+
+    .difd-arrow {
+      justify-self: center;
+      transform: rotate(90deg);
+    }
+  }
+</style>

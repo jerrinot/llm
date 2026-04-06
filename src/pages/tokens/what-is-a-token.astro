@@ -5,6 +5,7 @@ import '../../styles/course.css';
 import LessonPage from '../../components/course/LessonPage';
 import GatePanel from '../../components/assessment/GatePanel';
 import TokenizerExplorer from '../../components/interactive/TokenizerExplorer';
+import WorkedSolution from '../../components/course/WorkedSolution.astro';
 ---
 
 <BaseLayout title="What Is a Token?">
@@ -42,6 +43,7 @@ import TokenizerExplorer from '../../components/interactive/TokenizerExplorer';
       <div class="section-label">Interactive — Tokenizer Explorer</div>
       <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-bottom: var(--space-3);">
         Type text below and see how it splits into tokens. Try prose, punctuation-heavy text, repeated spaces, and code-like inputs.
+        This widget is intentionally a teaching tokenizer, not the real tokenizer for any deployed model.
       </p>
       <TokenizerExplorer
         client:visible
@@ -186,18 +188,19 @@ import TokenizerExplorer from '../../components/interactive/TokenizerExplorer';
       <div class="section-label">Implementation Hook</div>
       <div class="impl-hook">
         <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
-          Real tokenizers use trained rules to decide how to split text — BPE uses learned merge operations, while other methods like unigram model a different objective.
-          In <code>llama.cpp</code>, tokenization is handled before the model graph runs.
-          The model never sees raw text — only integer token IDs.
+          If you want one concrete runtime anchor, open <code>common/common.cpp</code> and find <code>common_tokenize()</code>.
+          That helper is the bridge from user-visible text to <code>std::vector&lt;llama_token&gt;</code>. It calls into the vocabulary implementation and returns integers, not strings.
         </p>
         <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-top: var(--space-3);">
-          This is also why tokenizer mismatch is fatal. If you feed a model IDs from the wrong tokenizer, the embedding lookup is wrong from the very first token.
-          The model is not robust to that kind of input contract violation.
+          Then open <code>tools/completion/completion.cpp</code> and find the line <code>embd_inp = common_tokenize(ctx, prompt, true, true)</code>.
+          What to notice: tokenization is done before any model evaluation begins. Once that line runs, the rest of the runtime works with token IDs stored in <code>embd_inp</code>, not with the original text string.
         </p>
         <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-top: var(--space-3);">
-          Put differently: the tokenizer and the embedding table are a paired contract.
-          The tokenizer says which integer should represent each piece of text, and the embedding matrix says what vector that integer should fetch.
-          Break the mapping and the model is reading the wrong symbols before any transformer layer has a chance to help.
+          This is also why tokenizer mismatch is fatal. The tokenizer and the embedding table are a paired contract:
+          the embedding table is a preview of the very next module, where token IDs finally become vectors.
+          Even before you know that math, the systems point already matters:
+          the tokenizer decides which integer represents each piece of text, and the embedding table later decides which vector that integer fetches.
+          Break the mapping and the model is reading the wrong discrete symbols before any transformer layer has a chance to help.
         </p>
       </div>
     </div>
@@ -216,6 +219,39 @@ import TokenizerExplorer from '../../components/interactive/TokenizerExplorer';
           A useful rule of thumb is that tokenization is rarely the latency bottleneck, but it is often the hidden reason the bottleneck is larger than expected.
           Engineers usually profile the model kernels and forget that the input format determined how much work those kernels had to do.
         </p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Worked Practice with Solutions</div>
+      <div style="display: grid; gap: var(--space-3);">
+        <WorkedSolution
+          title="Exercise 1"
+          prompt="Why might `foo(bar)==42` consume more tokens than a plain-English sentence with a similar number of characters?"
+          accent="var(--sem-token)"
+        >
+          <p>
+            Because tokenizers are built from reusable text pieces, not from a perfect understanding of source code.
+            Natural-language phrases often contain common merges such as <code>" the"</code> or <code>"ing"</code>, while code mixes identifiers, punctuation, digits, and operators that fragment into smaller pieces more often.
+          </p>
+          <p>
+            The durable engineering habit is: do not estimate prompt cost from visual length. Measure with the exact tokenizer.
+          </p>
+        </WorkedSolution>
+
+        <WorkedSolution
+          title="Exercise 2"
+          prompt="Why is the sentence “the model never sees raw text” more than a slogan?"
+          accent="var(--sem-attention)"
+        >
+          <p>
+            Because the runtime really does cross a boundary. Before tokenization, the input is a character string.
+            After tokenization, the runtime works with integer token IDs. The model graph, embedding lookup, batching, and later decoding logic all operate on those IDs.
+          </p>
+          <p>
+            That means mistakes made at tokenization time are not cosmetic. They change the discrete sequence the whole model conditions on.
+          </p>
+        </WorkedSolution>
       </div>
     </div>
 
