@@ -17,7 +17,7 @@ import GatePanel from '../../components/assessment/GatePanel';
     <div class="lesson-section">
       <div class="section-label">Intuition</div>
       <p>
-        A transformer model is a stack of identical layers. Each layer takes in a set of hidden states — one vector per token — and produces updated hidden states.
+        A transformer model is a stack of identical layers. Each layer takes in a set of hidden states — one vector per token (the [n_tokens, d_model] matrix you have been building since M2) — and produces updated hidden states of the same shape.
       </p>
       <p>
         Inside each layer, two things happen:

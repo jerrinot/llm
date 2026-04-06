@@ -23,7 +23,7 @@ import GatePanel from '../../components/assessment/GatePanel';
         The <strong>matrix multiplications</strong> in the projections dominate. Attention projections, FFN projections, and the output head together account for the vast majority of compute. Normalization and elementwise operations (residual adds, activation functions) are comparatively cheap.
       </p>
       <p>
-        But the <em>mix</em> changes between <strong>prefill</strong> and <strong>decode</strong>. During prefill, the model processes many tokens at once, so all projections run as large matrix-matrix multiplies and attention score computation over the full prompt can also be significant. During decode, only one token is processed per step, so projections become matrix-vector multiplies and the attention score computation is much smaller per step. The relative cost of loading model weights from memory becomes more important in decode.
+        But the <em>mix</em> changes between <strong>prefill</strong> and <strong>decode</strong> (the two phases you learned in L27–L28). During prefill, the model processes many tokens at once, so all projections run as large matrix-matrix multiplies (GEMM) and attention score computation over the full prompt can also be significant. During decode, only one token is processed per step, so projections become matrix-vector multiplies (GEMV) and the attention score computation is much smaller per step. The relative cost of loading model weights from memory becomes more important in decode.
       </p>
     </div>
 

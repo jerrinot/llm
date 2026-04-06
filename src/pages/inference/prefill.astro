@@ -20,7 +20,7 @@ import GatePanel from '../../components/assessment/GatePanel';
         When you send a prompt to the model, all prompt tokens are known up front. The model does not need to generate them one at a time — it already has the full sequence. This lets the model process the entire prompt as one logical phase (which may be split into chunks, as you will learn in L30).
       </p>
       <p>
-        This phase is called <strong>prefill</strong>. Every prompt token flows through every layer: attention computes relationships between all prompt positions, and the FFN transforms each position. Because all tokens are available simultaneously, the computation is organized as large matrix multiplies — many rows processed at once.
+        This phase is called <strong>prefill</strong>. Every prompt token flows through every layer: attention computes relationships between all prompt positions, and the FFN transforms each position. Because all tokens are available simultaneously, the Q, K, V, and FFN projections are large matrix multiplies — the [n_tokens, d_model] &times; [d_model, d_out] pattern you learned in L08, but with n_tokens potentially in the thousands.
       </p>
       <p>
         Prefill is <strong>compute-bound</strong>. The GPU has big matrices to chew through, and the arithmetic units stay busy. Prefill produces key and value vectors (the KV cache, explained in L29) that will be reused during token-by-token generation (decode, explained in L28).
