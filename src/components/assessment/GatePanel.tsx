@@ -19,11 +19,12 @@ interface GateQuestion {
 interface Props {
   lessonId: string;
   gateStrength?: 'soft' | 'hard';
+  passThreshold?: number; // 0.0–1.0; default 1.0 (all correct)
   questions: GateQuestion[];
   children?: ReactNode;
 }
 
-export default function GatePanel({ lessonId, questions }: Props) {
+export default function GatePanel({ lessonId, gateStrength = 'soft', passThreshold = 1.0, questions }: Props) {
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [submitted, setSubmitted] = useState(false);
   const [showExplanations, setShowExplanations] = useState<Record<string, boolean>>({});
@@ -36,6 +37,9 @@ export default function GatePanel({ lessonId, questions }: Props) {
   }).length;
 
   const allCorrect = correctCount === questions.length;
+  const score = questions.length > 0 ? correctCount / questions.length : 1;
+  const passed = gateStrength === 'soft' || score >= passThreshold;
+  const thresholdPct = Math.round(passThreshold * 100);
 
   const handleSubmit = () => {
     setSubmitted(true);
@@ -43,10 +47,12 @@ export default function GatePanel({ lessonId, questions }: Props) {
     questions.forEach(q => { exps[q.id] = true; });
     setShowExplanations(exps);
 
-    setTimeout(() => {
-      const gatePass = (window as any).__gatePass;
-      if (typeof gatePass === 'function') gatePass();
-    }, 800);
+    if (passed) {
+      setTimeout(() => {
+        const gatePass = (window as any).__gatePass;
+        if (typeof gatePass === 'function') gatePass();
+      }, 800);
+    }
   };
 
   const handleRetry = () => {
@@ -130,14 +136,19 @@ export default function GatePanel({ lessonId, questions }: Props) {
           </button>
         ) : (
           <div className="gate-result-row">
-            <div className={allCorrect ? 'gate-passed' : 'gate-score'}>
+            <div className={passed ? 'gate-passed' : 'gate-score'}>
               {allCorrect ? (
                 <>
                   <span className="gate-passed-icon">&#x2713;</span>
                   All correct
                 </>
+              ) : passed ? (
+                <>
+                  <span className="gate-passed-icon">&#x2713;</span>
+                  {correctCount}/{questions.length} correct — passed
+                </>
               ) : (
-                <>{correctCount}/{questions.length} correct</>
+                <>{correctCount}/{questions.length} correct — need {thresholdPct}% to proceed</>
               )}
             </div>
             <button className="gate-retry-btn" onClick={handleRetry}>

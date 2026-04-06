@@ -12,7 +12,7 @@ import GatePanel from '../../components/assessment/GatePanel';
     <div class="lesson-section">
       <div class="section-label">Module 5 Quiz</div>
       <p>
-        This quiz covers all of Module 5: GQA/MQA, sliding-window attention, shared-KV layers, MoE routing, MoE aggregation, and heterogeneous architectures. You must pass all questions to proceed.
+        This quiz covers all of Module 5: GQA/MQA, sliding-window attention, shared-KV layers, MoE routing, MoE aggregation, and heterogeneous architectures. You need 80% or better to proceed.
       </p>
     </div>
 
@@ -22,6 +22,7 @@ import GatePanel from '../../components/assessment/GatePanel';
         client:load
         lessonId="Q-M5"
         gateStrength="hard"
+        passThreshold={0.8}
         questions={[
           {
             id: 'QM5-q1',

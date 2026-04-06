@@ -42,8 +42,24 @@ export function saveProgress(state: ProgressState): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
 
-export function isLessonUnlocked(_lessonId: string, _state: ProgressState): boolean {
-  return true;
+export function isLessonUnlocked(lessonId: string, state: ProgressState): boolean {
+  const lesson = lessons[lessonId];
+  if (!lesson) return false;
+
+  // Soft-gated lessons (M0–M3) are always accessible
+  if (lesson.gateStrength === 'soft') return true;
+
+  // Hard-gated lessons require all prerequisites to be completed
+  // (and quiz prerequisites to be in passedQuizzes)
+  return lesson.prerequisites.every(prereqId => {
+    const prereq = lessons[prereqId];
+    // Unknown prerequisite = locked (fail closed, not open)
+    if (!prereq) return false;
+    if (prereq.kind === 'quiz') {
+      return state.passedQuizzes.includes(prereqId);
+    }
+    return state.completedLessons.includes(prereqId);
+  });
 }
 
 export function completeLesson(lessonId: string, state: ProgressState): ProgressState {

@@ -12,7 +12,7 @@ import GatePanel from '../../components/assessment/GatePanel';
     <div class="lesson-section">
       <div class="section-label">Module 6 Quiz</div>
       <p>
-        This quiz covers the inference pipeline: prefill, decode, the KV cache, batching, continuous batching, and context scaling. All questions must be answered correctly to pass.
+        This quiz covers the inference pipeline: prefill, decode, the KV cache, batching, continuous batching, and context scaling. You need 80% or better to proceed.
       </p>
     </div>
 
@@ -22,6 +22,7 @@ import GatePanel from '../../components/assessment/GatePanel';
         client:load
         lessonId="Q-M6"
         gateStrength="hard"
+        passThreshold={0.8}
         questions={[
           {
             id: 'QM6-q1',

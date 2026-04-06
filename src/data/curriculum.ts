@@ -768,7 +768,7 @@ export const lessons: Record<string, Lesson> = {
 // Ordered list of all lesson IDs for the guided path
 export const guidedPath: string[] = [
   'L00', 'L01', 'L01A',
-  'L02', 'L03', 'L04',
+  'L02', 'L03', 'L04', 'L04A',
   'L05', 'L06', 'L07', 'L08', 'L09', 'L10', 'L10A',
   'L11', 'L12', 'L13',
   'L14', 'L15', 'L16', 'L16A', 'L17', 'L18', 'L18A', 'L19', 'L20', 'Q-M4',

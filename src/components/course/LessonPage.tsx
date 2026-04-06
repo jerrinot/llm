@@ -1,6 +1,6 @@
 import { useState, useEffect, type ReactNode } from 'react';
 import { lessons, getModuleForLesson, getNextLesson, getPrevLesson } from '../../data/curriculum';
-import { loadProgress, saveProgress, completeLesson } from '../../data/progress';
+import { loadProgress, saveProgress, completeLesson, passQuiz } from '../../data/progress';
 import ProgressRail from './ProgressRail';
 
 interface Props {
@@ -26,7 +26,12 @@ export default function LessonPage({ lessonId, children }: Props) {
   }, [lessonId]);
 
   const handleGatePass = () => {
-    const updated = completeLesson(lessonId, loadProgress());
+    const current = loadProgress();
+    let updated = completeLesson(lessonId, current);
+    // For quizzes, also record the quiz as passed
+    if (lesson?.kind === 'quiz') {
+      updated = passQuiz(lessonId, updated);
+    }
     saveProgress(updated);
     setProgress(updated);
   };
