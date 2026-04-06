@@ -34,8 +34,9 @@ import GatePanel from '../../components/assessment/GatePanel';
       </p>
       <p>
         Hard selection (top-1 routing) makes the choice discrete: one expert is fully on, the rest are fully off.
-        This has a gradient problem — the router logits for the second-best expert receive no gradient, because that
-        expert contributed nothing to the output. The model cannot learn to improve its routing decisions gradually.
+        This creates sparse training signals — non-selected experts' FFN weights receive no task-loss gradient because
+        they contributed nothing to the output. The router still receives gradient through the selected expert's gate,
+        but the signal is weaker than with top-2, making it harder to gradually improve routing decisions.
       </p>
       <p>
         Soft blending (top-k with weighted combination) makes the choice <em>almost</em> discrete but with smooth
