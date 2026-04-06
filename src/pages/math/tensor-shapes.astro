@@ -22,6 +22,9 @@ import GatePanel from '../../components/assessment/GatePanel';
       <p>
         If you can track shapes, you can follow the code. If you cannot, the code is opaque. Shape reasoning is the single most useful skill for reading model implementations.
       </p>
+      <p>
+        The practical trick is to narrate every axis in plain language. Do not just memorize <code>[32, 2048]</code>. Say: "32 tokens, each with 2048 features." That verbal translation is what makes code readable.
+      </p>
     </div>
 
     <div class="lesson-section">
@@ -41,6 +44,17 @@ import GatePanel from '../../components/assessment/GatePanel';
             <span style="min-width: 200px; color: var(--sem-token);">[d_model, d_out]</span>
             <span style="color: var(--ink-secondary);">A weight matrix — used in projections</span>
           </div>
+        </div>
+        <div style="border-top: var(--border-subtle); margin-top: var(--space-4); padding-top: var(--space-4);">
+          <p style="font-family: var(--font-mono); font-size: var(--text-xs); color: var(--ink-ghost); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: var(--space-2);">A tiny shape trace</p>
+          <div style="font-family: var(--font-mono); font-size: var(--text-sm); display: grid; gap: 4px;">
+            <div>3 token IDs &rarr; embedding lookup &rarr; hidden states [3, 4]</div>
+            <div>hidden [3, 4] &times; W_q [4, 2] &rarr; Q [3, 2]</div>
+            <div>Q [3, 2] and K [3, 2] &rarr; scores [3, 3]</div>
+          </div>
+          <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-top: var(--space-2);">
+            That is the real payoff of shape reasoning: you can follow a pipeline without knowing the actual numeric values.
+          </p>
         </div>
       </div>
     </div>
@@ -63,6 +77,12 @@ import GatePanel from '../../components/assessment/GatePanel';
         <li>The token axis tells you "how many tokens"</li>
         <li>The feature axis tells you "how rich is each token's representation"</li>
       </ul>
+      <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+        When in doubt, ask two questions:
+        1. which axis counts tokens?
+        2. which axis counts features or channels?
+        If you can answer both, you can usually keep reading.
+      </p>
     </div>
 
     <div class="lesson-section">
@@ -73,6 +93,9 @@ import GatePanel from '../../components/assessment/GatePanel';
           When you see a tensor being created or reshaped, reading the dimensions tells you exactly what data it holds.
           Real code may use transposed or permuted layouts — but the pedagogical shapes in this course always use [n_tokens, features].
         </p>
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-top: var(--space-3);">
+          The useful habit is: when a tensor is created, renamed, or reshaped, stop and restate what each axis now means. That is the fastest way to stop code from becoming a blur of operators.
+        </p>
       </div>
     </div>
 
@@ -81,6 +104,9 @@ import GatePanel from '../../components/assessment/GatePanel';
       <div class="perf-hook">
         <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
           Shapes determine compute cost. A [1024, 4096] &times; [4096, 4096] multiply is 4&times; more work than [256, 4096] &times; [4096, 4096]. When reasoning about performance, start with shapes.
+        </p>
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-top: var(--space-3);">
+          Shapes also explain why attention is special: projections scale linearly with token count, but score matrices scale with token-count squared because they compare token positions against one another.
         </p>
       </div>
     </div>
@@ -103,6 +129,18 @@ import GatePanel from '../../components/assessment/GatePanel';
               { id: 'c', text: 'Cannot tell without more context', isCorrect: false },
             ],
             explanation: 'In our convention, axis 0 is always the token/sequence axis and axis 1 is the feature axis. So 32 tokens, each with 2048 features.',
+          },
+          {
+            id: 'L10-q2',
+            type: 'single_choice',
+            prompt: 'If Q has shape [32, 64] and K has shape [32, 64], what is the attention score shape?',
+            tag: 'shape',
+            choices: [
+              { id: 'a', text: '[32, 64]', isCorrect: false },
+              { id: 'b', text: '[64, 64]', isCorrect: false },
+              { id: 'c', text: '[32, 32]', isCorrect: true },
+            ],
+            explanation: 'Q K^T compares every token position against every token position, so the result is [n_tokens, n_tokens] = [32, 32].',
           },
         ]}
       />

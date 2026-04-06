@@ -25,6 +25,9 @@ import GatePanel from '../../components/assessment/GatePanel';
       <p>
         In LLMs, vectors are used to represent many things. You will see them used for token representations and model weights throughout this course. The "dimension" of a vector is how many numbers it contains. When someone says "the model has dimension 2048," they mean each hidden-state vector has 2,048 numbers.
       </p>
+      <p>
+        The important jump is this: a token is no longer "the word cat." Inside the model, it becomes a vector with hundreds or thousands of coordinates. Each coordinate is just a number, but together they form the representation the rest of the network can transform.
+      </p>
     </div>
 
     <div class="lesson-section">
@@ -54,6 +57,16 @@ import GatePanel from '../../components/assessment/GatePanel';
             [0.5, -1.2, 3.0, 0.8] &times; 2 = [1.0, -2.4, 6.0, 1.6]
           </div>
         </div>
+
+        <div style="border-top: var(--border-subtle); margin-top: var(--space-4); padding-top: var(--space-4);">
+          <p style="font-family: var(--font-mono); font-size: var(--text-xs); color: var(--ink-ghost); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: var(--space-2);">Why order matters</p>
+          <div style="font-family: var(--font-mono); font-size: var(--text-sm); color: var(--ink-secondary);">
+            [1, 2, 3] &#x2260; [3, 2, 1]
+          </div>
+          <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-top: var(--space-2);">
+            Same numbers, different positions, different vector. Later, every projection and dot product depends on those positions lining up correctly.
+          </p>
+        </div>
       </div>
     </div>
 
@@ -63,6 +76,7 @@ import GatePanel from '../../components/assessment/GatePanel';
         <div>Scalar: a single number (no dimensions)</div>
         <div>Vector of dimension d: [d] &nbsp; <span style="color: var(--ink-tertiary);">e.g. [4] means 4 numbers</span></div>
         <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">Indexing: v[0], v[1], ..., v[d-1] (zero-indexed)</div>
+        <div style="margin-top: var(--space-2);">Sequence of token vectors: [n_tokens, d_model] &nbsp; <span style="color: var(--ink-tertiary);">many vectors stacked into a matrix</span></div>
       </div>
     </div>
 
@@ -77,6 +91,9 @@ import GatePanel from '../../components/assessment/GatePanel';
         An elementwise operation applies the same function to every element independently:
         if <code>v = [a, b, c]</code>, then <code>2v = [2a, 2b, 2c]</code>.
       </p>
+      <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+        This is the last page where a vector lives by itself. In the next lessons, many vectors will be stacked into matrices so the model can process whole token sequences at once.
+      </p>
     </div>
 
     <div class="lesson-section">
@@ -86,6 +103,9 @@ import GatePanel from '../../components/assessment/GatePanel';
           In model code, vectors are stored as contiguous arrays of floating-point numbers.
           The dimension (e.g., <code>d_model = 2048</code>) is a model hyperparameter.
           Every token in the model is represented as a vector of this size.
+        </p>
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-top: var(--space-3);">
+          When you later see a tensor shaped <code>[n_tokens, d_model]</code>, read it as "one vector per token." That single reading habit will unlock a large fraction of model code.
         </p>
       </div>
     </div>
@@ -97,6 +117,9 @@ import GatePanel from '../../components/assessment/GatePanel';
           Vector dimension directly affects memory and compute.
           A model with <code>d_model = 4096</code> stores twice as many numbers per token as one with <code>d_model = 2048</code>.
           This scales through every layer of the model.
+        </p>
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-top: var(--space-3);">
+          Bigger vectors do not just mean "more capacity." They also mean wider projections, larger KV caches, and more bytes moved through every layer.
         </p>
       </div>
     </div>
@@ -131,6 +154,18 @@ import GatePanel from '../../components/assessment/GatePanel';
               { id: 'c', text: 'Neither', isCorrect: false },
             ],
             explanation: 'A single number is a scalar. While technically a 1D vector exists, in LLM context we distinguish scalars from vectors explicitly.',
+          },
+          {
+            id: 'L05-q3',
+            type: 'single_choice',
+            prompt: 'Why are [1, 2, 3] and [3, 2, 1] different vectors?',
+            tag: 'conceptual',
+            choices: [
+              { id: 'a', text: 'Because vectors are ordered; position carries meaning', isCorrect: true },
+              { id: 'b', text: 'Because one has larger numbers overall', isCorrect: false },
+              { id: 'c', text: 'They are the same vector written differently', isCorrect: false },
+            ],
+            explanation: 'Vectors are ordered lists. Changing the order changes which coordinate holds which value, so later operations will behave differently.',
           },
         ]}
       />

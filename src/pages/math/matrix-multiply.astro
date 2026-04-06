@@ -4,6 +4,7 @@ import '../../styles/global.css';
 import '../../styles/course.css';
 import LessonPage from '../../components/course/LessonPage';
 import GatePanel from '../../components/assessment/GatePanel';
+import MatrixMultiplyBuilder from '../../components/interactive/MatrixMultiplyBuilder';
 ---
 
 <BaseLayout title="Matrix Multiplication Without Fear">
@@ -23,6 +24,9 @@ import GatePanel from '../../components/assessment/GatePanel';
       </p>
       <p>
         The one rule: the inner dimensions must match. If A is [m, <strong>k</strong>] and B is [<strong>k</strong>, n], the result is [m, n]. If the inner <em>k</em>'s don't match, the multiply is invalid.
+      </p>
+      <p>
+        A useful way to think about it: each row of A is one input item, and each column of B is one output feature. Matrix multiplication asks, for every input row and every output feature, "how strongly do these line up?"
       </p>
     </div>
 
@@ -72,7 +76,17 @@ import GatePanel from '../../components/assessment/GatePanel';
         <p style="font-size: var(--text-xs); color: var(--ink-tertiary); margin-top: var(--space-3); font-family: var(--font-mono);">
           C[0,0] = 1&times;7 + 2&times;9 + 3&times;11 = 7 + 18 + 33 = 58
         </p>
+        <div style="font-size: var(--text-xs); color: var(--ink-tertiary); margin-top: var(--space-2); font-family: var(--font-mono); display: grid; gap: 4px;">
+          <div>C[0,1] = 1&times;8 + 2&times;10 + 3&times;12 = 8 + 20 + 36 = 64</div>
+          <div>C[1,0] = 4&times;7 + 5&times;9 + 6&times;11 = 28 + 45 + 66 = 139</div>
+          <div>C[1,1] = 4&times;8 + 5&times;10 + 6&times;12 = 32 + 50 + 72 = 154</div>
+        </div>
       </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Try It</div>
+      <MatrixMultiplyBuilder client:visible />
     </div>
 
     <div class="lesson-section">
@@ -90,6 +104,9 @@ import GatePanel from '../../components/assessment/GatePanel';
         <div style="color: var(--sem-token);">C[i,j] = &sum;&#x2096; A[i,k] &times; B[k,j]</div>
         <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">Each output entry is one dot product.</div>
       </div>
+      <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+        So matrix multiplication is not mysterious new math. It is a scheduling pattern for many dot products. The outer grid tells you how many results you need. The inner dimension tells you how much work each result costs.
+      </p>
     </div>
 
     <div class="lesson-section">
@@ -100,6 +117,9 @@ import GatePanel from '../../components/assessment/GatePanel';
           In <code>llama.cpp</code>, the <code>ggml_mul_mat</code> function performs this operation.
           The model's core operations — projections and transformations you will learn about in later modules — are all matrix multiplies.
         </p>
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-top: var(--space-3);">
+          When you later read code like hidden states multiplied by <code>W_q</code> or <code>W_up</code>, mentally translate it into: "many row-column dot products happening in parallel."
+        </p>
       </div>
     </div>
 
@@ -109,6 +129,9 @@ import GatePanel from '../../components/assessment/GatePanel';
         <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
           Multiplying [m, k] by [k, n] requires m &times; k &times; n multiply-add operations.
           This is why matrix multiply dominates inference compute — the shapes are large and the operation runs for every layer.
+        </p>
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-top: var(--space-3);">
+          It is also one of the operations hardware handles best, because the same rows and columns get reused many times. This is why GEMM kernels are so heavily optimized.
         </p>
       </div>
     </div>
@@ -143,6 +166,18 @@ import GatePanel from '../../components/assessment/GatePanel';
               { id: 'c', text: 'Yes, result is [2, 3]', isCorrect: false },
             ],
             explanation: 'Inner dimensions must match. 4 ≠ 3, so this multiplication is invalid.',
+          },
+          {
+            id: 'L08-q3',
+            type: 'single_choice',
+            prompt: 'What does one output cell C[i,j] represent?',
+            tag: 'conceptual',
+            choices: [
+              { id: 'a', text: 'The dot product of row i from A and column j from B', isCorrect: true },
+              { id: 'b', text: 'The sum of row i from A and row j from B', isCorrect: false },
+              { id: 'c', text: 'A copy of the matching value from A', isCorrect: false },
+            ],
+            explanation: 'Each output cell is one row-column dot product. That is the core mechanic of matrix multiplication.',
           },
         ]}
       />

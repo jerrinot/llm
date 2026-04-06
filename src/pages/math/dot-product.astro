@@ -4,6 +4,7 @@ import '../../styles/global.css';
 import '../../styles/course.css';
 import LessonPage from '../../components/course/LessonPage';
 import GatePanel from '../../components/assessment/GatePanel';
+import DotProductPlayground from '../../components/interactive/DotProductPlayground';
 ---
 
 <BaseLayout title="Dot Product as Weighted Comparison">
@@ -24,6 +25,11 @@ import GatePanel from '../../components/assessment/GatePanel';
         The result tells you something about how similar or aligned the two vectors are.
         If both vectors have large positive values in the same positions, the dot product is large and positive.
         If they point in opposite directions, it is negative.
+      </p>
+      <p>
+        One subtlety matters later: a raw dot product mixes <em>alignment</em> and <em>magnitude</em>.
+        Two very large vectors can have a bigger dot product than two smaller but similarly oriented vectors.
+        This is why later lessons will care about scaling and normalization.
       </p>
       <p>
         In later modules, you will see that the dot product is central to how the model compares tokens and transforms representations. Understanding this operation is essential.
@@ -56,7 +62,23 @@ import GatePanel from '../../components/assessment/GatePanel';
         <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-top: var(--space-3);">
           Result: <strong>3</strong>. A positive number — the vectors are somewhat aligned.
         </p>
+        <div style="border-top: var(--border-subtle); margin-top: var(--space-4); padding-top: var(--space-4);">
+          <p style="font-family: var(--font-mono); font-size: var(--text-xs); color: var(--ink-ghost); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: var(--space-2);">Magnitude matters too</p>
+          <div style="font-family: var(--font-mono); font-size: var(--text-sm); color: var(--ink-secondary);">
+            [1, 1] &middot; [1, 1] = 2
+            <br />
+            [10, 10] &middot; [1, 1] = 20
+          </div>
+          <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-top: var(--space-2);">
+            Both pairs point in roughly the same direction, but the larger vector produces a larger score. Keep that in mind when attention later scales scores by <code>&radic;d</code>.
+          </p>
+        </div>
       </div>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Try It</div>
+      <DotProductPlayground client:visible />
     </div>
 
     <div class="lesson-section">
@@ -75,6 +97,9 @@ import GatePanel from '../../components/assessment/GatePanel';
       <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
         Multiply each pair, sum the results. Both vectors must have the same dimension.
       </p>
+      <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+        You can think of the final score as a ledger of contributions. Every coordinate votes for or against the final result. Coordinates where both vectors are large and same-signed dominate the sum.
+      </p>
     </div>
 
     <div class="lesson-section">
@@ -82,6 +107,9 @@ import GatePanel from '../../components/assessment/GatePanel';
       <div class="impl-hook">
         <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
           The dot product is the primitive behind matrix multiplication. In <code>llama.cpp</code>, many core model operations are built from dot products. The <code>ggml_mul_mat</code> operation performs many dot products at once.
+        </p>
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-top: var(--space-3);">
+          In other words: once you understand one dot product, you already understand the inner loop of a huge amount of model code. The next page scales that idea up to full matrix multiplication.
         </p>
       </div>
     </div>
@@ -92,6 +120,9 @@ import GatePanel from '../../components/assessment/GatePanel';
         <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
           A dot product of dimension <em>d</em> requires <em>d</em> multiplications and <em>d-1</em> additions.
           In attention, every token pair requires a dot product. This is why attention cost grows with both sequence length and model dimension.
+        </p>
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-top: var(--space-3);">
+          For one token pair this is tiny. For 1,024 tokens, the model needs over a million pairwise scores in one attention head. That is why such a simple primitive becomes a real runtime cost.
         </p>
       </div>
     </div>
@@ -125,7 +156,19 @@ import GatePanel from '../../components/assessment/GatePanel';
               { id: 'b', text: 'Because it is the fastest operation on GPUs', isCorrect: false },
               { id: 'c', text: 'Because it was invented for transformers', isCorrect: false },
             ],
-            explanation: 'Attention uses dot products to compute how much one token should attend to another. Higher dot product = more similar = more attention.',
+            explanation: 'Attention uses dot products to compare queries and keys. A larger score usually means stronger alignment, but the raw value is also affected by vector magnitude, which is why later lessons introduce scaling.',
+          },
+          {
+            id: 'L07-q3',
+            type: 'single_choice',
+            prompt: 'Which statement about a raw dot product is most accurate?',
+            tag: 'conceptual',
+            choices: [
+              { id: 'a', text: 'It depends on both alignment and magnitude', isCorrect: true },
+              { id: 'b', text: 'It measures angle only', isCorrect: false },
+              { id: 'c', text: 'It ignores large coordinates if the vectors are aligned', isCorrect: false },
+            ],
+            explanation: 'A raw dot product grows when vectors align, but it also grows when the coordinates themselves get larger.',
           },
         ]}
       />

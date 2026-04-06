@@ -25,6 +25,9 @@ import GatePanel from '../../components/assessment/GatePanel';
       <p>
         After embedding, a sequence of <em>n</em> tokens becomes a matrix: <em>n</em> rows, each with <code>d_model</code> columns. This is the model's actual input.
       </p>
+      <p>
+        The token ID itself does not carry useful geometry. ID <code>791</code> is not "bigger" or "closer" to ID <code>792</code> in any meaningful way. The embedding table gives each token a learned position in a high-dimensional space the model can actually use.
+      </p>
     </div>
 
     <div class="lesson-section">
@@ -51,6 +54,9 @@ import GatePanel from '../../components/assessment/GatePanel';
         <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-top: var(--space-3);">
           Three integers in, three vectors out. Stacked together, they form a [3, 4] matrix.
         </p>
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-top: var(--space-2);">
+          If the same token ID appears twice, the same row is looked up twice. The embedding table is shared across the whole sequence.
+        </p>
       </div>
     </div>
 
@@ -60,6 +66,7 @@ import GatePanel from '../../components/assessment/GatePanel';
         <div>Embedding table: [|V|, d_model] &nbsp; <span style="color: var(--ink-tertiary);">one row per vocab entry</span></div>
         <div>Token IDs: [n_tokens] &nbsp; <span style="color: var(--ink-tertiary);">integers</span></div>
         <div style="color: var(--sem-token); margin-top: var(--space-2);">After embedding: [n_tokens, d_model] &nbsp; <span style="color: var(--ink-tertiary);">the sequence matrix</span></div>
+        <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">Repeated token IDs → repeated rows in the output matrix.</div>
       </div>
     </div>
 
@@ -70,6 +77,9 @@ import GatePanel from '../../components/assessment/GatePanel';
         <div style="color: var(--sem-token);">X = embedding_table[token_ids]</div>
         <div style="color: var(--ink-tertiary); margin-top: var(--space-2);">X has shape [n_tokens, d_model]</div>
       </div>
+      <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
+        Read that expression literally: "take the list of token IDs, and use them to index rows from the embedding table." This is why embedding is a lookup, not a weighted computation.
+      </p>
     </div>
 
     <div class="lesson-section">
@@ -77,6 +87,9 @@ import GatePanel from '../../components/assessment/GatePanel';
       <div class="impl-hook">
         <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
           The embedding table is a learned weight matrix stored in the model file. In <code>llama.cpp</code>, this is the first operation after tokenization. The table is loaded once and used for every token lookup.
+        </p>
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-top: var(--space-3);">
+          This is the first place where symbolic input becomes numeric state. From here onward, the model only sees floating-point tensors, never strings.
         </p>
       </div>
     </div>
@@ -86,6 +99,9 @@ import GatePanel from '../../components/assessment/GatePanel';
       <div class="perf-hook">
         <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
           The embedding table size is <code>|V| &times; d_model</code> floats. For a 128K vocabulary with d_model=4096, that is 500M+ numbers. This table must fit in memory. The lookup itself is fast — the cost is in storing it.
+        </p>
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-top: var(--space-3);">
+          This is an important systems pattern: the embedding lookup is not compute-heavy like matrix multiply. It is more about memory footprint and memory access.
         </p>
       </div>
     </div>
@@ -108,6 +124,18 @@ import GatePanel from '../../components/assessment/GatePanel';
               { id: 'c', text: '[5]', isCorrect: false },
             ],
             explanation: '5 tokens, each becoming a vector of 768 numbers → shape [5, 768]. The token axis comes first.',
+          },
+          {
+            id: 'L06-q2',
+            type: 'single_choice',
+            prompt: 'If the same token ID appears twice in a prompt, what happens at the embedding step?',
+            tag: 'conceptual',
+            choices: [
+              { id: 'a', text: 'The model looks up the same embedding row twice', isCorrect: true },
+              { id: 'b', text: 'The second copy is ignored to save compute', isCorrect: false },
+              { id: 'c', text: 'The token gets a different vector the second time', isCorrect: false },
+            ],
+            explanation: 'Embedding is a table lookup. The same token ID maps to the same row every time it appears.',
           },
         ]}
       />
