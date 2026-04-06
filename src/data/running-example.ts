@@ -34,7 +34,7 @@ export const runningExample = {
   ],
   revisitedInLessons: [
     'L00', 'L01', 'L01A', 'L02', 'L03', 'L04', 'L04A', 'L05', 'L06', 'L07', 'L08', 'L09', 'L10', 'L10A',
-    'L11', 'L12', 'L14', 'L17', 'L20', 'L27', 'L28', 'L29',
+    'L11', 'L12', 'L13A', 'L14', 'L17', 'L20', 'L27', 'L28', 'L29',
   ],
   primaryCodeAnchor: {
     repository: 'ggml-org/llama.cpp',
@@ -62,6 +62,7 @@ export const runningExampleFocus: Record<string, string> = {
   L11: 'logits_for_next_token_after_sat',
   L12: 'softmax_of_logits',
   L13: 'argmax_selects_on',
+  L13A: 'full_foundations_recap_text_to_next_token',
   L14: 'one_layer_transforms_3_hidden_states',
   L15: 'residual_around_attention_and_ffn',
   L16: 'qkv_projections_for_3_tokens',
