@@ -190,8 +190,8 @@ import GatePanel from '../../components/assessment/GatePanel';
         <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
           The perplexity tool runs the model on a reference dataset and reports the PPL score. If an optimization changes the PPL beyond tolerance, it is flagged. The repack code in the CPU backend handles weight layout transformations &mdash; this is exactly the kind of code where subtle stride or alignment bugs cause regressions.
         </p>
-        <div class="file-path">tools/perplexity/perplexity.cpp</div>
-        <div class="file-path">ggml/src/ggml-cpu/repack.cpp</div>
+        <div class="file-path"><a href="https://github.com/ggml-org/llama.cpp/blob/94ca829b6001019622c0f67fcd48e9ec6bd7dce8/tools/perplexity/perplexity.cpp#L2007" target="_blank" rel="noopener">tools/perplexity/perplexity.cpp — main() (L2007)</a></div>
+        <div class="file-path"><a href="https://github.com/ggml-org/llama.cpp/blob/94ca829b6001019622c0f67fcd48e9ec6bd7dce8/ggml/src/ggml-cpu/repack.cpp" target="_blank" rel="noopener">ggml/src/ggml-cpu/repack.cpp</a></div>
       </div>
     </div>
 

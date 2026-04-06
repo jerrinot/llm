@@ -202,7 +202,7 @@ import GatePanel from '../../components/assessment/GatePanel';
         <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
           In <code>llama.cpp</code>, each model architecture (e.g. <code>src/models/gemma.cpp</code>) implements a <code>build_graph()</code> function that loops over layers. Inside each iteration, it calls <code>build_norm()</code>, <code>build_attn()</code>, adds the residual, calls <code>build_norm()</code> again, <code>build_ffn()</code>, and adds the second residual. The pattern matches the pseudocode above almost line for line.
         </p>
-        <div class="file-path">src/models/gemma.cpp</div>
+        <div class="file-path"><a href="https://github.com/ggml-org/llama.cpp/blob/94ca829b6001019622c0f67fcd48e9ec6bd7dce8/src/models/gemma.cpp#L22" target="_blank" rel="noopener">src/models/gemma.cpp — layer loop (L22)</a></div>
       </div>
     </div>
 

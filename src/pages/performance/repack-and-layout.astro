@@ -113,7 +113,7 @@ import GatePanel from '../../components/assessment/GatePanel';
         <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
           In <code>llama.cpp</code>, the CPU backend repacks weight tensors at model load time. The repack logic transforms weights into layouts optimized for specific SIMD instruction sets (e.g., ARM NEON, x86 AVX). The kernel then reads the repacked weights in sequential memory order, maximizing cache line utilization.
         </p>
-        <div class="file-path">ggml/src/ggml-cpu/repack.cpp</div>
+        <div class="file-path"><a href="https://github.com/ggml-org/llama.cpp/blob/94ca829b6001019622c0f67fcd48e9ec6bd7dce8/ggml/src/ggml-cpu/repack.cpp" target="_blank" rel="noopener">ggml/src/ggml-cpu/repack.cpp</a></div>
       </div>
     </div>
 

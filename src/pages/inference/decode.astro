@@ -128,7 +128,7 @@ import GatePanel from '../../components/assessment/GatePanel';
         <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
           In <code>llama.cpp</code>, decode calls the same <code>llama_decode()</code> function as prefill, but with a batch of size 1. The computation graph is identical — what changes is the shape of the input tensors. Different backends may select different kernels for the small matrix sizes typical of decode.
         </p>
-        <div class="file-path">src/llama-context.cpp &mdash; llama_decode() with single-token batch</div>
+        <div class="file-path"><a href="https://github.com/ggml-org/llama.cpp/blob/94ca829b6001019622c0f67fcd48e9ec6bd7dce8/src/llama-context.cpp#L3432" target="_blank" rel="noopener">src/llama-context.cpp — llama_decode() (L3432)</a></div>
       </div>
     </div>
 

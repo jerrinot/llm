@@ -126,7 +126,7 @@ if (is_moe_layer) {
 }</code>`} />
       </div>
       <p style="font-size: var(--text-xs); color: var(--ink-ghost); margin-top: var(--space-2);">
-        Source: ggml-org/llama.cpp @ <code>941146b3</code> &mdash; <code>src/models/gemma4-iswa.cpp</code> (simplified for clarity)
+        Source: ggml-org/llama.cpp @ <code>94ca829b</code> &mdash; <code>src/models/gemma4-iswa.cpp</code> (simplified for clarity)
       </p>
       <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-top: var(--space-3);">
         The shared expert (<code>cur_mlp</code>) is a standard FFN that always runs. The routed experts (<code>cur_moe</code>) are selected per-token by the router. Both results are added together. This "shared + routed" pattern means every token gets a baseline FFN result even if the router makes a poor selection.
@@ -139,8 +139,8 @@ if (is_moe_layer) {
         <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
           The <code>build_moe_ffn()</code> helper in <code>src/llama-graph.cpp</code> handles the full routing loop: softmax over router logits, top-k selection, running each selected expert's FFN, and weighted combination. The model builder passes in the router weights and expert weight tensors; the helper handles the mechanics.
         </p>
-        <div class="file-path">src/models/gemma4-iswa.cpp</div>
-        <div class="file-path">src/llama-graph.cpp &mdash; build_moe_ffn()</div>
+        <div class="file-path"><a href="https://github.com/ggml-org/llama.cpp/blob/94ca829b6001019622c0f67fcd48e9ec6bd7dce8/src/models/gemma4-iswa.cpp#L30" target="_blank" rel="noopener">src/models/gemma4-iswa.cpp — layer loop (L30)</a></div>
+        <div class="file-path"><a href="https://github.com/ggml-org/llama.cpp/blob/94ca829b6001019622c0f67fcd48e9ec6bd7dce8/src/llama-graph.cpp#L1210" target="_blank" rel="noopener">src/llama-graph.cpp — build_moe_ffn()</a></div>
       </div>
     </div>
 

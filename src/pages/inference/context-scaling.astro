@@ -95,7 +95,7 @@ import GatePanel from '../../components/assessment/GatePanel';
         <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
           In <code>llama.cpp</code>, the context size is set with <code>-c</code>. Flash attention (<code>-fa</code>) reduces the memory footprint of attention by not materializing the full [n, n] score matrix, but the compute still scales quadratically. Chunked prefill (controlled by ubatch size) helps manage peak memory when processing very long prompts.
         </p>
-        <div class="file-path">common/arg.cpp &mdash; -c (context size), -fa (flash attention)</div>
+        <div class="file-path"><a href="https://github.com/ggml-org/llama.cpp/blob/94ca829b6001019622c0f67fcd48e9ec6bd7dce8/common/arg.cpp" target="_blank" rel="noopener">common/arg.cpp — context size and flash attention flags</a></div>
       </div>
     </div>
 

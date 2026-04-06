@@ -121,12 +121,12 @@ import GatePanel from '../../components/assessment/GatePanel';
         <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
           In <code>llama.cpp</code>, the autoregressive loop lives in the runtime tools, not inside the model builder itself.
         </p>
-        <div class="file-path">tools/cli/cli.cpp</div>
+        <div class="file-path"><a href="https://github.com/ggml-org/llama.cpp/blob/94ca829b6001019622c0f67fcd48e9ec6bd7dce8/tools/cli/cli.cpp" target="_blank" rel="noopener">tools/cli/cli.cpp</a></div>
         <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-top: var(--space-2);">
           What to notice later: this is where a user-facing generation loop lives. The runtime repeatedly evaluates the model, applies sampling settings,
           and appends new tokens.
         </p>
-        <div class="file-path" style="margin-top: var(--space-3);">src/llama-graph.cpp</div>
+        <div class="file-path"><a href="https://github.com/ggml-org/llama.cpp/blob/94ca829b6001019622c0f67fcd48e9ec6bd7dce8/src/llama-graph.cpp" target="_blank" rel="noopener">src/llama-graph.cpp</a></div>
         <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-top: var(--space-2);">
           What to notice later: this file builds the model computation itself. It produces the hidden states and logits, but it is not the whole
           outer request loop.

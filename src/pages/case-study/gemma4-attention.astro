@@ -114,7 +114,7 @@ import GatePanel from '../../components/assessment/GatePanel';
 }</code>`} />
       </div>
       <p style="font-size: var(--text-xs); color: var(--ink-ghost); margin-top: var(--space-2);">
-        Source: ggml-org/llama.cpp @ <code>941146b3</code> &mdash; <code>src/models/gemma4-iswa.cpp</code>
+        Source: ggml-org/llama.cpp @ <code>94ca829b</code> &mdash; <code>src/models/gemma4-iswa.cpp</code>
       </p>
       <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-top: var(--space-3);">
         The key difference: when <code>has_kv(il)</code> is true, the layer computes its own K and V from the hidden state and writes them to a cache. When false, K and V are <code>nullptr</code> &mdash; the <code>build_attn</code> helper reads K/V from a shared cache written by an earlier layer. The Q projection always runs; only K/V are conditionally shared.
@@ -127,7 +127,7 @@ import GatePanel from '../../components/assessment/GatePanel';
         <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
           The <code>build_attn_inp_kv_iswa()</code> call sets up the KV cache infrastructure that makes shared layers work. SWA layers and full-attention layers use different attention masks (windowed vs. causal), but the <code>build_attn()</code> call itself is identical &mdash; the infrastructure handles the difference.
         </p>
-        <div class="file-path">src/models/gemma4-iswa.cpp</div>
+        <div class="file-path"><a href="https://github.com/ggml-org/llama.cpp/blob/94ca829b6001019622c0f67fcd48e9ec6bd7dce8/src/models/gemma4-iswa.cpp#L30" target="_blank" rel="noopener">src/models/gemma4-iswa.cpp — layer loop (L30)</a></div>
       </div>
     </div>
 

@@ -144,12 +144,12 @@ import GatePanel from '../../components/assessment/GatePanel';
         <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-bottom: var(--space-2);">
           The model code you will eventually read lives in <code>llama.cpp</code>. Specifically:
         </p>
-        <div class="file-path">src/models/gemma.cpp</div>
+        <div class="file-path"><a href="https://github.com/ggml-org/llama.cpp/blob/94ca829b6001019622c0f67fcd48e9ec6bd7dce8/src/models/gemma.cpp#L22" target="_blank" rel="noopener">src/models/gemma.cpp — layer loop (L22)</a></div>
         <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-top: var(--space-2);">
           What to notice later: this file wires together one full model architecture out of repeated layer-building patterns. It is where the abstract
           idea of "a decoder model" becomes a concrete graph.
         </p>
-        <div class="file-path" style="margin-top: var(--space-3);">src/llama-graph.cpp</div>
+        <div class="file-path"><a href="https://github.com/ggml-org/llama.cpp/blob/94ca829b6001019622c0f67fcd48e9ec6bd7dce8/src/llama-graph.cpp" target="_blank" rel="noopener">src/llama-graph.cpp</a></div>
         <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-top: var(--space-2);">
           What to notice later: this file contains the reusable graph-building helpers that implement the major model stages. You do not need to
           understand them yet. The important thing is to know that the machinery we are describing does exist in concrete code.

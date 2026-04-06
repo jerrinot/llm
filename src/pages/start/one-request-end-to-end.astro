@@ -134,7 +134,7 @@ import PipelineStepper from '../../components/interactive/PipelineStepper';
         <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-bottom: var(--space-2);">
           This pipeline is not abstract. Here is where it lives in real code:
         </p>
-        <div class="file-path">src/llama-graph.cpp</div>
+        <div class="file-path"><a href="https://github.com/ggml-org/llama.cpp/blob/94ca829b6001019622c0f67fcd48e9ec6bd7dce8/src/llama-graph.cpp" target="_blank" rel="noopener">src/llama-graph.cpp</a></div>
         <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-top: var(--space-2); margin-bottom: var(--space-3);">
           What to notice later: this file builds the model stages themselves. It is the graph-builder view of the pipeline.
           The helpers correspond to major parts of the model:
@@ -147,11 +147,11 @@ import PipelineStepper from '../../components/interactive/PipelineStepper';
         <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-top: var(--space-3); margin-bottom: var(--space-2);">
           Here is one complete model that wires those pieces together:
         </p>
-        <div class="file-path">src/models/gemma.cpp</div>
+        <div class="file-path"><a href="https://github.com/ggml-org/llama.cpp/blob/94ca829b6001019622c0f67fcd48e9ec6bd7dce8/src/models/gemma.cpp#L22" target="_blank" rel="noopener">src/models/gemma.cpp — layer loop (L22)</a></div>
         <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-top: var(--space-2);">
           What to notice later: this file is not the runtime loop. It is the model-definition side.
         </p>
-        <div class="file-path" style="margin-top: var(--space-3);">tools/cli/cli.cpp</div>
+        <div class="file-path"><a href="https://github.com/ggml-org/llama.cpp/blob/94ca829b6001019622c0f67fcd48e9ec6bd7dce8/tools/cli/cli.cpp" target="_blank" rel="noopener">tools/cli/cli.cpp</a></div>
         <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-top: var(--space-2);">
           What to notice later: this is where user-facing generation control lives. It helps separate "the model produced logits" from
           "the runtime chose and emitted a token."

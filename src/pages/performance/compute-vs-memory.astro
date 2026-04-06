@@ -184,7 +184,7 @@ import GatePanel from '../../components/assessment/GatePanel';
         <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
           In <code>llama.cpp</code>, whether a <code>ggml_mul_mat</code> call ends up compute-bound or memory-bound depends on the input batch size. The same kernel, the same weights &mdash; but with <code>n_tokens = 1</code> (decode) the operation is memory-bound, and with <code>n_tokens = 512</code> (prefill) it is compute-bound. Backend code may choose different execution strategies based on these shapes.
         </p>
-        <div class="file-path">ggml/src/ggml-cpu/ggml-cpu.c &mdash; mul_mat task dispatch</div>
+        <div class="file-path"><a href="https://github.com/ggml-org/llama.cpp/blob/94ca829b6001019622c0f67fcd48e9ec6bd7dce8/ggml/src/ggml-cpu/ggml-cpu.c#L1235" target="_blank" rel="noopener">ggml/src/ggml-cpu/ggml-cpu.c — ggml_compute_forward_mul_mat() (L1235)</a></div>
       </div>
     </div>
 

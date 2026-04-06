@@ -110,7 +110,7 @@ import GatePanel from '../../components/assessment/GatePanel';
         <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
           In <code>llama.cpp</code>, the KV cache is allocated once when the context is created. During each decode step, new K and V entries are written into the cache at the current position. The cache memory is pre-allocated for the full context length, even if only a fraction is used so far. When a request finishes, its cache slots are freed for the next request.
         </p>
-        <div class="file-path">src/llama-kv-cache.cpp &mdash; KV cache allocation and update</div>
+        <div class="file-path"><a href="https://github.com/ggml-org/llama.cpp/blob/94ca829b6001019622c0f67fcd48e9ec6bd7dce8/src/llama-kv-cache.cpp#L79" target="_blank" rel="noopener">src/llama-kv-cache.cpp — llama_kv_cache (L79)</a></div>
       </div>
     </div>
 

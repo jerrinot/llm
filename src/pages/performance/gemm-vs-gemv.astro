@@ -112,7 +112,7 @@ import GatePanel from '../../components/assessment/GatePanel';
         <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
           In <code>llama.cpp</code>, the same <code>ggml_mul_mat</code> operation is used for both GEMM and GEMV. The backend dispatch code selects different kernel implementations depending on the shapes &mdash; a GEMV-optimized path avoids the overhead of tiling strategies designed for large matrices.
         </p>
-        <div class="file-path">ggml/src/ggml-cpu/ggml-cpu.c &mdash; ggml_mul_mat dispatch</div>
+        <div class="file-path"><a href="https://github.com/ggml-org/llama.cpp/blob/94ca829b6001019622c0f67fcd48e9ec6bd7dce8/ggml/src/ggml-cpu/ggml-cpu.c#L1235" target="_blank" rel="noopener">ggml/src/ggml-cpu/ggml-cpu.c — ggml_compute_forward_mul_mat() (L1235)</a></div>
       </div>
     </div>
 

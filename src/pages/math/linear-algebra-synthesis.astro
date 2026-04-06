@@ -406,7 +406,7 @@ cur = <span style="color: var(--sem-ffn);">build_ffn</span>(cur, ...);          
 output = <span style="color: var(--sem-token);">ggml_add</span>(cur, sa_out);     <span style="color: var(--ink-ghost);">// residual connection</span></code>`} />
       </div>
       <p style="font-size: var(--text-xs); color: var(--ink-ghost); margin-top: var(--space-2);">
-        Based on ggml-org/llama.cpp @ <code>941146b3</code> &mdash; <code>src/models/gemma.cpp</code>. Simplified for this preview.
+        Based on ggml-org/llama.cpp @ <code>94ca829b</code> &mdash; <code>src/models/gemma.cpp</code>. Simplified for this preview.
       </p>
       <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-top: var(--space-3);">
         Every line maps to something you have already learned: <code>build_lora_mm</code> is a matrix multiply (a learned projection). <code>ggml_add</code> is vector addition (a residual connection). <code>build_attn</code> chains together the Q&middot;K<sup>T</sup> scores, softmax, and V-weighted sum you just traced by hand.

@@ -155,7 +155,7 @@ import GatePanel from '../../components/assessment/GatePanel';
 <span style="color: var(--ink-ghost);">}</span></code>`} />
       </div>
       <p style="font-size: var(--text-xs); color: var(--ink-ghost); margin-top: var(--space-2);">
-        Source: ggml-org/llama.cpp @ <code>941146b3</code> &mdash; <code>src/models/gemma.cpp</code>. The actual code may have changed since this snapshot.
+        Source: ggml-org/llama.cpp @ <code>94ca829b</code> &mdash; <code>src/models/gemma.cpp</code>. The actual code may have changed since this snapshot.
       </p>
       <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-top: var(--space-3);">
         Notice: there is no magic. <code>build_norm</code> applies RMSNorm. <code>build_lora_mm</code> runs a matrix multiply (the Q, K, V projections). <code>build_attn</code> runs the full attention mechanism. <code>build_ffn</code> runs the gated feed-forward network. <code>ggml_add</code> is the residual connection. The six phases from the Intuition section above map directly onto these function calls.
@@ -168,7 +168,7 @@ import GatePanel from '../../components/assessment/GatePanel';
         <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
           The code above is from the Gemma model builder. Each model file in <code>src/models/</code> constructs its architecture by calling shared helpers from <code>src/llama-graph.cpp</code>. The helpers (<code>build_norm</code>, <code>build_attn</code>, <code>build_ffn</code>) are reused across all model architectures — what changes between models is which helpers are called and in what order.
         </p>
-        <div class="file-path">src/models/gemma.cpp</div>
+        <div class="file-path"><a href="https://github.com/ggml-org/llama.cpp/blob/94ca829b6001019622c0f67fcd48e9ec6bd7dce8/src/models/gemma.cpp#L22" target="_blank" rel="noopener">src/models/gemma.cpp — layer loop (L22)</a></div>
       </div>
     </div>
 
