@@ -103,14 +103,14 @@ import GatePanel from '../../components/assessment/GatePanel';
           {
             id: 'L27-q1',
             type: 'single_choice',
-            prompt: 'During prefill for a 2,000-token prompt, the attention score matrix for one head has shape [2000, 2000]. During decode of the next token, the same head computes a score matrix of shape [1, 2001]. Which phase is more likely to be compute-bound, and why?',
+            prompt: 'During prefill for a 2,000-token prompt, the attention score matrix for one head has shape [2000, 2000]. During decode of the next token, the same head computes a score vector of shape [1, 2001]. Which phase is more likely to be compute-bound, and why?',
             tag: 'reasoning',
             choices: [
-              { id: 'a', text: 'Prefill — the [2000, 2000] multiply has ~4M multiply-add operations, keeping ALUs saturated', isCorrect: true },
-              { id: 'b', text: 'Decode — the [1, 2001] multiply still reads all cached keys, which is more work overall', isCorrect: false },
+              { id: 'a', text: 'Prefill — computing the [2000, 2000] score matrix requires millions of dot products, keeping compute units saturated', isCorrect: true },
+              { id: 'b', text: 'Decode — the [1, 2001] score vector still reads all cached keys, which is more work overall', isCorrect: false },
               { id: 'c', text: 'Both are equally compute-bound because they use the same weight matrices', isCorrect: false },
             ],
-            explanation: 'Prefill produces a large [n, n] score matrix where n is the prompt length — this is a dense matrix multiply that saturates compute. Decode produces a [1, n+1] score vector — far less arithmetic, so the bottleneck shifts to memory bandwidth (loading cached K/V). Same weights, very different workload shapes.',
+            explanation: 'Prefill produces a dense [n, n] score matrix — each of the 4M entries requires a d_head-dimensional dot product, generating massive arithmetic volume that keeps compute units busy. Decode produces a [1, n+1] score vector — far less arithmetic per step, so the bottleneck shifts to memory bandwidth (loading cached K/V). Same weights, very different workload shapes.',
           },
           {
             id: 'L27-q2',

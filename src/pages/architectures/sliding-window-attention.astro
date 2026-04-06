@@ -96,7 +96,7 @@ import GatePanel from '../../components/assessment/GatePanel';
           {
             id: 'L22-q1',
             type: 'single_choice',
-            prompt: 'A model alternates SWA layers (w=4096) with full-attention layers. In a 20,000-token sequence, can an SWA layer at position 18,000 attend to position 1,000?',
+            prompt: 'A model alternates SWA layers (w=4096) with full-attention layers. In a 20,000-token sequence, can an SWA layer at position 18,000 directly attend to position 1,000?',
             tag: 'reasoning',
             choices: [
               { id: 'a', text: 'No — position 1,000 is 17,000 tokens back, far outside the window of 4,096', isCorrect: true },
