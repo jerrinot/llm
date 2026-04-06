@@ -26,7 +26,7 @@ import GatePanel from '../../components/assessment/GatePanel';
         The reusing layer still does full attention — it has its own query vectors, so it asks different questions. But it looks up answers in the same key-value store that an earlier layer built. This avoids the cost of computing and storing new K/V projections.
       </p>
       <p>
-        The trade-off is representational: every layer that reuses K/V cannot learn a different "knowledge index" for that layer. In practice, this works surprisingly well, especially when mixed with layers that do compute fresh K/V.
+        The trade-off is representational: every layer that reuses K/V cannot learn a different "knowledge index" for that layer. One intuition for why this works in practice: K and V encode information about the <em>tokens themselves</em> — their content, their relationships, their positions. This information changes relatively slowly across adjacent layers because the residual connections preserve most of the representation. Q, on the other hand, encodes what the <em>current layer</em> wants to know — a layer-specific question. Giving each layer its own Q while sharing K/V is like letting different people ask different questions about the same reference index. The index (K/V) is reusable; the questions (Q) should vary.
       </p>
     </div>
 

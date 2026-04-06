@@ -58,10 +58,17 @@ import GatePanel from '../../components/assessment/GatePanel';
         Most modern LLMs use <em>pre-norm</em>: <code>norm → transform → add residual</code>.
       </p>
       <p>
-        The reason is training stability. With post-norm, the residual path goes through the normalization, which
-        can distort the residual signal. With pre-norm, the residual path is a clean addition — the normalized
-        version is only used inside the transform, and the original input flows through the addition untouched.
-        This makes gradients flow more smoothly through deep networks.
+        The reason is training stability, specifically gradient flow. In <strong>post-norm</strong>, the output of each
+        block is <code>norm(x + transform(x))</code>. During backpropagation, gradients from higher layers must pass
+        <em>through</em> the norm layer to reach lower layers. The norm's Jacobian can scale gradients up or down
+        unpredictably, causing training instability in deep networks.
+      </p>
+      <p>
+        In <strong>pre-norm</strong>, the output is <code>x + transform(norm(x))</code>. The residual connection
+        provides a <em>direct</em>, unmodified path for gradients: they flow through the addition without passing
+        through any norm or transform. Each sub-layer only needs to learn a useful delta to add — if a layer has nothing
+        useful to contribute, it can learn weights close to zero and the gradient still flows cleanly through the residual.
+        This makes training much more stable for 32+ layer models.
       </p>
     </div>
 
@@ -76,7 +83,10 @@ import GatePanel from '../../components/assessment/GatePanel';
             <span style="color: var(--ink-ghost);">input:</span> x = [1.0, 2.0, 3.0, 4.0]
           </div>
           <div style="padding-left: var(--space-4); border-left: 2px solid var(--sem-attention-dim); margin-bottom: var(--space-2);">
-            <span style="color: var(--ink-ghost);">step 1:</span> x_norm = RMSNorm(x) = [0.37, 0.73, 1.10, 1.46]
+            <span style="color: var(--ink-ghost);">step 1:</span> RMS(x) = &radic;((1+4+9+16)/4) = &radic;7.5 &asymp; 2.74
+          </div>
+          <div style="padding-left: var(--space-4); border-left: 2px solid var(--sem-attention-dim); margin-bottom: var(--space-2);">
+            <span style="color: var(--ink-ghost);">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span> x/RMS = [0.37, 0.73, 1.10, 1.46] &nbsp; <span style="color: var(--ink-tertiary);">(&times; &gamma;=[1,1,1,1] in this example)</span>
           </div>
           <div style="padding-left: var(--space-4); border-left: 2px solid var(--sem-attention-dim); margin-bottom: var(--space-2);">
             <span style="color: var(--sem-attention);">step 2:</span> delta = attention(x_norm) = [0.1, -0.3, 0.5, 0.2]
