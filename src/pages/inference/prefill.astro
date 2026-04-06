@@ -64,6 +64,41 @@ import GatePanel from '../../components/assessment/GatePanel';
     </div>
 
     <div class="lesson-section">
+      <div class="section-label">Why Prefill Is Compute-Bound</div>
+      <p>
+        During prefill, every weight matrix is multiplied by a matrix with n_prompt rows — not a single vector.
+        Consider the Q projection: W_Q has shape [d_model, d_head]. With n_prompt = 1,000, the multiply is
+        [1000, d_model] &times; [d_model, d_head]. The weight matrix is loaded once from memory but used 1,000 times
+        (once per token row). This high reuse ratio means the hardware's compute units stay busy — the bottleneck is
+        arithmetic, not memory bandwidth.
+      </p>
+      <p>
+        The attention score matrix makes this even more compute-heavy: Q &middot; K<sup>T</sup> produces an
+        [n_prompt, n_prompt] matrix. For a 4,000-token prompt, that is 16 million entries per head, each requiring
+        a d_head-dimensional dot product. This quadratic cost is why long prompts have noticeably slow prefill.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Time-to-First-Token (TTFT)</div>
+      <p>
+        From the user's perspective, prefill determines the <strong>time-to-first-token</strong> (TTFT) — the delay
+        between sending the prompt and seeing the first output token. During this time, the model is processing
+        the entire prompt through all layers, filling the KV cache, and computing the logits for the first
+        generated position.
+      </p>
+      <p>
+        TTFT grows with prompt length: a 500-token prompt might take 50ms, while a 50,000-token prompt might take
+        5 seconds or more. This is why long system prompts, lengthy documents, or chat histories with extensive context
+        can feel sluggish — the user is waiting for prefill to complete before any output streams back.
+      </p>
+      <p>
+        Some serving systems split long prefills into chunks (using the ubatch mechanism from L30) to reduce memory
+        peaks, but the total compute work is the same regardless of chunking.
+      </p>
+    </div>
+
+    <div class="lesson-section">
       <div class="section-label">Math</div>
       <p>The key insight is that prefill computes attention for all prompt positions at once:</p>
       <div style="font-family: var(--font-mono); font-size: var(--text-sm); background: var(--surface-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); margin: var(--space-3) 0;">
