@@ -279,14 +279,14 @@ import DotProductPlayground from '../../components/interactive/DotProductPlaygro
           {
             id: 'L07-q2',
             type: 'single_choice',
-            prompt: 'Why does the dot product appear in attention?',
-            tag: 'conceptual',
+            prompt: 'If you double the magnitude of every query vector (multiply by 2), what happens to the raw Q·K scores?',
+            tag: 'reasoning',
             choices: [
-              { id: 'a', text: 'Because it measures how similar two vectors are', isCorrect: true },
-              { id: 'b', text: 'Because it is the fastest operation on GPUs', isCorrect: false },
-              { id: 'c', text: 'Because it was invented for transformers', isCorrect: false },
+              { id: 'a', text: 'They stay the same — only alignment matters', isCorrect: false },
+              { id: 'b', text: 'They double — the dot product scales linearly with magnitude', isCorrect: true },
+              { id: 'c', text: 'They quadruple — both vectors are larger', isCorrect: false },
             ],
-            explanation: 'Attention uses dot products to compare queries and keys. A larger score usually means stronger alignment, but the raw value is also affected by vector magnitude, which is why later lessons introduce scaling.',
+            explanation: 'The dot product is a·b = Σ aᵢ×bᵢ. Doubling a doubles every term, so the total doubles. This is why attention divides by √d_head — to counteract the magnitude growth that comes from having many dimensions. Without scaling, dot products would grow large and softmax would become sharply peaked.',
           },
           {
             id: 'L07-q3',
