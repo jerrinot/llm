@@ -99,14 +99,14 @@ import GatePanel from '../../components/assessment/GatePanel';
           {
             id: 'L23-q1',
             type: 'single_choice',
-            prompt: 'How does a shared-KV layer change the runtime cost of attention at that layer?',
-            tag: 'conceptual',
+            prompt: 'A shared-KV layer skips the K and V projections. But it still computes Q from its own learned W_Q. Why can it not also skip Q?',
+            tag: 'reasoning',
             choices: [
-              { id: 'a', text: 'It skips the K and V projections and reuses cached K/V from another layer, reducing compute and memory writes', isCorrect: true },
-              { id: 'b', text: 'It skips attention entirely and only runs the FFN', isCorrect: false },
-              { id: 'c', text: 'It halves the Q projection size', isCorrect: false },
+              { id: 'a', text: 'Because Q determines what each token is looking for — different layers need different queries to learn different patterns', isCorrect: true },
+              { id: 'b', text: 'Because Q is always cheaper to compute than K and V', isCorrect: false },
+              { id: 'c', text: 'Because Q is not stored in any cache, so it must be recomputed regardless', isCorrect: false },
             ],
-            explanation: 'A shared-KV layer still runs full attention with its own Q, but it reads K and V from an earlier layer\'s cache. This avoids the W_K and W_V matmuls and the cache write, saving both compute and memory bandwidth.',
+            explanation: 'K and V describe what information each token offers. Sharing them across layers is viable because the information being offered does not change much between adjacent layers. Q describes what each token is asking for — the query. Different layers need to ask different questions of the same K/V data, which is why each layer keeps its own Q projection.',
           },
           {
             id: 'L23-q2',

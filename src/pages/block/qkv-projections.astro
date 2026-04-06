@@ -90,6 +90,9 @@ import GatePanel from '../../components/assessment/GatePanel';
         <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
           In <code>llama.cpp</code>, Q/K/V projections are matrix multiplies in the attention block. Some models fuse Q, K, and V into a single large weight matrix and split the result, while others keep them as separate weight tensors. You will see both patterns in model implementations.
         </p>
+        <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-top: var(--space-3);">
+          <strong style="color: var(--ink-secondary);">In the wild:</strong> What this course calls W<sub>Q</sub>, W<sub>K</sub>, W<sub>V</sub> appears in model checkpoints as tensor names like <code>model.layers.0.self_attn.q_proj.weight</code>, <code>...k_proj.weight</code>, <code>...v_proj.weight</code>. Recognizing these names in weight files and config files is a practical skill you will use when inspecting models.
+        </p>
       </div>
     </div>
 
@@ -112,14 +115,14 @@ import GatePanel from '../../components/assessment/GatePanel';
           {
             id: 'L16-q1',
             type: 'single_choice',
-            prompt: 'Where do Q, K, and V come from?',
-            tag: 'conceptual',
+            prompt: 'If hidden states have shape [n, 4096] and W_Q projects to d_head=128 with 32 heads, what is the shape of the full Q tensor before splitting into heads?',
+            tag: 'shape',
             choices: [
-              { id: 'a', text: 'Three separate input streams', isCorrect: false },
-              { id: 'b', text: 'The same hidden states, projected through three different learned weight matrices', isCorrect: true },
-              { id: 'c', text: 'The embedding table, looked up three times', isCorrect: false },
+              { id: 'a', text: '[n, 4096] — Q has the same shape as the input', isCorrect: false },
+              { id: 'b', text: '[n, 4096] — because 32 × 128 = 4096', isCorrect: true },
+              { id: 'c', text: '[n, 128] — one d_head column per token', isCorrect: false },
             ],
-            explanation: 'Q, K, and V are all derived from the same hidden states by multiplying with different learned weight matrices. Same input, three different linear projections.',
+            explanation: 'W_Q has shape [4096, 32 × 128] = [4096, 4096]. The multiply produces [n, 4096]. After reshape into [n, 32, 128], each head gets its own 128-dim query. The total width equals n_heads × d_head.',
           },
           {
             id: 'L16-q2',
