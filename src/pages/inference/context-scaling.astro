@@ -100,6 +100,30 @@ import GatePanel from '../../components/assessment/GatePanel';
     </div>
 
     <div class="lesson-section">
+      <div class="section-label">What This Means for Deployment</div>
+      <p>
+        Context scaling is not just a theoretical concern — it directly determines what you can deploy:
+      </p>
+      <ul style="list-style: none; padding: 0; margin: var(--space-3) 0;">
+        <li style="padding: var(--space-2) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          <strong>KV cache is the memory gate.</strong> A 32-layer model with 32 KV heads, d_head=128, and FP16 stores
+          ~512 KB per token in KV cache. At 128K context, that is ~64 GB of cache alone — potentially exceeding GPU memory.
+          This is why architectures like GQA and SWA exist: they reduce the per-token cache cost.
+        </li>
+        <li style="padding: var(--space-2) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          <strong>Attention compute is the prefill gate.</strong> At 128K context, the attention score matrices are
+          128K &times; 128K = 16 billion entries per head per layer. This makes prefill slow — potentially many seconds
+          for a long document. Flash attention reduces memory but not this compute cost.
+        </li>
+        <li style="padding: var(--space-2) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          <strong>The bottleneck shifts with context length.</strong> Short contexts are weight-bound (FFN dominates).
+          Long contexts are compute-bound in attention during prefill and memory-bound in KV cache reads during decode.
+          Knowing which regime you are in determines which optimizations matter.
+        </li>
+      </ul>
+    </div>
+
+    <div class="lesson-section">
       <div class="section-label">Performance Hook</div>
       <div class="perf-hook">
         <p style="font-size: var(--text-sm); color: var(--ink-secondary);">

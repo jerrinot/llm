@@ -28,6 +28,30 @@ import GatePanel from '../../components/assessment/GatePanel';
     </div>
 
     <div class="lesson-section">
+      <div class="section-label">Why Not Use the Hidden States Directly?</div>
+      <p>
+        You might wonder: why not skip the projections and compute attention directly on the hidden states? Two reasons:
+      </p>
+      <ol style="list-style: decimal; padding-left: var(--space-5); margin: var(--space-3) 0;">
+        <li style="padding: var(--space-1) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          <strong>Separation of concerns.</strong> A token's hidden state encodes everything the model knows about that
+          position. But for attention, you need different information for different roles: the "what am I looking for?"
+          question (Q) is different from the "what do I contain?" answer (K), which is different from "what should I
+          pass along?" (V). Three separate projections let the model learn to extract the right information for each role.
+        </li>
+        <li style="padding: var(--space-1) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          <strong>Dimension control.</strong> The hidden state has dimension d_model (e.g., 4096), but each attention
+          head operates in a smaller d_head space (e.g., 128). The projections reduce the dimension, which makes the
+          per-head dot products cheaper and lets different heads learn different subspaces.
+        </li>
+      </ol>
+      <p>
+        In short: the projections are where the model <em>learns</em> what attention should pay attention to. Without them,
+        every head at every layer would ask the same question of the same data — there would be no learned specialization.
+      </p>
+    </div>
+
+    <div class="lesson-section">
       <div class="section-label">Toy Example</div>
       <div class="toy-example">
         <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-bottom: var(--space-3);">
