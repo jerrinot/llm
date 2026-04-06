@@ -19,16 +19,19 @@ import SoftmaxInspector from '../../components/interactive/SoftmaxInspector';
       <div class="section-label">Intuition</div>
       <p>
         The previous lesson left us with logits — raw, unbounded scores, one per vocabulary entry. Logits are the model's
-        internal ranking of how likely each next token is. For greedy decoding (always pick the highest), logits are
-        sufficient: the highest logit is the best prediction. But for anything beyond greedy — sampling, temperature
-        control, top-k, top-p — we need actual probabilities, and logits are not probabilities:
+        internal ranking of how likely each next token is. For greedy decoding (always pick the highest) or top-k
+        filtering (pick from the k highest), logits alone are sufficient — only the ranking matters. But for
+        probabilistic sampling, top-p (nucleus) filtering, and calibrated confidence, we need actual probabilities.
+        Logits are not probabilities:
       </p>
       <ol style="list-style: decimal; padding-left: var(--space-5); margin: var(--space-3) 0;">
         <li style="padding: var(--space-1) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
           They can be negative. You cannot interpret a logit of -2.3 as a probability.
         </li>
         <li style="padding: var(--space-1) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
-          They do not sum to 1. Without a total, you cannot compare them as relative likelihoods or sample from them.
+          They do not sum to 1. You cannot sample from them or compute cumulative thresholds (needed for top-p).
+          (Logit differences do encode relative odds — exp(z<sub>i</sub> - z<sub>j</sub>) = p<sub>i</sub>/p<sub>j</sub> — but
+          absolute probabilities require normalization.)
         </li>
       </ol>
       <p>
