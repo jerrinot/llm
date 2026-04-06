@@ -219,14 +219,14 @@ import GatePanel from '../../components/assessment/GatePanel';
           {
             id: 'L34-q2',
             type: 'single_choice',
-            prompt: 'Why can a low-FLOP operation still be slow?',
-            tag: 'conceptual',
+            prompt: 'You quantize weights from FP16 to INT8, halving the bytes moved. For a memory-bound decode step, what speedup do you expect? For a compute-bound prefill step?',
+            tag: 'reasoning',
             choices: [
-              { id: 'a', text: 'Because hardware always processes operations sequentially', isCorrect: false },
-              { id: 'b', text: 'Because if it moves a lot of data relative to its compute, it waits on memory bandwidth', isCorrect: true },
-              { id: 'c', text: 'Because low-FLOP operations use slower instruction sets', isCorrect: false },
+              { id: 'a', text: 'Both get ~2× speedup because both move half the data', isCorrect: false },
+              { id: 'b', text: 'Decode gets ~2× speedup (memory-bound, so halving bytes nearly halves time); prefill gets little speedup (compute-bound, so bytes are not the bottleneck)', isCorrect: true },
+              { id: 'c', text: 'Neither benefits because quantization only affects quality, not speed', isCorrect: false },
             ],
-            explanation: 'The total time is determined by whichever resource is the bottleneck. A GEMV does relatively few FLOPs but must load the entire weight matrix. The time is dominated by memory transfer, not arithmetic.',
+            explanation: 'For memory-bound operations, time ≈ bytes / bandwidth. Halving bytes roughly halves time. For compute-bound operations, time ≈ FLOPs / compute_throughput. Reducing bytes does not help because compute is already the bottleneck. This is why quantization helps decode (memory-bound) much more than prefill (compute-bound).',
           },
         ]}
       />
