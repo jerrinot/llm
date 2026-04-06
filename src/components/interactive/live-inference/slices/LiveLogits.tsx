@@ -21,12 +21,12 @@ export default function LiveLogits() {
     worker.tokenize(inputText);
   }, [worker, inputText]);
 
-  // Auto-advance: tokens → forward pass
+  // Auto-advance: tokens → forward pass (guard against error-loop)
   useEffect(() => {
-    if (ran && worker.tokens && worker.inputIds && !worker.isInferring && !worker.topK) {
+    if (ran && worker.tokens && worker.inputIds && !worker.isInferring && !worker.topK && !worker.error) {
       worker.runForward(worker.inputIds);
     }
-  }, [ran, worker.tokens, worker.inputIds, worker.isInferring, worker.topK]);
+  }, [ran, worker.tokens, worker.inputIds, worker.isInferring, worker.topK, worker.error]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
