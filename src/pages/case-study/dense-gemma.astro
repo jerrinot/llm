@@ -105,10 +105,68 @@ import GatePanel from '../../components/assessment/GatePanel';
     </div>
 
     <div class="lesson-section">
+      <div class="section-label">The Real Code</div>
+      <p>
+        Here is the actual layer loop from <code>src/models/gemma.cpp</code> in llama.cpp. This is not pseudocode — it is the builder that constructs the computation graph for one dense Gemma block, repeated for every layer. Read it line by line and match each call to the six phases above.
+      </p>
+      <div style="background: var(--surface-3); border-radius: var(--radius-md); padding: var(--space-4); margin: var(--space-4) 0; overflow-x: auto;">
+        <pre style="font-family: var(--font-mono); font-size: var(--text-xs); line-height: 1.7; margin: 0; color: var(--ink-secondary);" set:html={`<code><span style="color: var(--ink-ghost);">for (int il = 0; il &lt; n_layer; ++il) {</span>
+
+    <span style="color: var(--ink-primary);">// Phase 1: attention pre-norm</span>
+    cur = <span style="color: var(--sem-attention);">build_norm</span>(inpL,
+            model.layers[il].attn_norm, NULL,
+            LLM_NORM_RMS, il);
+
+    <span style="color: var(--ink-primary);">// Phase 2: self-attention (Q, K, V projections &rarr; RoPE &rarr; attention &rarr; output projection)</span>
+    {
+        ggml_tensor * Qcur = <span style="color: var(--sem-attention);">build_lora_mm</span>(model.layers[il].wq, cur);
+        ggml_tensor * Kcur = <span style="color: var(--sem-attention);">build_lora_mm</span>(model.layers[il].wk, cur);
+        ggml_tensor * Vcur = <span style="color: var(--sem-attention);">build_lora_mm</span>(model.layers[il].wv, cur);
+
+        <span style="color: var(--ink-ghost);">// ... reshape to heads, apply RoPE, scale queries ...</span>
+
+        cur = <span style="color: var(--sem-attention);">build_attn</span>(inp_attn,
+                model.layers[il].wo, NULL,
+                Qcur, Kcur, Vcur, nullptr, nullptr, nullptr, 1.0f, il);
+    }
+
+    <span style="color: var(--ink-primary);">// Phase 3: residual add (attention output + input)</span>
+    ggml_tensor * sa_out = <span style="color: var(--sem-token);">ggml_add</span>(ctx0, cur, inpL);
+
+    <span style="color: var(--ink-primary);">// Phase 4: FFN pre-norm</span>
+    cur = <span style="color: var(--sem-ffn);">build_norm</span>(sa_out,
+            model.layers[il].ffn_norm, NULL,
+            LLM_NORM_RMS, il);
+
+    <span style="color: var(--ink-primary);">// Phase 5: feed-forward network (gate, up, down projections)</span>
+    {
+        cur = <span style="color: var(--sem-ffn);">build_ffn</span>(cur,
+                model.layers[il].ffn_up,   NULL, NULL,
+                model.layers[il].ffn_gate, NULL, NULL,
+                model.layers[il].ffn_down, NULL, NULL,
+                NULL,
+                LLM_FFN_GELU, LLM_FFN_PAR, il);
+    }
+
+    <span style="color: var(--ink-primary);">// Phase 6: residual add (FFN output + post-attention residual)</span>
+    cur = <span style="color: var(--sem-token);">ggml_add</span>(ctx0, cur, sa_out);
+
+    inpL = cur;  <span style="color: var(--ink-ghost);">// output becomes next layer's input</span>
+<span style="color: var(--ink-ghost);">}</span></code>`} />
+      </div>
+      <p style="font-size: var(--text-xs); color: var(--ink-ghost); margin-top: var(--space-2);">
+        Source: ggml-org/llama.cpp @ <code>941146b3</code> &mdash; <code>src/models/gemma.cpp</code>. The actual code may have changed since this snapshot.
+      </p>
+      <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-top: var(--space-3);">
+        Notice: there is no magic. <code>build_norm</code> applies RMSNorm. <code>build_lora_mm</code> runs a matrix multiply (the Q, K, V projections). <code>build_attn</code> runs the full attention mechanism. <code>build_ffn</code> runs the gated feed-forward network. <code>ggml_add</code> is the residual connection. The six phases from the Intuition section above map directly onto these function calls.
+      </p>
+    </div>
+
+    <div class="lesson-section">
       <div class="section-label">Implementation Hook</div>
       <div class="impl-hook">
         <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
-          In the Gemma builder, the layer loop calls <code>build_norm()</code>, then <code>build_attn()</code>, then adds the residual. It repeats this pattern with <code>build_norm()</code> followed by <code>build_ffn()</code> and another residual add. Each function maps directly to one phase of the block. Reading this code is reading the architecture.
+          The code above is from the Gemma model builder. Each model file in <code>src/models/</code> constructs its architecture by calling shared helpers from <code>src/llama-graph.cpp</code>. The helpers (<code>build_norm</code>, <code>build_attn</code>, <code>build_ffn</code>) are reused across all model architectures — what changes between models is which helpers are called and in what order.
         </p>
         <div class="file-path">src/models/gemma.cpp</div>
       </div>

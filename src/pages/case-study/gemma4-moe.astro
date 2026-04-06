@@ -93,10 +93,51 @@ import GatePanel from '../../components/assessment/GatePanel';
     </div>
 
     <div class="lesson-section">
+      <div class="section-label">The Real Code</div>
+      <p>
+        Gemma 4 MoE layers run a shared expert FFN <em>and</em> a routed set of expert FFNs in parallel, then combine both results. Here is the branching logic inside the layer loop:
+      </p>
+      <div style="background: var(--surface-3); border-radius: var(--radius-md); padding: var(--space-4); margin: var(--space-4) 0; overflow-x: auto;">
+        <pre style="font-family: var(--font-mono); font-size: var(--text-xs); line-height: 1.7; margin: 0; color: var(--ink-secondary);" set:html={`<code>const bool is_moe_layer = model.layers[il].ffn_gate_inp != nullptr;
+
+if (is_moe_layer) {
+    <span style="color: var(--ink-primary);">// 1. Shared expert (always runs, same FFN as a dense layer)</span>
+    ggml_tensor * cur_mlp = <span style="color: var(--sem-ffn);">build_norm</span>(attn_out, model.layers[il].ffn_norm, ...);
+    cur_mlp = <span style="color: var(--sem-ffn);">build_ffn</span>(cur_mlp,
+            model.layers[il].ffn_up,   ...,
+            model.layers[il].ffn_gate, ...,
+            model.layers[il].ffn_down, ...,
+            LLM_FFN_GELU, LLM_FFN_PAR, il);
+
+    <span style="color: var(--ink-primary);">// 2. Router: score all experts, select top-k</span>
+    ggml_tensor * logits = <span style="color: var(--sem-router);">build_lora_mm</span>(model.layers[il].ffn_gate_inp, tmp);
+
+    <span style="color: var(--ink-primary);">// 3. Routed experts: run selected experts and combine</span>
+    ggml_tensor * cur_moe = <span style="color: var(--sem-router);">build_moe_ffn</span>(cur_moe, ...,
+            model.layers[il].ffn_down_exps,
+            n_expert, n_expert_used,
+            LLM_FFN_GELU, /*norm_w=*/true, /*scale=*/1.0f,
+            LLAMA_EXPERT_GATING_FUNC_TYPE_SOFTMAX,
+            il, logits,
+            model.layers[il].ffn_gate_up_exps, ...);
+
+    <span style="color: var(--ink-primary);">// 4. Combine shared + routed</span>
+    cur = <span style="color: var(--sem-token);">ggml_add</span>(ctx0, cur_mlp, cur_moe);
+}</code>`} />
+      </div>
+      <p style="font-size: var(--text-xs); color: var(--ink-ghost); margin-top: var(--space-2);">
+        Source: ggml-org/llama.cpp @ <code>941146b3</code> &mdash; <code>src/models/gemma4-iswa.cpp</code> (simplified for clarity)
+      </p>
+      <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-top: var(--space-3);">
+        The shared expert (<code>cur_mlp</code>) is a standard FFN that always runs. The routed experts (<code>cur_moe</code>) are selected per-token by the router. Both results are added together. This "shared + routed" pattern means every token gets a baseline FFN result even if the router makes a poor selection.
+      </p>
+    </div>
+
+    <div class="lesson-section">
       <div class="section-label">Implementation Hook</div>
       <div class="impl-hook">
         <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
-          The Gemma 4 builder calls <code>build_moe_ffn()</code> instead of <code>build_ffn()</code> for MoE layers. Inside <code>build_moe_ffn()</code>, the router scores are computed via a matrix multiply against the router weights, softmax is applied, and top-k experts are selected. Each selected expert runs as a standard FFN (gate-up-down projections), and the outputs are combined using the renormalized router weights.
+          The <code>build_moe_ffn()</code> helper in <code>src/llama-graph.cpp</code> handles the full routing loop: softmax over router logits, top-k selection, running each selected expert's FFN, and weighted combination. The model builder passes in the router weights and expert weight tensors; the helper handles the mechanics.
         </p>
         <div class="file-path">src/models/gemma4-iswa.cpp</div>
         <div class="file-path">src/llama-graph.cpp &mdash; build_moe_ffn()</div>

@@ -87,10 +87,45 @@ import GatePanel from '../../components/assessment/GatePanel';
     </div>
 
     <div class="lesson-section">
+      <div class="section-label">The Real Code</div>
+      <p>
+        The Gemma 4 iSWA builder splits each layer's attention path based on whether the layer has its own K/V projections or reuses an earlier layer's KV cache. Here is the branching logic:
+      </p>
+      <div style="background: var(--surface-3); border-radius: var(--radius-md); padding: var(--space-4); margin: var(--space-4) 0; overflow-x: auto;">
+        <pre style="font-family: var(--font-mono); font-size: var(--text-xs); line-height: 1.7; margin: 0; color: var(--ink-secondary);" set:html={`<code><span style="color: var(--ink-primary);">// self-attention: branch on whether this layer has its own K/V</span>
+<span style="color: var(--sem-attention);">if (hparams.has_kv(il))</span> {
+    <span style="color: var(--ink-ghost);">// Full-attention or SWA layer with dedicated K/V</span>
+    ggml_tensor * Kcur = build_lora_mm(model.layers[il].wk, cur);
+    ggml_tensor * Vcur = model.layers[il].wv
+                            ? build_lora_mm(model.layers[il].wv, cur)
+                            : Kcur; <span style="color: var(--ink-ghost);">// if no v_proj, reuse K as V</span>
+
+    <span style="color: var(--ink-ghost);">// ... reshape, normalize, RoPE ...</span>
+
+    cur = <span style="color: var(--sem-attention);">build_attn</span>(inp_attn, model.layers[il].wo, nullptr,
+            Qcur, Kcur, Vcur, nullptr, nullptr, nullptr,
+            hparams.f_attention_scale, il);
+} <span style="color: var(--sem-ffn);">else</span> {
+    <span style="color: var(--ink-ghost);">// Shared-KV layer: no K/V projections, reuses earlier cache</span>
+    cur = <span style="color: var(--sem-attention);">build_attn</span>(inp_attn,
+            model.layers[il].wo, nullptr,
+            Qcur, <span style="color: var(--sem-ffn);">nullptr, nullptr</span>, nullptr, nullptr, nullptr,
+            hparams.f_attention_scale, il);
+}</code>`} />
+      </div>
+      <p style="font-size: var(--text-xs); color: var(--ink-ghost); margin-top: var(--space-2);">
+        Source: ggml-org/llama.cpp @ <code>941146b3</code> &mdash; <code>src/models/gemma4-iswa.cpp</code>
+      </p>
+      <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-top: var(--space-3);">
+        The key difference: when <code>has_kv(il)</code> is true, the layer computes its own K and V from the hidden state and writes them to a cache. When false, K and V are <code>nullptr</code> &mdash; the <code>build_attn</code> helper reads K/V from a shared cache written by an earlier layer. The Q projection always runs; only K/V are conditionally shared.
+      </p>
+    </div>
+
+    <div class="lesson-section">
       <div class="section-label">Implementation Hook</div>
       <div class="impl-hook">
         <p style="font-size: var(--text-sm); color: var(--ink-secondary);">
-          In the Gemma 4 iSWA builder, the layer loop checks whether each layer is an SWA layer or a full-attention layer. SWA layers call into a shared KV cache, while full-attention layers use their own dedicated cache. The <code>build_attn()</code> call is the same in both cases &mdash; the builder just passes a different cache and attention mask depending on the layer type.
+          The <code>build_attn_inp_kv_iswa()</code> call sets up the KV cache infrastructure that makes shared layers work. SWA layers and full-attention layers use different attention masks (windowed vs. causal), but the <code>build_attn()</code> call itself is identical &mdash; the infrastructure handles the difference.
         </p>
         <div class="file-path">src/models/gemma4-iswa.cpp</div>
       </div>
