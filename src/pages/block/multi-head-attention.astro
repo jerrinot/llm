@@ -28,6 +28,37 @@ import GatePanel from '../../components/assessment/GatePanel';
     </div>
 
     <div class="lesson-section">
+      <div class="section-label">How the Split Works</div>
+      <p>
+        In practice, the model does <em>not</em> run h separate attention operations. Instead, it performs one large
+        projection and then <strong>reshapes</strong> the result:
+      </p>
+      <ol style="list-style: decimal; padding-left: var(--space-5); margin: var(--space-3) 0;">
+        <li style="padding: var(--space-1) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          <strong>Project:</strong> Multiply hidden states [n_tokens, d_model] by W<sub>Q</sub> [d_model, d_model]
+          to get a full Q tensor of shape [n_tokens, d_model].
+        </li>
+        <li style="padding: var(--space-1) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          <strong>Reshape:</strong> View the [n_tokens, d_model] tensor as [n_tokens, n_heads, d_head]. This is a
+          zero-cost operation — the data stays in the same memory, only the indexing changes.
+        </li>
+        <li style="padding: var(--space-1) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          <strong>Per-head attention:</strong> Each head operates on its own [n_tokens, d_head] slice independently.
+          The attention computation runs in parallel across all heads.
+        </li>
+        <li style="padding: var(--space-1) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          <strong>Concat + project:</strong> Concatenate all head outputs back to [n_tokens, d_model] and multiply
+          by W<sub>O</sub> [d_model, d_model].
+        </li>
+      </ol>
+      <p>
+        The key realization: the "split into heads" is a <strong>reshape</strong>, not a copy or a separate computation.
+        The columns of W<sub>Q</sub> are implicitly partitioned into groups of d_head, and each group corresponds to
+        one head. This is why model code often shows one large matmul followed by a reshape, rather than h small matmuls.
+      </p>
+    </div>
+
+    <div class="lesson-section">
       <div class="section-label">Toy Example</div>
       <div class="toy-example">
         <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-bottom: var(--space-3);">
