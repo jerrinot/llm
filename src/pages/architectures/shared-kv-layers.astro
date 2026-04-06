@@ -56,9 +56,10 @@ import GatePanel from '../../components/assessment/GatePanel';
     <div class="lesson-section">
       <div class="section-label">How Shared-KV Interacts with GQA and SWA</div>
       <p>
-        In real architectures like Gemma 4, shared-KV layers are combined with GQA and SWA. A typical pattern:
-        SWA layers with shared KV (cheap, local), alternating with full-attention layers with fresh KV (expensive, global).
-        The combination stacks three savings: fewer KV heads (GQA), bounded cache (SWA), and no K/V projection in shared layers.
+        In real architectures like Gemma 4, shared-KV layers are combined with GQA and SWA. The model config specifies
+        which layers compute fresh KV and which layers reuse an earlier layer's cache — both SWA and full-attention layers
+        can be shared. The combination stacks three savings: fewer KV heads (GQA), bounded cache for SWA layers, and
+        no K/V projection in shared layers.
       </p>
       <p>
         When reading model configs, look for which layers have K/V weights and which do not. A layer without <code>wk</code>
