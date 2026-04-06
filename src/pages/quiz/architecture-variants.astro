@@ -27,14 +27,14 @@ import GatePanel from '../../components/assessment/GatePanel';
           {
             id: 'QM5-q1',
             type: 'single_choice',
-            prompt: 'A model has 32 Q heads and 4 KV heads (GQA). During decode, how many K vectors are read from the cache per layer for one new token?',
+            prompt: 'A model has 32 Q heads and 4 KV heads (GQA) with d_head=128. What is the K cache entry shape per token per layer?',
             tag: 'reasoning',
             choices: [
-              { id: 'a', text: '32 — one per Q head', isCorrect: false },
-              { id: 'b', text: '4 — one per KV head, each shared across 8 Q heads', isCorrect: true },
-              { id: 'c', text: '1 — GQA shares a single K across all heads', isCorrect: false },
+              { id: 'a', text: '[32, 128] — one K per Q head', isCorrect: false },
+              { id: 'b', text: '[4, 128] — one K per KV head, each shared across 8 Q heads', isCorrect: true },
+              { id: 'c', text: '[1, 128] — GQA shares a single K across all heads', isCorrect: false },
             ],
-            explanation: 'In GQA, the KV cache has entries per KV head, not per Q head. With 4 KV heads, 4 K vectors are read from cache. Each K vector is shared by a group of 32/4 = 8 Q heads. This is the memory-saving mechanism: fewer cache reads per decode step.',
+            explanation: 'In GQA, the KV cache stores entries per KV head, not per Q head. With 4 KV heads and d_head=128, each token contributes [4, 128] to the K cache. Each KV head is shared by a group of 32/4 = 8 Q heads. This is the memory-saving mechanism: 4 stored K vectors instead of 32.',
           },
           {
             id: 'QM5-q2',
