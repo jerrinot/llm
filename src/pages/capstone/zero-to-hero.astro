@@ -162,6 +162,46 @@ import GatePanel from '../../components/assessment/GatePanel';
           From zero to hero. Well done.
         </p>
       </div>
+
+      <div style="margin-top: var(--space-6);">
+        <div style="font-size: var(--text-base); font-weight: 600; color: var(--ink-primary); margin-bottom: var(--space-4);">
+          Where to Go Next
+        </div>
+
+        <div style="display: grid; gap: var(--space-4);">
+          <div style="background: var(--surface-2); border-left: 3px solid var(--sem-token); border-radius: var(--radius-md); padding: var(--space-4);">
+            <div style="font-weight: 600; color: var(--sem-token); margin-bottom: var(--space-2); font-size: var(--text-sm);">Run</div>
+            <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin: 0;">
+              Clone <a href="https://github.com/ggml-org/llama.cpp" target="_blank" rel="noopener" style="color: var(--accent);">llama.cpp</a>,
+              build it, download a small GGUF model (e.g., Gemma 2B Q4), and run the <code>perplexity</code> tool on wikitext-2.
+              Then try <code>llama-server</code> to serve it locally and send prompts via the API. You now understand every stage of what happens inside.
+            </p>
+          </div>
+
+          <div style="background: var(--surface-2); border-left: 3px solid var(--sem-attention); border-radius: var(--radius-md); padding: var(--space-4);">
+            <div style="font-weight: 600; color: var(--sem-attention); margin-bottom: var(--space-2); font-size: var(--text-sm);">Read</div>
+            <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin: 0;">
+              <strong>Attention Is All You Need</strong> (Vaswani et al., 2017) — the original transformer paper. You now have the vocabulary to read it.
+              <strong>RoFormer</strong> (Su et al., 2021) — the RoPE paper. Then <strong>FlashAttention</strong> (Dao et al., 2022) for the dominant attention kernel optimization,
+              and <strong>Efficient Memory Management for LLMs with PagedAttention</strong> (Kwon et al., 2023) for how vLLM solves KV cache fragmentation.
+            </p>
+          </div>
+
+          <div style="background: var(--surface-2); border-left: 3px solid var(--sem-ffn); border-radius: var(--radius-md); padding: var(--space-4);">
+            <div style="font-weight: 600; color: var(--sem-ffn); margin-bottom: var(--space-2); font-size: var(--text-sm);">Compare</div>
+            <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin: 0;">
+              Map the same concepts to other frameworks: <strong>vLLM</strong> (PagedAttention, continuous batching),
+              <strong>SGLang</strong> (RadixAttention, compiler-driven serving), <strong>Hugging Face Transformers</strong> (Python-first, research-oriented).
+              Each makes different tradeoffs — you now have the foundation to understand why.
+            </p>
+          </div>
+        </div>
+
+        <p style="font-size: var(--text-xs); color: var(--ink-ghost); margin-top: var(--space-4); text-align: center;">
+          Follow <a href="https://github.com/ggml-org/llama.cpp" target="_blank" rel="noopener" style="color: var(--ink-tertiary);">llama.cpp PRs</a>
+          to see performance optimizations land in real time — you can now read them.
+        </p>
+      </div>
     </div>
 
     <script>
