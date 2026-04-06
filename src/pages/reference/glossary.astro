@@ -102,6 +102,11 @@ import '../../styles/global.css';
           <div class="glossary-entry"><dt>Perplexity</dt><dd>A metric of how surprised the model is by the data. Lower = model predicts better. Typical LLM scores: 5&ndash;8 on wikitext-2.</dd></div>
           <div class="glossary-entry"><dt>Quantization</dt><dd>Reducing numerical precision of weights (e.g. FP16 &rarr; Q8_0) to save memory and speed up inference.</dd></div>
           <div class="glossary-entry"><dt>Repack</dt><dd>Rearranging weight memory layout for faster kernel access patterns.</dd></div>
+          <div class="glossary-entry"><dt>Roofline model</dt><dd>Performance analysis tool that plots achievable FLOP/s against arithmetic intensity. Divides workloads into memory-bound (below ridge point) and compute-bound (above ridge point) regimes.</dd></div>
+          <div class="glossary-entry"><dt>TTFT</dt><dd>Time-To-First-Token. The delay between sending a prompt and receiving the first output token. Determined by prefill time.</dd></div>
+          <div class="glossary-entry"><dt>Prefill interference</dt><dd>When a large prefill operation stalls decode steps for other users in a serving scenario. Mitigated by chunking prefills.</dd></div>
+          <div class="glossary-entry"><dt>Expert collapse</dt><dd>In MoE, when training causes most tokens to route to the same few experts while others are underused. Prevented by load-balancing loss.</dd></div>
+          <div class="glossary-entry"><dt>Thread affinity</dt><dd>Pinning each thread to a specific CPU core to avoid cache eviction from thread migration.</dd></div>
         </dl>
       </div>
 
