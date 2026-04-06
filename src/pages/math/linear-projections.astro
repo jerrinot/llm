@@ -35,6 +35,51 @@ import ProjectionColumnsDiagram from '../../components/course/ProjectionColumnsD
     </div>
 
     <div class="lesson-section">
+      <div class="section-label">What the Weight Matrix Columns Mean</div>
+      <p>
+        Each <strong>column</strong> of the weight matrix defines one output feature. When you compute output[j] = hidden &middot; W[:, j],
+        you are asking: "how much does this hidden state align with column j?"
+      </p>
+      <p>
+        If column 0 of W<sub>Q</sub> has large values in the positions corresponding to "syntax-related" features and
+        small values elsewhere, then output[0] measures "how syntactic is this token?" Column 1 might measure something
+        entirely different. The model learns these columns during training — each one becomes a learned "question" that
+        extracts a specific kind of information from the input.
+      </p>
+      <p>
+        This is why the same hidden state can be projected into Q, K, and V using different weight matrices: each
+        matrix asks different questions of the same input. W<sub>Q</sub> asks "what are you looking for?", W<sub>K</sub>
+        asks "what do you contain?", and W<sub>V</sub> asks "what should you pass along?" — but they all start from
+        the same hidden vector.
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <div class="section-label">Dimension Changes: Expanding and Contracting</div>
+      <p>
+        Projections can change the dimension of a vector. This is a core mechanism used throughout the model:
+      </p>
+      <ul style="list-style: none; padding: 0; margin: var(--space-3) 0;">
+        <li style="padding: var(--space-2) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          <strong>Contract (d_model → d_head):</strong> Q, K, V projections reduce dimension from 4096 to 128 per head.
+          This is a lossy compression — the model learns which 128 features matter for this head's role.
+        </li>
+        <li style="padding: var(--space-2) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          <strong>Expand (d_model → d_ff):</strong> The FFN up-projection widens from 4096 to 16384. This gives the
+          activation function a wider space to work in — more features to selectively activate or suppress.
+        </li>
+        <li style="padding: var(--space-2) 0; font-size: var(--text-sm); color: var(--ink-secondary);">
+          <strong>Same dimension (d_model → d_model):</strong> The output projection W<sub>O</sub> maps attention
+          output back to model width. Same size in and out, but the content is transformed.
+        </li>
+      </ul>
+      <p>
+        The <strong>shape contract</strong> is always: [n, d_in] &times; [d_in, d_out] = [n, d_out]. The inner
+        dimension d_in must match. The output width d_out is determined by the weight matrix shape — it is a design choice.
+      </p>
+    </div>
+
+    <div class="lesson-section">
       <div class="section-label">Toy Example</div>
       <div class="toy-example">
         <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-bottom: var(--space-3);">
@@ -53,8 +98,19 @@ import ProjectionColumnsDiagram from '../../components/course/ProjectionColumnsD
           <br />
           &nbsp;[0, 2]]
           <br />
+          <br />
+          <span style="color: var(--ink-primary);">Step by step:</span>
+          <br />
+          output[0] = 2&times;1 + (-1)&times;0 + 3&times;1 + 0&times;0 = 2 + 0 + 3 + 0 = <strong>5</strong>
+          <br />
+          output[1] = 2&times;0 + (-1)&times;1 + 3&times;(-1) + 0&times;2 = 0 - 1 - 3 + 0 = <strong>-4</strong>
+          <br />
+          <br />
           hidden &times; W_q = [5, -4]
         </div>
+        <p style="font-size: var(--text-sm); color: var(--ink-secondary); margin-top: var(--space-2);">
+          Each output value is a dot product of the hidden vector with one column of W_q. Output[0] uses column 0 = [1, 0, 1, 0] — it picks out hidden[0] + hidden[2]. Output[1] uses column 1 = [0, 1, -1, 2] — a different combination.
+        </p>
         <p style="font-size: var(--text-sm); color: var(--ink-tertiary); margin-top: var(--space-2);">
           Each output coordinate is a weighted sum of the input coordinates. The projection does not just shrink width; it mixes features into a new basis.
         </p>
