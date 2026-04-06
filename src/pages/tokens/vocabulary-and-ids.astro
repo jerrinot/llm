@@ -207,6 +207,7 @@ import WorkedSolution from '../../components/course/WorkedSolution.astro';
           Finally, notice how this connects to the model boundary you already learned: an input token ID acts like a row selector into the embedding matrix, and the output head later produces one score per vocabulary entry.
           This is why model conversion and runtime integration have to preserve tokenizer metadata carefully. If vocabulary order or special-token IDs shift, the model may still run but speak a different discrete language than the one it was trained on.
         </p>
+      <div class="file-path"><a href="https://github.com/ggml-org/llama.cpp/blob/94ca829b6001019622c0f67fcd48e9ec6bd7dce8/src/llama-vocab.cpp#L4035" target="_blank" rel="noopener">src/llama-vocab.cpp — llama_tokenize() (L4035)</a></div>
       </div>
     </div>
 

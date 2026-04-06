@@ -208,6 +208,7 @@ import WorkedSolution from '../../components/course/WorkedSolution.astro';
           What to notice: the code is modeling two different ideas at once. The checkpoint carries a training-time context expectation, but the runtime enforces the actual configured budget for this process.
           That is why inference servers expose knobs like context size and max generated tokens separately, and why production systems reserve answer budget explicitly instead of letting the prompt consume the whole window by accident.
         </p>
+      <div class="file-path"><a href="https://github.com/ggml-org/llama.cpp/blob/94ca829b6001019622c0f67fcd48e9ec6bd7dce8/src/llama-cparams.h#L9" target="_blank" rel="noopener">src/llama-cparams.h — llama_cparams (L9)</a></div>
       </div>
     </div>
 
