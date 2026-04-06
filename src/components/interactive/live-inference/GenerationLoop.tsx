@@ -1,41 +1,12 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import type { TopKEntry } from './types';
-
-function softmaxFull(logits: number[], temperature: number): Float64Array {
-  const scaled = logits.map(l => l / temperature);
-  const max = Math.max(...scaled);
-  const exps = scaled.map(l => Math.exp(l - max));
-  const sum = exps.reduce((a, b) => a + b, 0);
-  return Float64Array.from(exps.map(e => e / sum));
-}
-
-function sampleFromFullLogits(logits: number[], topK: TopKEntry[], temperature: number): TopKEntry {
-  // Sample from the full distribution, but return the chosen entry's info
-  const probs = softmaxFull(logits, temperature);
-  const r = Math.random();
-  let cumulative = 0;
-  for (let i = 0; i < probs.length; i++) {
-    cumulative += probs[i];
-    if (r < cumulative) {
-      // Check if this token is in topK for display info
-      const existing = topK.find(e => e.id === i);
-      if (existing) return existing;
-      // Token outside top-K was selected — decode it from the ID
-      return { token: `[id:${i}]`, id: i, logit: 0 };
-    }
-  }
-  return topK[0]; // fallback
-}
 
 interface Props {
   worker: {
-    topK: TopKEntry[] | null;
-    logits: number[] | null;
     inputIds: number[] | null;
     isInferring: boolean;
     error: string | null;
-    runForward: (ids: number[]) => void;
-    tokenize: (text: string) => void;
+    lastGeneratedToken: { token: string; id: number; runId: number } | null;
+    generateStep: (inputIds: number[], temperature: number, runId: number) => void;
   };
   initialText: string;
   temperature: number;
@@ -48,33 +19,28 @@ export function GenerationLoop({ worker, initialText, temperature, isGenerating,
   const [maxTokens, setMaxTokens] = useState(10);
   const currentIdsRef = useRef<number[]>([]);
   const stepRef = useRef(0);
+  const runIdRef = useRef(0);
   const stopRef = useRef(false);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Clean up on unmount
+  // When a generated token arrives, check runId and continue
   useEffect(() => {
-    return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-    };
-  }, []);
+    if (!isGenerating || worker.isInferring || !worker.lastGeneratedToken) return;
 
-  // Generation step: when logits arrive during generation, sample and continue
-  useEffect(() => {
-    if (!isGenerating || worker.isInferring || !worker.logits || !worker.topK) return;
+    // Ignore stale tokens from previous runs
+    if (worker.lastGeneratedToken.runId !== runIdRef.current) return;
 
-    // Check for stop or error before sampling
+    // Check for stop or error
     if (stopRef.current || worker.error) {
       onGeneratingChange(false);
       stopRef.current = false;
       return;
     }
 
-    const chosen = sampleFromFullLogits(worker.logits, worker.topK, temperature);
-
-    setGenerated(prev => [...prev, { token: chosen.token, id: chosen.id }]);
+    const { token, id } = worker.lastGeneratedToken;
+    setGenerated(prev => [...prev, { token, id }]);
     stepRef.current += 1;
 
-    const newIds = [...currentIdsRef.current, chosen.id];
+    const newIds = [...currentIdsRef.current, id];
     currentIdsRef.current = newIds;
 
     if (stepRef.current >= maxTokens) {
@@ -82,16 +48,9 @@ export function GenerationLoop({ worker, initialText, temperature, isGenerating,
       return;
     }
 
-    // Schedule next step with cleanup
-    timerRef.current = setTimeout(() => {
-      if (!stopRef.current) {
-        worker.runForward(newIds);
-      } else {
-        onGeneratingChange(false);
-        stopRef.current = false;
-      }
-    }, 50);
-  }, [worker.logits, worker.topK, worker.isInferring, isGenerating]);
+    // Next step — worker serializes, so no race condition
+    worker.generateStep(newIds, temperature, runIdRef.current);
+  }, [worker.lastGeneratedToken, worker.isInferring, isGenerating]);
 
   const handleGenerate = useCallback(() => {
     if (!worker.inputIds) return;
@@ -99,13 +58,13 @@ export function GenerationLoop({ worker, initialText, temperature, isGenerating,
     currentIdsRef.current = [...worker.inputIds];
     stepRef.current = 0;
     stopRef.current = false;
+    runIdRef.current += 1; // New run ID invalidates any pending results
     onGeneratingChange(true);
-    worker.runForward([...worker.inputIds]);
-  }, [worker, onGeneratingChange]);
+    worker.generateStep([...worker.inputIds], temperature, runIdRef.current);
+  }, [worker, temperature, onGeneratingChange]);
 
   const handleStop = useCallback(() => {
     stopRef.current = true;
-    if (timerRef.current) clearTimeout(timerRef.current);
     onGeneratingChange(false);
   }, [onGeneratingChange]);
 
@@ -132,10 +91,7 @@ export function GenerationLoop({ worker, initialText, temperature, isGenerating,
           Max tokens: {maxTokens}
         </label>
         <input
-          type="range"
-          min="1"
-          max="30"
-          value={maxTokens}
+          type="range" min="1" max="30" value={maxTokens}
           onChange={e => setMaxTokens(parseInt(e.target.value))}
           disabled={isGenerating}
           style={{ width: '8rem', accentColor: 'var(--accent)' }}
@@ -143,16 +99,14 @@ export function GenerationLoop({ worker, initialText, temperature, isGenerating,
         {!isGenerating ? (
           <button
             onClick={handleGenerate}
-            disabled={!worker.inputIds}
+            disabled={!worker.inputIds || worker.isInferring}
             style={{
-              fontFamily: 'var(--font-mono)',
-              fontSize: 'var(--text-sm)',
+              fontFamily: 'var(--font-mono)', fontSize: 'var(--text-sm)',
               padding: 'var(--space-2) var(--space-4)',
-              background: 'var(--accent)',
-              color: 'white',
-              border: 'none',
-              borderRadius: 'var(--radius-sm)',
-              cursor: 'pointer',
+              background: (!worker.inputIds || worker.isInferring) ? 'var(--surface-3)' : 'var(--accent)',
+              color: (!worker.inputIds || worker.isInferring) ? 'var(--ink-ghost)' : 'white',
+              border: 'none', borderRadius: 'var(--radius-sm)',
+              cursor: (!worker.inputIds || worker.isInferring) ? 'default' : 'pointer',
             }}
           >
             Generate
@@ -161,14 +115,10 @@ export function GenerationLoop({ worker, initialText, temperature, isGenerating,
           <button
             onClick={handleStop}
             style={{
-              fontFamily: 'var(--font-mono)',
-              fontSize: 'var(--text-sm)',
+              fontFamily: 'var(--font-mono)', fontSize: 'var(--text-sm)',
               padding: 'var(--space-2) var(--space-4)',
-              background: 'var(--sem-attention)',
-              color: 'white',
-              border: 'none',
-              borderRadius: 'var(--radius-sm)',
-              cursor: 'pointer',
+              background: 'var(--sem-attention)', color: 'white',
+              border: 'none', borderRadius: 'var(--radius-sm)', cursor: 'pointer',
             }}
           >
             Stop
@@ -177,37 +127,22 @@ export function GenerationLoop({ worker, initialText, temperature, isGenerating,
       </div>
 
       <div style={{
-        fontFamily: 'var(--font-mono)',
-        fontSize: 'var(--text-sm)',
-        padding: 'var(--space-3)',
-        background: 'var(--surface-3)',
-        borderRadius: 'var(--radius-sm)',
-        minHeight: '3rem',
-        lineHeight: 1.6,
-        color: 'var(--ink-primary)',
+        fontFamily: 'var(--font-mono)', fontSize: 'var(--text-sm)',
+        padding: 'var(--space-3)', background: 'var(--surface-3)',
+        borderRadius: 'var(--radius-sm)', minHeight: '3rem',
+        lineHeight: 1.6, color: 'var(--ink-primary)',
       }}>
         <span style={{ color: 'var(--ink-secondary)' }}>{initialText}</span>
         {generated.map((g, i) => (
-          <span
-            key={i}
-            style={{
-              color: 'var(--sem-ffn)',
-              borderBottom: '1px dotted var(--sem-ffn-dim)',
-            }}
-            title={`ID: ${g.id}`}
-          >
+          <span key={i} style={{ color: 'var(--sem-ffn)', borderBottom: '1px dotted var(--sem-ffn-dim)' }} title={`ID: ${g.id}`}>
             {g.token}
           </span>
         ))}
         {isGenerating && (
           <span style={{
-            display: 'inline-block',
-            width: '0.5em',
-            height: '1em',
-            background: 'var(--accent)',
-            animation: 'blink 0.8s step-end infinite',
-            verticalAlign: 'text-bottom',
-            marginLeft: '1px',
+            display: 'inline-block', width: '0.5em', height: '1em',
+            background: 'var(--accent)', animation: 'blink 0.8s step-end infinite',
+            verticalAlign: 'text-bottom', marginLeft: '1px',
           }} />
         )}
         <style>{`@keyframes blink { 50% { opacity: 0; } }`}</style>
@@ -215,8 +150,8 @@ export function GenerationLoop({ worker, initialText, temperature, isGenerating,
 
       {generated.length > 0 && !isGenerating && (
         <div style={{ fontSize: 'var(--text-xs)', color: 'var(--ink-ghost)', marginTop: 'var(--space-2)' }}>
-          Generated {generated.length} tokens. Each required a full forward pass &mdash;
-          this is the autoregressive loop from the course. Tokens are sampled from the full vocabulary distribution, not just the displayed top-K.
+          Generated {generated.length} tokens. Each required a full forward pass through the model &mdash;
+          this is the autoregressive loop. Sampling uses the full vocabulary distribution with temperature {temperature.toFixed(2)}.
         </div>
       )}
     </div>

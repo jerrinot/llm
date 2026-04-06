@@ -3,6 +3,12 @@ import type { WorkerInMessage, WorkerOutMessage, TokenPiece, TopKEntry } from '.
 
 export type ModelStatus = 'idle' | 'downloading' | 'ready' | 'error';
 
+export interface GeneratedToken {
+  token: string;
+  id: number;
+  runId: number;
+}
+
 export interface InferenceState {
   modelStatus: ModelStatus;
   downloadProgress: number;
@@ -12,6 +18,7 @@ export interface InferenceState {
   inputIds: number[] | null;
   logits: number[] | null;
   topK: TopKEntry[] | null;
+  lastGeneratedToken: GeneratedToken | null;
   error: string | null;
 }
 
@@ -26,6 +33,7 @@ export function useInferenceWorker() {
     inputIds: null,
     logits: null,
     topK: null,
+    lastGeneratedToken: null,
     error: null,
   });
 
@@ -41,12 +49,7 @@ export function useInferenceWorker() {
           const msg = e.data;
           switch (msg.type) {
             case 'model-progress':
-              setState(s => ({
-                ...s,
-                modelStatus: 'downloading',
-                downloadProgress: msg.progress,
-                downloadLabel: msg.status,
-              }));
+              setState(s => ({ ...s, modelStatus: 'downloading', downloadProgress: msg.progress, downloadLabel: msg.status }));
               break;
             case 'model-ready':
               setState(s => ({ ...s, modelStatus: 'ready', downloadProgress: 100, downloadLabel: 'Model ready' }));
@@ -57,11 +60,12 @@ export function useInferenceWorker() {
             case 'logits':
               setState(s => ({ ...s, logits: msg.logits, topK: msg.topK, isInferring: false }));
               break;
+            case 'generated-token':
+              setState(s => ({ ...s, lastGeneratedToken: { token: msg.token, id: msg.id, runId: msg.runId }, isInferring: false }));
+              break;
             case 'error':
               setState(s => ({
-                ...s,
-                error: msg.message,
-                isInferring: false,
+                ...s, error: msg.message, isInferring: false,
                 modelStatus: s.modelStatus === 'downloading' ? 'error' : s.modelStatus,
               }));
               break;
@@ -69,19 +73,13 @@ export function useInferenceWorker() {
         };
         w.onerror = (e) => {
           setState(s => ({
-            ...s,
-            error: `Worker error: ${e.message || 'unknown'}`,
-            isInferring: false,
+            ...s, error: `Worker error: ${e.message || 'unknown'}`, isInferring: false,
             modelStatus: s.modelStatus === 'downloading' ? 'error' : s.modelStatus,
           }));
         };
         workerRef.current = w;
       } catch (e: any) {
-        setState(s => ({
-          ...s,
-          error: `Failed to create worker: ${e.message}`,
-          modelStatus: 'error',
-        }));
+        setState(s => ({ ...s, error: `Failed to create worker: ${e.message}`, modelStatus: 'error' }));
         return null;
       }
     }
@@ -89,10 +87,7 @@ export function useInferenceWorker() {
   }, []);
 
   useEffect(() => {
-    return () => {
-      workerRef.current?.terminate();
-      workerRef.current = null;
-    };
+    return () => { workerRef.current?.terminate(); workerRef.current = null; };
   }, []);
 
   const send = useCallback((msg: WorkerInMessage) => {
@@ -106,7 +101,7 @@ export function useInferenceWorker() {
   }, [send]);
 
   const tokenize = useCallback((text: string) => {
-    setState(s => ({ ...s, isInferring: true, error: null }));
+    setState(s => ({ ...s, isInferring: true, tokens: null, inputIds: null, logits: null, topK: null, error: null }));
     send({ type: 'tokenize', text });
   }, [send]);
 
@@ -115,5 +110,10 @@ export function useInferenceWorker() {
     send({ type: 'forward-pass', inputIds });
   }, [send]);
 
-  return { ...state, loadModel, tokenize, runForward };
+  const generateStep = useCallback((inputIds: number[], temperature: number, runId: number) => {
+    setState(s => ({ ...s, isInferring: true, error: null }));
+    send({ type: 'generate-step', inputIds, temperature, runId });
+  }, [send]);
+
+  return { ...state, loadModel, tokenize, runForward, generateStep };
 }

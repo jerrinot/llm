@@ -1,13 +1,12 @@
-import { AutoTokenizer, AutoModelForCausalLM, Tensor } from '@huggingface/transformers';
+import { AutoTokenizer, AutoModelForCausalLM } from '@huggingface/transformers';
 import type { WorkerInMessage, WorkerOutMessage, TokenPiece, TopKEntry } from './types';
 
-const MODEL_ID = 'onnx-community/distilgpt2';
+const MODEL_ID = 'Xenova/distilgpt2';
 const TOP_K = 15;
 
 let tokenizer: Awaited<ReturnType<typeof AutoTokenizer.from_pretrained>> | null = null;
 let model: Awaited<ReturnType<typeof AutoModelForCausalLM.from_pretrained>> | null = null;
 
-// Serialize all requests through a single promise chain to prevent race conditions
 let workQueue: Promise<void> = Promise.resolve();
 
 function post(msg: WorkerOutMessage) {
@@ -18,6 +17,12 @@ function enqueue(fn: () => Promise<void>) {
   workQueue = workQueue.then(fn).catch(e => {
     post({ type: 'error', message: e?.message || 'Unknown worker error' });
   });
+}
+
+// Helper: extract integer array from a Transformers.js tensor (v4 returns BigInt64Array)
+function tensorToIds(tensor: any): number[] {
+  const data = tensor.data || tensor;
+  return Array.from(data).map(Number);
 }
 
 async function loadModel() {
@@ -53,13 +58,10 @@ async function loadModel() {
 }
 
 async function tokenize(text: string) {
-  if (!tokenizer) {
-    post({ type: 'error', message: 'Tokenizer not loaded' });
-    return;
-  }
+  if (!tokenizer) { post({ type: 'error', message: 'Tokenizer not loaded' }); return; }
   try {
-    const encoded = tokenizer(text, { return_tensors: false }) as any;
-    const ids: number[] = Array.from(encoded.input_ids);
+    const encoded = tokenizer(text);
+    const ids = tensorToIds(encoded.input_ids);
     const pieces: TokenPiece[] = ids.map(id => ({
       piece: tokenizer!.decode([id]),
       id,
@@ -70,38 +72,66 @@ async function tokenize(text: string) {
   }
 }
 
+async function runModelForward(text: string): Promise<{ lastLogits: number[]; vocabSize: number }> {
+  const encoded = tokenizer!(text);
+  const output = await model!.forward(encoded);
+  const logitsTensor = output.logits;
+  const vocabSize = logitsTensor.dims[2];
+  const seqLen = logitsTensor.dims[1];
+  const allLogits = logitsTensor.data as Float32Array;
+  const lastPosStart = (seqLen - 1) * vocabSize;
+  return {
+    lastLogits: Array.from(allLogits.slice(lastPosStart, lastPosStart + vocabSize)),
+    vocabSize,
+  };
+}
+
+function getTopK(lastLogits: number[]): TopKEntry[] {
+  const indexed = lastLogits.map((logit, i) => ({ logit, i }));
+  indexed.sort((a, b) => b.logit - a.logit);
+  return indexed.slice(0, TOP_K).map(({ logit, i }) => ({
+    token: tokenizer!.decode([i]),
+    id: i,
+    logit,
+  }));
+}
+
 async function forwardPass(inputIds: number[]) {
-  if (!model || !tokenizer) {
-    post({ type: 'error', message: 'Model not loaded' });
-    return;
-  }
+  if (!model || !tokenizer) { post({ type: 'error', message: 'Model not loaded' }); return; }
   try {
-    // Create input tensor [1, seq_len] of int64
-    const int64Data = BigInt64Array.from(inputIds.map(id => BigInt(id)));
-    const inputTensor = new Tensor('int64', int64Data, [1, inputIds.length]);
-
-    const output = await model.forward({ input_ids: inputTensor });
-    const logitsTensor = output.logits;
-
-    // Get logits for the last position: shape [1, seq_len, vocab_size]
-    const vocabSize = logitsTensor.dims[2];
-    const seqLen = logitsTensor.dims[1];
-    const allLogits = logitsTensor.data as Float32Array;
-    const lastPosStart = (seqLen - 1) * vocabSize;
-    const lastLogits = Array.from(allLogits.slice(lastPosStart, lastPosStart + vocabSize));
-
-    // Find top-K
-    const indexed = lastLogits.map((logit, i) => ({ logit, i }));
-    indexed.sort((a, b) => b.logit - a.logit);
-    const topK: TopKEntry[] = indexed.slice(0, TOP_K).map(({ logit, i }) => ({
-      token: tokenizer!.decode([i]),
-      id: i,
-      logit,
-    }));
-
+    const text = tokenizer.decode(inputIds);
+    const { lastLogits } = await runModelForward(text);
+    const topK = getTopK(lastLogits);
     post({ type: 'logits', logits: lastLogits, topK });
   } catch (e: any) {
     post({ type: 'error', message: e.message || 'Forward pass failed' });
+  }
+}
+
+function softmaxSample(logits: number[], temperature: number): number {
+  const scaled = logits.map(l => l / temperature);
+  const max = Math.max(...scaled);
+  const exps = scaled.map(l => Math.exp(l - max));
+  const sum = exps.reduce((a, b) => a + b, 0);
+  const r = Math.random() * sum;
+  let cumulative = 0;
+  for (let i = 0; i < exps.length; i++) {
+    cumulative += exps[i];
+    if (r < cumulative) return i;
+  }
+  return exps.length - 1;
+}
+
+async function generateStep(inputIds: number[], temperature: number, runId: number) {
+  if (!model || !tokenizer) { post({ type: 'error', message: 'Model not loaded' }); return; }
+  try {
+    const text = tokenizer.decode(inputIds);
+    const { lastLogits } = await runModelForward(text);
+    const chosenId = softmaxSample(lastLogits, temperature);
+    const chosenToken = tokenizer.decode([chosenId]);
+    post({ type: 'generated-token', token: chosenToken, id: chosenId, runId });
+  } catch (e: any) {
+    post({ type: 'error', message: e.message || 'Generation step failed' });
   }
 }
 
@@ -116,6 +146,9 @@ self.onmessage = (e: MessageEvent<WorkerInMessage>) => {
       break;
     case 'forward-pass':
       enqueue(() => forwardPass(msg.inputIds));
+      break;
+    case 'generate-step':
+      enqueue(() => generateStep(msg.inputIds, msg.temperature, msg.runId));
       break;
   }
 };

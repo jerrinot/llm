@@ -2,7 +2,8 @@
 export type WorkerInMessage =
   | { type: 'load-model' }
   | { type: 'tokenize'; text: string }
-  | { type: 'forward-pass'; inputIds: number[] };
+  | { type: 'forward-pass'; inputIds: number[] }
+  | { type: 'generate-step'; inputIds: number[]; temperature: number; runId: number };
 
 // Messages from worker to main thread
 export type WorkerOutMessage =
@@ -10,6 +11,7 @@ export type WorkerOutMessage =
   | { type: 'model-ready' }
   | { type: 'tokenized'; pieces: TokenPiece[]; inputIds: number[] }
   | { type: 'logits'; logits: number[]; topK: TopKEntry[] }
+  | { type: 'generated-token'; token: string; id: number; runId: number }
   | { type: 'error'; message: string };
 
 export interface TokenPiece {
